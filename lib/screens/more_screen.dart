@@ -78,7 +78,9 @@ class MoreScreen extends StatelessWidget {
                 label: 'Verses',
                 onTap: () => _push(context, const VerseArchiveScreen())),
             _Tile(
-                icon: Icons.photo_camera_back_rounded, label: 'Testimonies', onTap: () => AppShell.goToTab(context, 2)),
+                icon: Icons.photo_camera_back_rounded,
+                label: 'Testimonies',
+                onTap: () => AppShell.goToTab(context, AppShell.watch)),
           ],
         ),
         const SizedBox(height: 20),

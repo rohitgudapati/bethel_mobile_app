@@ -112,7 +112,7 @@ class HomeScreen extends StatelessWidget {
                   icon: Icons.volunteer_activism,
                   label: 'Pray',
                   color: BethelColors.gold,
-                  onTap: () => AppShell.goToTab(context, 3)),
+                  onTap: () => AppShell.goToTab(context, AppShell.prayer)),
               _QuickAction(
                   icon: Icons.event_rounded,
                   label: 'Events',
@@ -177,7 +177,8 @@ class HomeScreen extends StatelessWidget {
         ),
         // Latest sermons
         SliverToBoxAdapter(
-          child: SectionHeader('Latest messages', action: 'All sermons', onAction: () => AppShell.goToTab(context, 2)),
+          child: SectionHeader('Latest messages',
+              action: 'All sermons', onAction: () => AppShell.goToTab(context, AppShell.watch)),
         ),
         AsyncView<List<Sermon>>(
           sliver: true,

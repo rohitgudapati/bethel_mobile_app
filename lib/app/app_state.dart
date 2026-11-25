@@ -6,6 +6,7 @@ import '../data/mock_repository.dart';
 import '../data/models.dart';
 import '../data/repository.dart';
 import 'config.dart';
+import 'launch.dart';
 
 /// Small app-wide state: data source, signed-in user, theme and a few
 /// personal toggles. Exposed to widgets through [AppScope].
@@ -21,7 +22,7 @@ class AppState extends ChangeNotifier {
   final BethelRepository repo;
 
   UserProfile? user;
-  bool guest = false;
+  bool guest = LaunchOptions.skipWelcome;
   ThemeMode themeMode = ThemeMode.light;
   final Set<int> likedVerses = {};
   final Set<int> savedSongs = {};

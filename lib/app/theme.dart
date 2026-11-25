@@ -47,6 +47,8 @@ class BethelTheme {
       useMaterial3: true,
       colorScheme: scheme,
       fontFamily: 'Poppins',
+      // Telugu song lyrics and titles. Bundled so it works offline and in the preview.
+      fontFamilyFallback: const ['NotoSansTelugu'],
       scaffoldBackgroundColor: scheme.surface,
     );
 

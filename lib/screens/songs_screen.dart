@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../app/app_state.dart';
+import '../app/launch.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
@@ -131,6 +132,7 @@ class _SongsScreenState extends State<SongsScreen> {
     final results = lib.allSongs.where((s) {
       if (n != null) return s.number == n;
       return s.title.toLowerCase().contains(q) ||
+          s.altTitle.toLowerCase().contains(q) ||
           s.lyricist.toLowerCase().contains(q) ||
           s.artist.toLowerCase().contains(q) ||
           s.lyrics.values.any((l) => l.toLowerCase().contains(q));
@@ -159,7 +161,13 @@ class _SongsScreenState extends State<SongsScreen> {
     if (lib.books.isEmpty) {
       return [const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Text('No song books yet.')))];
     }
-    final book = lib.books.firstWhere((b) => b.id == _bookId, orElse: () => lib.books.first);
+    final wanted = LaunchOptions.book;
+    final book = lib.books.firstWhere(
+      (b) => b.id == _bookId,
+      orElse: () => wanted == null
+          ? lib.books.first
+          : lib.books.firstWhere((b) => b.title.toLowerCase().contains(wanted), orElse: () => lib.books.first),
+    );
     final songs = lib.songsByBook[book.id] ?? const <Song>[];
     return [
       // Song book picker
@@ -463,7 +471,12 @@ class SongRow extends StatelessWidget {
     final downloaded = state.downloadedSongs.contains(song.id);
     final t = Theme.of(context);
     final sub = [
-      if (song.lyricist.isNotEmpty) song.lyricist else if (song.artist.isNotEmpty) song.artist,
+      if (song.altTitle.isNotEmpty && song.altTitle != song.title)
+        song.altTitle
+      else if (song.lyricist.isNotEmpty)
+        song.lyricist
+      else if (song.artist.isNotEmpty)
+        song.artist,
       if (showBook && song.albumTitle != null && song.albumTitle!.isNotEmpty) song.albumTitle!,
     ].join(' · ');
     return ListTile(
@@ -478,8 +491,12 @@ class SongRow extends StatelessWidget {
                 color: t.brightness == Brightness.dark ? t.colorScheme.surfaceContainer : BethelColors.goldSoft,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Text('${song.number}',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: t.colorScheme.onSurface)),
+              padding: const EdgeInsets.all(4),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text('${song.number}',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: t.colorScheme.onSurface)),
+              ),
             )
           : BethelImage(song.image, width: 46, height: 46, radius: 12),
       title: Text(song.title,
@@ -627,15 +644,22 @@ class _SongScreenState extends State<SongScreen> {
                   width: 64,
                   height: 64,
                   alignment: Alignment.center,
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(color: BethelColors.navy, borderRadius: BorderRadius.circular(18)),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const Text('NO.',
-                        style: TextStyle(
-                            color: BethelColors.goldSoft, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1)),
-                    Text('${song.number}',
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700, height: 1.1)),
-                  ]),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const Text('NO.',
+                          style: TextStyle(
+                              color: BethelColors.goldSoft,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1)),
+                      Text('${song.number}',
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700, height: 1.1)),
+                    ]),
+                  ),
                 )
               else
                 BethelImage(song.image, width: 64, height: 64, radius: 18),
@@ -643,6 +667,16 @@ class _SongScreenState extends State<SongScreen> {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(song.title, style: t.textTheme.titleLarge),
+                  if (song.altTitle.isNotEmpty && song.altTitle != song.title)
+                    Text(song.altTitle, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500)),
+                  if (song.reference.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(song.reference,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: BethelColors.gold, fontWeight: FontWeight.w600, fontSize: 13)),
+                    ),
                   if (song.lyricist.isNotEmpty)
                     Text('Lyricist: ${song.lyricist}', style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
                   if (song.artist.isNotEmpty && song.artist != 'Traditional')

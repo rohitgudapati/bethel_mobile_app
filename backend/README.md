@@ -56,12 +56,14 @@ You need a Google account. Steps 1–3 happen in the browser.
    firebase deploy               # asks for YOUTUBE_CHANNEL: paste the channel link or @handle
    ```
 
-5. **Load the starting content** (song books, hymns, services, ministries, events, verses):
+5. **Load the starting content** (song books, hymns, services, ministries, events, verses),
+   including the full Songs of Zion book from `assets/songs/songs_of_zion.json`
+   (kept out of git; see `assets/songs/README.md`):
 
    ```bash
    gcloud auth application-default login
    cd backend/functions
-   GOOGLE_CLOUD_PROJECT=<project-id> npm run seed -- --production
+   GOOGLE_CLOUD_PROJECT=<project-id> npm run seed -- --production --songs ../../assets/songs/songs_of_zion.json
    ```
 
 6. **Make yourself an admin** after signing in to the app once:

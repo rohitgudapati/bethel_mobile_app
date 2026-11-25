@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../app/launch.dart';
+import '../app/theme.dart';
 import 'home_screen.dart';
 import 'more_screen.dart';
 import 'prayer_screen.dart';
 import 'songs_screen.dart';
 import 'watch_screen.dart';
 
-/// Bottom navigation: Home · Songs · Watch · Prayer · More.
+/// Bottom navigation: Songs · Watch · Home (centre) · Prayer · More. Opens on Home.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
+
+  static const songs = 0, watch = 1, home = 2, prayer = 3, more = 4;
 
   static void goToTab(BuildContext context, int index) =>
       context.findAncestorStateOfType<_AppShellState>()?.select(index);
@@ -18,7 +22,7 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _index = 0;
+  int _index = LaunchOptions.tabs.indexOf(LaunchOptions.startTab ?? 'home');
 
   void select(int i) => setState(() => _index = i);
 
@@ -26,9 +30,9 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _index, children: const [
-        HomeScreen(),
         SongsScreen(),
         WatchScreen(),
+        HomeScreen(),
         PrayerScreen(),
         MoreScreen(),
       ]),
@@ -36,13 +40,14 @@ class _AppShellState extends State<AppShell> {
         selectedIndex: _index,
         onDestinationSelected: select,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
           NavigationDestination(
               icon: Icon(Icons.library_music_outlined),
               selectedIcon: Icon(Icons.library_music_rounded),
               label: 'Songs'),
           NavigationDestination(
               icon: Icon(Icons.play_circle_outline), selectedIcon: Icon(Icons.play_circle_rounded), label: 'Watch'),
+          NavigationDestination(
+              icon: _HomeIcon(selected: false), selectedIcon: _HomeIcon(selected: true), label: 'Home'),
           NavigationDestination(
               icon: Icon(Icons.volunteer_activism_outlined),
               selectedIcon: Icon(Icons.volunteer_activism),
@@ -53,4 +58,22 @@ class _AppShellState extends State<AppShell> {
       ),
     );
   }
+}
+
+/// The centre Home button is a filled circle so it stands out, like the old app's centre button.
+class _HomeIcon extends StatelessWidget {
+  const _HomeIcon({required this.selected});
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: selected ? BethelColors.navy : BethelColors.gold,
+          boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 8, offset: Offset(0, 3))],
+        ),
+        child: Icon(selected ? Icons.home_rounded : Icons.home_outlined, color: Colors.white),
+      );
 }

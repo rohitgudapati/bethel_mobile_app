@@ -132,6 +132,12 @@ class Song {
   final int number;
   final String title;
 
+  /// Title in a second script, e.g. the Telugu title of a Songs of Zion song.
+  final String altTitle;
+
+  /// Bible reference printed with the song, e.g. "Psalm 2:1-10".
+  final String reference;
+
   /// Singer or composer.
   final String artist;
   final String lyricist;
@@ -139,7 +145,7 @@ class Song {
   final int? albumId;
   final String? albumTitle;
 
-  /// Lyrics keyed by language name, e.g. {'English': '...', 'Telugu': '...'}.
+  /// Lyrics keyed by language name, e.g. {'Telugu': '...', 'English': '...'}.
   /// Stanzas are separated by a blank line.
   final Map<String, String> lyrics;
   final String? chordKey;
@@ -151,6 +157,8 @@ class Song {
     required this.artist,
     required this.image,
     this.number = 0,
+    this.altTitle = '',
+    this.reference = '',
     this.lyricist = '',
     this.albumId,
     this.albumTitle,
@@ -166,6 +174,8 @@ class Song {
         id: id,
         number: number,
         title: title,
+        altTitle: altTitle,
+        reference: reference,
         artist: artist,
         lyricist: lyricist ?? this.lyricist,
         image: image,

@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart' show rootBundle;
+
 import 'models.dart';
 import 'repository.dart';
 
@@ -378,14 +382,14 @@ class MockRepository implements BethelRepository {
       ]);
 
   @override
-  Future<List<Album>> albums() => _delay(const [
+  Future<List<Album>> albums() async => _delay([
         Album(
             id: 10,
             title: 'Songs of Zion',
             image: 'assets/church.jpg',
             artist: 'Telugu song book',
             language: 'Telugu',
-            songCount: 2,
+            songCount: (await _zionSongs()).length,
             isSongBook: true),
         Album(
             id: 11,
@@ -393,7 +397,7 @@ class MockRepository implements BethelRepository {
             image: 'assets/picture3.png',
             artist: 'English hymn book',
             language: 'English',
-            songCount: 10,
+            songCount: 20,
             isSongBook: true),
         Album(id: 1, title: 'Sunday Praise', image: 'assets/live_event.jpeg', artist: 'Bethel Worship'),
         Album(id: 2, title: 'Kids Worship', image: 'assets/ministriesimage.png', artist: 'Children\'s Ministry'),
@@ -585,22 +589,217 @@ class MockRepository implements BethelRepository {
             'Come, Thou Fount of every blessing,\nTune my heart to sing Thy grace;\nStreams of mercy, never ceasing,\nCall for songs of loudest praise.',
       },
     ),
+    Song(
+      id: 11,
+      number: 11,
+      title: 'To God Be the Glory',
+      artist: 'Traditional',
+      lyricist: 'Fanny Crosby (1875)',
+      image: 'assets/church.jpg',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      lyrics: {
+        'English':
+            'To God be the glory, great things He hath done;\nSo loved He the world that He gave us His Son,\nWho yielded His life an atonement for sin,\nAnd opened the life-gate that all may go in.\n\nPraise the Lord, praise the Lord,\nLet the earth hear His voice!\nPraise the Lord, praise the Lord,\nLet the people rejoice!\nO come to the Father, through Jesus the Son,\nAnd give Him the glory, great things He hath done.',
+      },
+    ),
+    Song(
+      id: 12,
+      number: 12,
+      title: 'When I Survey the Wondrous Cross',
+      artist: 'Traditional',
+      lyricist: 'Isaac Watts (1707)',
+      image: 'assets/picture3.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      lyrics: {
+        'English':
+            'When I survey the wondrous cross\nOn which the Prince of glory died,\nMy richest gain I count but loss,\nAnd pour contempt on all my pride.\n\nWere the whole realm of nature mine,\nThat were a present far too small;\nLove so amazing, so divine,\nDemands my soul, my life, my all.',
+      },
+    ),
+    Song(
+      id: 13,
+      number: 13,
+      title: 'The Old Rugged Cross',
+      artist: 'Traditional',
+      lyricist: 'George Bennard (1913)',
+      image: 'assets/sermon-hero.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      chordKey: 'G',
+      lyrics: {
+        'English':
+            'On a hill far away stood an old rugged cross,\nThe emblem of suffering and shame;\nAnd I love that old cross where the dearest and best\nFor a world of lost sinners was slain.\n\nSo I\'ll cherish the old rugged cross,\nTill my trophies at last I lay down;\nI will cling to the old rugged cross,\nAnd exchange it some day for a crown.',
+      },
+    ),
+    Song(
+      id: 14,
+      number: 14,
+      title: 'I Surrender All',
+      artist: 'Traditional',
+      lyricist: 'Judson W. Van DeVenter (1896)',
+      image: 'assets/pray.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      chordKey: 'D',
+      lyrics: {
+        'English':
+            'All to Jesus I surrender,\nAll to Him I freely give;\nI will ever love and trust Him,\nIn His presence daily live.\n\nI surrender all, I surrender all;\nAll to Thee, my blessed Savior,\nI surrender all.',
+      },
+    ),
+    Song(
+      id: 15,
+      number: 15,
+      title: 'Trust and Obey',
+      artist: 'Traditional',
+      lyricist: 'John H. Sammis (1887)',
+      image: 'assets/doe.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      chordKey: 'F',
+      lyrics: {
+        'English':
+            'When we walk with the Lord\nIn the light of His Word,\nWhat a glory He sheds on our way!\nWhile we do His good will,\nHe abides with us still,\nAnd with all who will trust and obey.\n\nTrust and obey, for there\'s no other way\nTo be happy in Jesus, but to trust and obey.',
+      },
+    ),
+    Song(
+      id: 16,
+      number: 16,
+      title: 'Leaning on the Everlasting Arms',
+      artist: 'Traditional',
+      lyricist: 'Elisha A. Hoffman (1887)',
+      image: 'assets/picture1.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      chordKey: 'A',
+      lyrics: {
+        'English':
+            'What a fellowship, what a joy divine,\nLeaning on the everlasting arms;\nWhat a blessedness, what a peace is mine,\nLeaning on the everlasting arms.\n\nLeaning, leaning,\nSafe and secure from all alarms;\nLeaning, leaning,\nLeaning on the everlasting arms.',
+      },
+    ),
+    Song(
+      id: 17,
+      number: 17,
+      title: 'Count Your Blessings',
+      artist: 'Traditional',
+      lyricist: 'Johnson Oatman Jr. (1897)',
+      image: 'assets/live_event.jpeg',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      chordKey: 'D',
+      lyrics: {
+        'English':
+            'When upon life\'s billows you are tempest tossed,\nWhen you are discouraged, thinking all is lost,\nCount your many blessings, name them one by one,\nAnd it will surprise you what the Lord hath done.\n\nCount your blessings, name them one by one;\nCount your blessings, see what God hath done!\nCount your blessings, name them one by one;\nCount your many blessings, see what God hath done.',
+      },
+    ),
+    Song(
+      id: 18,
+      number: 18,
+      title: 'O for a Thousand Tongues to Sing',
+      artist: 'Traditional',
+      lyricist: 'Charles Wesley (1739)',
+      image: 'assets/master2.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      lyrics: {
+        'English':
+            'O for a thousand tongues to sing\nMy great Redeemer\'s praise,\nThe glories of my God and King,\nThe triumphs of His grace!\n\nJesus! the name that charms our fears,\nThat bids our sorrows cease;\n\'Tis music in the sinner\'s ears,\n\'Tis life, and health, and peace.',
+      },
+    ),
+    Song(
+      id: 19,
+      number: 19,
+      title: 'Joy to the World',
+      artist: 'Traditional',
+      lyricist: 'Isaac Watts (1719)',
+      image: 'assets/master1.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      chordKey: 'D',
+      lyrics: {
+        'English':
+            'Joy to the world! the Lord is come;\nLet earth receive her King;\nLet every heart prepare Him room,\nAnd heaven and nature sing,\nAnd heaven and nature sing,\nAnd heaven, and heaven, and nature sing.',
+      },
+    ),
+    Song(
+      id: 20,
+      number: 20,
+      title: 'Softly and Tenderly',
+      artist: 'Traditional',
+      lyricist: 'Will L. Thompson (1880)',
+      image: 'assets/ministriesimage.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      chordKey: 'G',
+      lyrics: {
+        'English':
+            'Softly and tenderly Jesus is calling,\nCalling for you and for me;\nSee, on the portals He\'s waiting and watching,\nWatching for you and for me.\n\nCome home, come home,\nYe who are weary, come home;\nEarnestly, tenderly, Jesus is calling,\nCalling, O sinner, come home!',
+      },
+    ),
   ];
 
-  @override
-  Future<List<Song>> trendingSongs() => _delay([
-        for (final id in const [1, 101, 3, 2, 102, 5]) _songs.firstWhere((s) => s.id == id)
-      ]);
+  /// Songs of Zion, loaded from `assets/songs/songs_of_zion.json` when it is bundled
+  /// (the file is git-ignored). Without it, the two sample titles above are used.
+  List<Song>? _zionCache;
+
+  Future<List<Song>> _zionSongs() async {
+    if (_zionCache != null) return _zionCache!;
+    try {
+      final raw =
+          jsonDecode(utf8.decode((await rootBundle.load('assets/songs/songs_of_zion.json')).buffer.asUint8List()))
+              as List;
+      const images = [
+        'assets/church.jpg',
+        'assets/picture3.png',
+        'assets/pray.png',
+        'assets/doe.png',
+        'assets/sermon-hero.png'
+      ];
+      _zionCache = [
+        for (final m in raw.cast<Map<String, dynamic>>())
+          Song(
+            id: 100000 + (m['n'] as int),
+            number: m['n'] as int,
+            title: m['t'] as String,
+            altTitle: (m['tt'] as String?) ?? '',
+            reference: (m['r'] as String?) ?? '',
+            artist: '',
+            image: images[(m['n'] as int) % images.length],
+            albumId: _zion,
+            albumTitle: 'Songs of Zion',
+            lyrics: {
+              if ((m['te'] as String?)?.isNotEmpty ?? false) 'Telugu': m['te'] as String,
+              if ((m['en'] as String?)?.isNotEmpty ?? false) 'English': m['en'] as String,
+            },
+          ),
+      ];
+    } catch (_) {
+      _zionCache = _songs.where((s) => s.albumId == _zion).toList();
+    }
+    return _zionCache!;
+  }
 
   @override
-  Future<List<Song>> songsForAlbum(int albumId) {
+  Future<List<Song>> trendingSongs() async {
+    final zion = await _zionSongs();
+    Song? z(int n) => zion.where((s) => s.number == n).firstOrNull;
+    return _delay([
+      ...[z(1), z(500), z(2)].whereType<Song>(),
+      for (final id in const [1, 3, 5]) _songs.firstWhere((s) => s.id == id),
+    ]);
+  }
+
+  @override
+  Future<List<Song>> songsForAlbum(int albumId) async {
+    if (albumId == _zion) return _delay(await _zionSongs());
     final list = _songs.where((s) => s.albumId == albumId).toList();
     // Albums that aren't song books reuse a few hymns in the demo.
     return _delay(list.isEmpty ? _songs.where((s) => s.albumId == _hymns).take(3).toList() : list);
   }
 
   @override
-  Future<Song> songDetail(Song song) => _delay(_songs.firstWhere((s) => s.id == song.id, orElse: () => song));
+  Future<Song> songDetail(Song song) async =>
+      _delay([..._songs, ...await _zionSongs()].firstWhere((s) => s.id == song.id, orElse: () => song));
 
   @override
   Future<List<Book>> books() => _delay(const [

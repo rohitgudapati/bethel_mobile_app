@@ -375,6 +375,8 @@ class FirebaseRepository implements BethelRepository {
       id: _key(d.id),
       number: (m['number'] as num?)?.toInt() ?? 0,
       title: _s(m, 'title'),
+      altTitle: _s(m, 'altTitle'),
+      reference: _s(m, 'reference'),
       artist: _s(m, 'artist'),
       lyricist: _s(m, 'lyricist'),
       image: _s(m, 'image', 'assets/church.jpg'),

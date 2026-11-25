@@ -26,10 +26,17 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+    - assets/songs/
   fonts:
     - family: Quintessential
       fonts:
         - asset: assets/fonts/Quintessential/Quintessential-Regular.ttf
+    - family: NotoSansTelugu
+      fonts:
+        - asset: assets/fonts/NotoSansTelugu/NotoSansTelugu-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansTelugu/NotoSansTelugu-SemiBold.ttf
+          weight: 600
     - family: Poppins
       fonts:
         - asset: assets/fonts/Poppins/Poppins-Light.ttf

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bethelprayerhouse/app/app_state.dart';
 import 'package:bethelprayerhouse/data/mock_repository.dart';
 import 'package:bethelprayerhouse/main.dart';
@@ -59,7 +61,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Songs of Zion'), findsWidgets);
-    expect(find.text('Aadhaaram Naaku Aadhaaram'), findsWidgets);
+    // Song 1 of Songs of Zion: the real book when assets/songs/songs_of_zion.json is present, else the sample.
+    expect(
+      find.text('Dustula allochana choppuna').evaluate().isNotEmpty ||
+          find.text('Aadhaaram Naaku Aadhaaram').evaluate().isNotEmpty,
+      isTrue,
+    );
 
     // Switch to the hymn book and search by number.
     await tester.tap(find.text('Hymns of Faith').first);
@@ -79,4 +86,35 @@ void main() {
     expect(state.recentSongs.first.id, 3);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'Songs of Zion: find song 500 by number and read it in Telugu and English',
+    (tester) async {
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+
+      final state = AppState(repository: MockRepository())..continueAsGuest();
+      await tester.pumpWidget(BethelApp(state: state));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Songs').last);
+      await tester.pumpAndSettle();
+      expect(find.text('866 songs'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField).first, '500');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ne Yesuni velugulo nadichedanu'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('నే యేసుని వెలుగులో నడిచెదను'), findsOneWidget, reason: 'Telugu title');
+      expect(find.textContaining('John 8:12'), findsOneWidget, reason: 'Bible reference');
+      expect(find.textContaining('రాత్రింబగలాయనతో నడిచెదను'), findsOneWidget, reason: 'Telugu lyrics first');
+
+      await tester.tap(find.text('English'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('ratrimabagalaayanato nadichedanu'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+    skip: !File('assets/songs/songs_of_zion.json').existsSync(),
+  );
 }

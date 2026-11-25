@@ -3,6 +3,9 @@
  *
  *   Emulator:   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npm run seed
  *   Production: GOOGLE_CLOUD_PROJECT=<project-id> npm run seed -- --production
+ *
+ * Add `--songs <file.json>` to load a full song book (e.g. assets/songs/songs_of_zion.json,
+ * which is kept out of git). Its songs replace the sample Songs of Zion entries.
  *               (needs `gcloud auth application-default login` first)
  *
  * Existing documents with the same ids are overwritten; anything else is left alone.
@@ -25,15 +28,53 @@ function dayFromOffset(offset: number | string, now = new Date()): Date {
   return new Date(today.getTime() + days * 86400_000);
 }
 
-export async function seed(content: Json, projectId?: string) {
+/** A song book file: [{n, t, tt, r, rt, te, en}] (see assets/songs/README.md). */
+export interface SongBookEntry {
+  n: number;
+  t: string;
+  tt?: string;
+  r?: string;
+  rt?: string;
+  te?: string;
+  en?: string;
+}
+
+const IMAGES = ['assets/church.jpg', 'assets/picture3.png', 'assets/pray.png', 'assets/doe.png', 'assets/sermon-hero.png'];
+
+export function songBookDocs(bookId: string, entries: SongBookEntry[]): Json[] {
+  return entries.map((e) => ({
+    bookId,
+    number: e.n,
+    title: e.t,
+    altTitle: e.tt ?? '',
+    reference: e.r ?? '',
+    referenceTelugu: e.rt ?? '',
+    artist: '',
+    lyricist: '',
+    image: IMAGES[e.n % IMAGES.length],
+    lyrics: { ...(e.te ? { Telugu: e.te } : {}), ...(e.en ? { English: e.en } : {}) },
+    chordKey: null,
+    chords: null,
+    trendingScore: 0,
+  }));
+}
+
+export async function seed(content: Json, projectId?: string, songBook?: { bookId: string; entries: SongBookEntry[] }) {
   initializeApp(projectId ? { projectId } : undefined);
   const db = getFirestore();
-  const batch = db.batch();
+  const writes: [string, string, Json][] = [];
   let n = 0;
   const put = (col: string, id: string, data: Json) => {
-    batch.set(db.collection(col).doc(id), data);
+    writes.push([col, id, data]);
     n++;
   };
+
+  if (songBook) {
+    content = {
+      ...content,
+      songs: [...content.songs.filter((s: Json) => s.bookId !== songBook.bookId), ...songBookDocs(songBook.bookId, songBook.entries)],
+    };
+  }
 
   put('church', 'info', content.church);
   for (const b of content.songBooks) {
@@ -73,7 +114,12 @@ export async function seed(content: Json, projectId?: string) {
     const { id, ...rest } = p;
     put('readingPlan', id, rest);
   }
-  await batch.commit();
+  // Firestore batches hold at most 500 writes.
+  for (let i = 0; i < writes.length; i += 400) {
+    const batch = db.batch();
+    for (const [col, id, data] of writes.slice(i, i + 400)) batch.set(db.collection(col).doc(id), data);
+    await batch.commit();
+  }
   return n;
 }
 
@@ -84,7 +130,12 @@ if (require.main === module) {
     process.exit(1);
   }
   const content = JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'seed', 'content.json'), 'utf8'));
-  seed(content, process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT ?? 'demo-bethel')
+  const songsArg = process.argv.indexOf('--songs');
+  const songBook =
+    songsArg > 0
+      ? { bookId: 'songs-of-zion', entries: JSON.parse(readFileSync(process.argv[songsArg + 1], 'utf8')) as SongBookEntry[] }
+      : undefined;
+  seed(content, process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT ?? 'demo-bethel', songBook)
     .then((n) => console.log(`Seeded ${n} documents.`))
     .catch((e) => {
       console.error(e);
