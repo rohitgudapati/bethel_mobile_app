@@ -176,4 +176,32 @@ void main() {
     ]);
     expect(find.text('LIVE'), findsOneWidget);
   });
+
+  testWidgets(
+    'Bethel English Songs book sits next to Hymns of Faith',
+    (tester) async {
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+
+      final state = AppState(repository: MockRepository())..continueAsGuest();
+      await tester.pumpWidget(BethelApp(state: state));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Songs').last);
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.text('Hymns of Faith').first, const Offset(-400, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bethel English Songs').first);
+      await tester.pumpAndSettle();
+      expect(find.text('60 songs'), findsOneWidget);
+      expect(find.text('Be still, for the presence of the Lord'), findsOneWidget);
+
+      await tester.tap(find.text('Be still, for the presence of the Lord'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('The Holy one is here'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    },
+    skip: !File('assets/songs/bethel_english.json').existsSync(),
+  );
 }

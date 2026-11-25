@@ -499,15 +499,20 @@ class SongRow extends StatelessWidget {
               ),
             )
           : BethelImage(song.image, width: 46, height: 46, radius: 12),
+      // Songs with nothing to show underneath get two lines for a long title.
       title: Text(song.title,
-          maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Row(children: [
-        if (downloaded) ...[
-          Icon(Icons.download_done_rounded, size: 14, color: t.colorScheme.primary),
-          const SizedBox(width: 4),
-        ],
-        Expanded(child: Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis)),
-      ]),
+          maxLines: sub.isEmpty && !downloaded ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: sub.isEmpty && !downloaded
+          ? null
+          : Row(children: [
+              if (downloaded) ...[
+                Icon(Icons.download_done_rounded, size: 14, color: t.colorScheme.primary),
+                const SizedBox(width: 4),
+              ],
+              Expanded(child: Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ]),
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
         IconButton(
           tooltip: saved ? 'Saved' : 'Save',

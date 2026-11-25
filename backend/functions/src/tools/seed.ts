@@ -3,10 +3,14 @@
  *
  *   Emulator:   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npm run seed
  *   Production: GOOGLE_CLOUD_PROJECT=<project-id> npm run seed -- --production
- *
- * Add `--songs <file.json>` to load a full song book (e.g. assets/songs/songs_of_zion.json,
- * which is kept out of git). Its songs replace the sample Songs of Zion entries.
  *               (needs `gcloud auth application-default login` first)
+ *
+ * Add `--book <bookId>=<file.json>` (repeatable) to load full song books, e.g.
+ *   --book songs-of-zion=../../assets/songs/songs_of_zion.json
+ *   --book bethel-english=../../assets/songs/bethel_english.json
+ * `--songs <file>` is short for the Songs of Zion one. The files are kept out of git
+ * (see assets/songs/README.md); their songs replace any sample songs in that book.
+ * Song books with no songs are skipped.
  *
  * Existing documents with the same ids are overwritten; anything else is left alone.
  */
@@ -37,6 +41,8 @@ export interface SongBookEntry {
   rt?: string;
   te?: string;
   en?: string;
+  /** Author or lyricist. */
+  a?: string;
 }
 
 const IMAGES = ['assets/church.jpg', 'assets/picture3.png', 'assets/pray.png', 'assets/doe.png', 'assets/sermon-hero.png'];
@@ -50,7 +56,7 @@ export function songBookDocs(bookId: string, entries: SongBookEntry[]): Json[] {
     reference: e.r ?? '',
     referenceTelugu: e.rt ?? '',
     artist: '',
-    lyricist: '',
+    lyricist: e.a ?? '',
     image: IMAGES[e.n % IMAGES.length],
     lyrics: { ...(e.te ? { Telugu: e.te } : {}), ...(e.en ? { English: e.en } : {}) },
     chordKey: null,
@@ -59,7 +65,9 @@ export function songBookDocs(bookId: string, entries: SongBookEntry[]): Json[] {
   }));
 }
 
-export async function seed(content: Json, projectId?: string, songBook?: { bookId: string; entries: SongBookEntry[] }) {
+export type SongBookFile = { bookId: string; entries: SongBookEntry[] };
+
+export async function seed(content: Json, projectId?: string, songBooks: SongBookFile | SongBookFile[] = []) {
   initializeApp(projectId ? { projectId } : undefined);
   const db = getFirestore();
   const writes: [string, string, Json][] = [];
@@ -69,16 +77,17 @@ export async function seed(content: Json, projectId?: string, songBook?: { bookI
     n++;
   };
 
-  if (songBook) {
+  for (const book of Array.isArray(songBooks) ? songBooks : [songBooks]) {
     content = {
       ...content,
-      songs: [...content.songs.filter((s: Json) => s.bookId !== songBook.bookId), ...songBookDocs(songBook.bookId, songBook.entries)],
+      songs: [...content.songs.filter((s: Json) => s.bookId !== book.bookId), ...songBookDocs(book.bookId, book.entries)],
     };
   }
 
   put('church', 'info', content.church);
   for (const b of content.songBooks) {
     const count = content.songs.filter((s: Json) => s.bookId === b.id).length;
+    if (count === 0) continue;
     const { id, ...rest } = b;
     put('songBooks', id, { ...rest, songCount: count });
   }
@@ -134,12 +143,16 @@ if (require.main === module) {
     process.exit(1);
   }
   const content = JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'seed', 'content.json'), 'utf8'));
-  const songsArg = process.argv.indexOf('--songs');
-  const songBook =
-    songsArg > 0
-      ? { bookId: 'songs-of-zion', entries: JSON.parse(readFileSync(process.argv[songsArg + 1], 'utf8')) as SongBookEntry[] }
-      : undefined;
-  seed(content, process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT ?? 'demo-bethel', songBook)
+  const books: SongBookFile[] = [];
+  process.argv.forEach((arg, i) => {
+    const value = process.argv[i + 1];
+    if (arg === '--songs' && value) books.push({ bookId: 'songs-of-zion', entries: JSON.parse(readFileSync(value, 'utf8')) });
+    if (arg === '--book' && value?.includes('=')) {
+      const [bookId, file] = value.split('=');
+      books.push({ bookId, entries: JSON.parse(readFileSync(file, 'utf8')) });
+    }
+  });
+  seed(content, process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT ?? 'demo-bethel', books)
     .then((n) => console.log(`Seeded ${n} documents.`))
     .catch((e) => {
       console.error(e);

@@ -364,12 +364,22 @@ class MockRepository implements BethelRepository {
             language: 'English',
             songCount: 20,
             isSongBook: true),
+        if ((await _bundledBook(_bethelEnglish)).isNotEmpty)
+          Album(
+              id: _bethelEnglish,
+              title: 'Bethel English Songs',
+              image: 'assets/church/worship.jpg',
+              artist: 'English worship songs',
+              language: 'English',
+              songCount: (await _bundledBook(_bethelEnglish)).length,
+              isSongBook: true),
         Album(id: 1, title: 'Sunday Praise', image: 'assets/live_event.jpeg', artist: 'Bethel Worship'),
         Album(id: 2, title: 'Kids Worship', image: 'assets/ministriesimage.png', artist: 'Children\'s Ministry'),
       ]);
 
   static const _zion = 10;
   static const _hymns = 11;
+  static const _bethelEnglish = 12;
 
   static const _songs = <Song>[
     // Songs of Zion: titles from the original app. Lyrics come from the song database (API).
@@ -705,33 +715,43 @@ class MockRepository implements BethelRepository {
 
   /// Songs of Zion, loaded from `assets/songs/songs_of_zion.json` when it is bundled
   /// (the file is git-ignored). Without it, the two sample titles above are used.
-  List<Song>? _zionCache;
+  /// Song books bundled as JSON in assets/songs/ (git-ignored; see its README).
+  /// Without the file, Songs of Zion falls back to the two sample titles above
+  /// and other books are hidden.
+  final Map<int, List<Song>> _bookCache = {};
 
-  Future<List<Song>> _zionSongs() async {
-    if (_zionCache != null) return _zionCache!;
+  static const _bundledBooks = {
+    _zion: ('assets/songs/songs_of_zion.json', 'Songs of Zion', 100000),
+    _bethelEnglish: ('assets/songs/bethel_english.json', 'Bethel English Songs', 200000),
+  };
+
+  Future<List<Song>> _bundledBook(int bookId) async {
+    final cached = _bookCache[bookId];
+    if (cached != null) return cached;
+    final (file, title, idBase) = _bundledBooks[bookId]!;
+    List<Song> songs;
     try {
-      final raw =
-          jsonDecode(utf8.decode((await rootBundle.load('assets/songs/songs_of_zion.json')).buffer.asUint8List()))
-              as List;
+      final raw = jsonDecode(utf8.decode((await rootBundle.load(file)).buffer.asUint8List())) as List;
       const images = [
-        'assets/church.jpg',
+        'assets/church/worship.jpg',
         'assets/picture3.png',
         'assets/pray.png',
         'assets/doe.png',
         'assets/sermon-hero.png'
       ];
-      _zionCache = [
+      songs = [
         for (final m in raw.cast<Map<String, dynamic>>())
           Song(
-            id: 100000 + (m['n'] as int),
+            id: idBase + (m['n'] as int),
             number: m['n'] as int,
             title: m['t'] as String,
             altTitle: (m['tt'] as String?) ?? '',
             reference: (m['r'] as String?) ?? '',
             artist: '',
+            lyricist: (m['a'] as String?) ?? '',
             image: images[(m['n'] as int) % images.length],
-            albumId: _zion,
-            albumTitle: 'Songs of Zion',
+            albumId: bookId,
+            albumTitle: title,
             lyrics: {
               if ((m['te'] as String?)?.isNotEmpty ?? false) 'Telugu': m['te'] as String,
               if ((m['en'] as String?)?.isNotEmpty ?? false) 'English': m['en'] as String,
@@ -739,10 +759,12 @@ class MockRepository implements BethelRepository {
           ),
       ];
     } catch (_) {
-      _zionCache = _songs.where((s) => s.albumId == _zion).toList();
+      songs = _songs.where((s) => s.albumId == bookId).toList();
     }
-    return _zionCache!;
+    return _bookCache[bookId] = songs;
   }
+
+  Future<List<Song>> _zionSongs() => _bundledBook(_zion);
 
   @override
   Future<List<Song>> trendingSongs() async {
@@ -756,15 +778,18 @@ class MockRepository implements BethelRepository {
 
   @override
   Future<List<Song>> songsForAlbum(int albumId) async {
-    if (albumId == _zion) return _delay(await _zionSongs());
+    if (_bundledBooks.containsKey(albumId)) return _delay(await _bundledBook(albumId));
     final list = _songs.where((s) => s.albumId == albumId).toList();
     // Albums that aren't song books reuse a few hymns in the demo.
     return _delay(list.isEmpty ? _songs.where((s) => s.albumId == _hymns).take(3).toList() : list);
   }
 
   @override
-  Future<Song> songDetail(Song song) async =>
-      _delay([..._songs, ...await _zionSongs()].firstWhere((s) => s.id == song.id, orElse: () => song));
+  Future<Song> songDetail(Song song) async => _delay([
+        ..._songs,
+        ...await _zionSongs(),
+        ...await _bundledBook(_bethelEnglish)
+      ].firstWhere((s) => s.id == song.id, orElse: () => song));
 
   @override
   Future<List<Book>> books() => _delay(const [

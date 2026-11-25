@@ -58,13 +58,15 @@ You need a Google account. Steps 1–3 happen in the browser.
    ```
 
 5. **Load the starting content** (song books, hymns, services, ministries, events, verses),
-   including the full Songs of Zion book from `assets/songs/songs_of_zion.json`
+   including the full Songs of Zion and Bethel English Songs books from `assets/songs/`
    (kept out of git; see `assets/songs/README.md`):
 
    ```bash
    gcloud auth application-default login
    cd backend/functions
-   GOOGLE_CLOUD_PROJECT=<project-id> npm run seed -- --production --songs ../../assets/songs/songs_of_zion.json
+   GOOGLE_CLOUD_PROJECT=<project-id> npm run seed -- --production \
+     --book songs-of-zion=../../assets/songs/songs_of_zion.json \
+     --book bethel-english=../../assets/songs/bethel_english.json
    ```
 
 6. **Make yourself an admin** after signing in to the app once:

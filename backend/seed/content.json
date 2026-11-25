@@ -20,6 +20,13 @@
       "language": "English",
       "image": "assets/picture3.png",
       "order": 2
+    },
+    {
+      "id": "bethel-english",
+      "title": "Bethel English Songs",
+      "language": "English",
+      "image": "assets/church/worship.jpg",
+      "order": 3
     }
   ],
   "songs": [

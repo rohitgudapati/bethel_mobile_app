@@ -14,6 +14,7 @@ test('seed loads the starting church content', async () => {
   const db = getFirestore();
   assert.equal((await db.collection('songs').where('bookId', '==', 'hymns-of-faith').get()).size, 20);
   assert.equal((await db.doc('songBooks/songs-of-zion').get()).get('songCount'), 2);
+  assert.equal((await db.doc('songBooks/bethel-english').get()).exists, false, 'empty books are skipped');
   const grace = (await db.doc('songs/hymns-of-faith-1').get()).data()!;
   assert.equal(grace.title, 'Amazing Grace');
   assert.match(grace.lyrics.English, /^Amazing grace! How sweet the sound/);
