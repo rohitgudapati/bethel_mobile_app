@@ -9,6 +9,7 @@ import 'bible_screen.dart';
 import 'events_screen.dart';
 import 'church_screens.dart';
 import 'give_screen.dart';
+import 'video_screen.dart';
 import 'shell.dart';
 import 'watch_screen.dart';
 
@@ -86,7 +87,12 @@ class HomeScreen extends StatelessWidget {
                       ? const LivePill()
                       : const Pill('NEXT SERVICE', icon: Icons.schedule_rounded),
                   trailing: const PlayBadge(),
-                  onTap: () => openLink(context, live?.youtubeUrl ?? AppConfig.youtubeChannelUrl),
+                  onTap: () => playVideo(context,
+                      youtubeId: live?.youtubeId,
+                      url: live?.youtubeUrl ?? AppConfig.youtubeChannelUrl,
+                      title: live?.title ?? 'Sunday Worship Service',
+                      subtitle: live?.description ?? '',
+                      isLive: live?.isLive ?? false),
                 );
               },
             ),

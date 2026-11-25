@@ -1,0 +1,438 @@
+{
+  "church": {
+    "name": "Bethel Prayer House",
+    "address": "756 South River Rd, Naperville",
+    "country": "United States",
+    "phone": "",
+    "email": ""
+  },
+  "songBooks": [
+    {
+      "id": "songs-of-zion",
+      "title": "Songs of Zion",
+      "language": "Telugu",
+      "image": "assets/church.jpg",
+      "order": 1
+    },
+    {
+      "id": "hymns-of-faith",
+      "title": "Hymns of Faith",
+      "language": "English",
+      "image": "assets/picture3.png",
+      "order": 2
+    }
+  ],
+  "songs": [
+    {
+      "id": "101",
+      "number": 1,
+      "title": "Aadhaaram Naaku Aadhaaram",
+      "artist": "Bethel Worship",
+      "lyricist": "Bonigala Babu Rao",
+      "image": "assets/church.jpg",
+      "bookId": "songs-of-zion",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {}
+    },
+    {
+      "id": "102",
+      "number": 2,
+      "title": "Aagi Mandimchu",
+      "artist": "Manoju Varma, Karthik",
+      "lyricist": "Manoju Varma",
+      "image": "assets/godsplan.png",
+      "bookId": "songs-of-zion",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {}
+    },
+    {
+      "id": "1",
+      "number": 1,
+      "title": "Amazing Grace",
+      "artist": "Traditional",
+      "lyricist": "John Newton (1779)",
+      "image": "assets/church.jpg",
+      "bookId": "hymns-of-faith",
+      "chordKey": "G",
+      "chords": "G        G7        C        G\nG        Em        D        D7\nG        G7        C        G\nG        D         G",
+      "lyrics": {
+        "English": "Amazing grace! How sweet the sound\nThat saved a wretch like me!\nI once was lost, but now am found;\nWas blind, but now I see.\n\n'Twas grace that taught my heart to fear,\nAnd grace my fears relieved;\nHow precious did that grace appear\nThe hour I first believed.\n\nThrough many dangers, toils and snares,\nI have already come;\n'Tis grace hath brought me safe thus far,\nAnd grace will lead me home.\n\nWhen we've been there ten thousand years,\nBright shining as the sun,\nWe've no less days to sing God's praise\nThan when we'd first begun."
+      }
+    },
+    {
+      "id": "2",
+      "number": 2,
+      "title": "It Is Well with My Soul",
+      "artist": "Traditional",
+      "lyricist": "Horatio Spafford (1873)",
+      "image": "assets/doe.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "C",
+      "chords": "C        F        C\nC        G        C\nC        Am       Dm       G\nC        F   G    C",
+      "lyrics": {}
+    },
+    {
+      "id": "3",
+      "number": 3,
+      "title": "Blessed Assurance",
+      "artist": "Traditional",
+      "lyricist": "Fanny Crosby (1873)",
+      "image": "assets/live_event.jpeg",
+      "bookId": "hymns-of-faith",
+      "chordKey": "D",
+      "chords": "D        G        D        A\nD        G        A        D",
+      "lyrics": {
+        "English": "Blessed assurance, Jesus is mine!\nO what a foretaste of glory divine!\nHeir of salvation, purchase of God,\nBorn of His Spirit, washed in His blood.\n\nThis is my story, this is my song,\nPraising my Savior all the day long;\nThis is my story, this is my song,\nPraising my Savior all the day long.\n\nPerfect submission, perfect delight,\nVisions of rapture now burst on my sight;\nAngels descending bring from above\nEchoes of mercy, whispers of love."
+      }
+    },
+    {
+      "id": "4",
+      "number": 4,
+      "title": "Holy, Holy, Holy",
+      "artist": "Traditional",
+      "lyricist": "Reginald Heber (1826)",
+      "image": "assets/picture2.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "D",
+      "chords": null,
+      "lyrics": {}
+    },
+    {
+      "id": "5",
+      "number": 5,
+      "title": "What a Friend We Have in Jesus",
+      "artist": "Traditional",
+      "lyricist": "Joseph Scriven (1855)",
+      "image": "assets/pray.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "F",
+      "chords": null,
+      "lyrics": {}
+    },
+    {
+      "id": "6",
+      "number": 6,
+      "title": "Rock of Ages",
+      "artist": "Traditional",
+      "lyricist": "Augustus Toplady (1776)",
+      "image": "assets/picture3.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {}
+    },
+    {
+      "id": "7",
+      "number": 7,
+      "title": "Abide with Me",
+      "artist": "Traditional",
+      "lyricist": "Henry F. Lyte (1847)",
+      "image": "assets/sermon-hero.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {}
+    },
+    {
+      "id": "8",
+      "number": 8,
+      "title": "Jesus Loves Me",
+      "artist": "Traditional",
+      "lyricist": "Anna B. Warner (1860)",
+      "image": "assets/ministriesimage.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "C",
+      "chords": null,
+      "lyrics": {}
+    },
+    {
+      "id": "9",
+      "number": 9,
+      "title": "Nearer, My God, to Thee",
+      "artist": "Traditional",
+      "lyricist": "Sarah F. Adams (1841)",
+      "image": "assets/master3.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {}
+    },
+    {
+      "id": "10",
+      "number": 10,
+      "title": "Come, Thou Fount of Every Blessing",
+      "artist": "Traditional",
+      "lyricist": "Robert Robinson (1758)",
+      "image": "assets/master2.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {}
+    }
+  ],
+  "services": [
+    {
+      "id": "sunday-prayer",
+      "name": "Sunday Prayer",
+      "schedule": "Sundays · 10:30 AM",
+      "description": "Our main gathering: worship, prayer and the Word for the whole family.",
+      "image": "assets/church.jpg",
+      "icon": "worship",
+      "order": 1
+    },
+    {
+      "id": "monday-prayer",
+      "name": "Monday Prayer",
+      "schedule": "Mondays · 7:00 PM",
+      "description": "Start the week in prayer for our families, church and city.",
+      "image": "assets/pray.png",
+      "icon": "prayer",
+      "order": 2
+    },
+    {
+      "id": "worship-prayer",
+      "name": "Worship Prayer",
+      "schedule": "Thursdays · 7:30 PM",
+      "description": "An evening of extended worship and intercession.",
+      "image": "assets/live_event.jpeg",
+      "icon": "worship",
+      "order": 3
+    },
+    {
+      "id": "bible-study",
+      "name": "Bible Study",
+      "schedule": "Wednesdays · 7:30 PM",
+      "description": "Going deeper in Scripture together, book by book.",
+      "image": "assets/picture3.png",
+      "icon": "bible",
+      "order": 4
+    },
+    {
+      "id": "fasting-prayer",
+      "name": "Fasting Prayer",
+      "schedule": "First Friday · 10:00 AM",
+      "description": "A monthly day of fasting and prayer.",
+      "image": "assets/master1.png",
+      "icon": "fasting",
+      "order": 5
+    }
+  ],
+  "ministries": [
+    {
+      "id": "children",
+      "name": "Children's Ministry",
+      "info": "Helping kids know and love Jesus through Bible stories, songs and play.",
+      "image": "assets/ministriesimage.png",
+      "meets": "Sundays · 10:30 AM",
+      "order": 1
+    },
+    {
+      "id": "youth",
+      "name": "Youth",
+      "info": "Students in grades 6 to 12 growing in faith and friendship.",
+      "image": "assets/picture2.png",
+      "meets": "Fridays · 7:00 PM",
+      "order": 2
+    },
+    {
+      "id": "worship",
+      "name": "Worship & Music",
+      "info": "Singers and musicians leading the church in praise.",
+      "image": "assets/live_event.jpeg",
+      "meets": "Thursdays · 7:30 PM",
+      "order": 3
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Ministry",
+      "info": "Standing in the gap for our church family and city.",
+      "image": "assets/pray.png",
+      "meets": "Daily · 6:00 AM (online)",
+      "order": 4
+    },
+    {
+      "id": "families",
+      "name": "Families & Fellowship",
+      "info": "Meals, home groups and support for every season of life.",
+      "image": "assets/picture1.png",
+      "meets": "Monthly",
+      "order": 5
+    }
+  ],
+  "events": [
+    {
+      "id": "sunday-worship",
+      "title": "Sunday Worship Service",
+      "dayOffset": "nextSunday",
+      "time": "10:30 AM",
+      "venue": "Main Sanctuary",
+      "description": "Join us for praise, worship and the Word. Children's church runs during the message.",
+      "image": "assets/church.jpg",
+      "speakers": [
+        "Senior Pastor",
+        "Worship Team"
+      ],
+      "category": "Worship"
+    },
+    {
+      "id": "friday-prayer",
+      "title": "Friday Night Prayer",
+      "dayOffset": "nextFriday",
+      "time": "7:30 PM",
+      "venue": "Prayer Hall",
+      "description": "An evening of intercession for our families, our city and the nations.",
+      "image": "assets/picture3.png",
+      "speakers": [],
+      "category": "Prayer"
+    },
+    {
+      "id": "night-of-worship",
+      "title": "Night of Worship",
+      "dayOffset": 12,
+      "time": "6:00 PM",
+      "venue": "Main Sanctuary",
+      "description": "A full evening of worship led by our worship team and guest musicians. Bring a friend!",
+      "image": "assets/live_event.jpeg",
+      "speakers": [
+        "Worship Team"
+      ],
+      "category": "Worship"
+    },
+    {
+      "id": "kids-camp",
+      "title": "Kids Summer Bible Camp",
+      "dayOffset": 20,
+      "time": "9:00 AM",
+      "venue": "Fellowship Hall",
+      "description": "Games, crafts, Bible stories and worship for ages 4 to 12. Registration required.",
+      "image": "assets/ministriesimage.png",
+      "speakers": [],
+      "category": "Kids"
+    }
+  ],
+  "verses": [
+    {
+      "id": "today",
+      "dayOffset": 0,
+      "text": "But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.",
+      "reference": "Isaiah 40:31",
+      "image": "assets/doe.png"
+    },
+    {
+      "id": "verse-1",
+      "dayOffset": -1,
+      "reference": "Romans 1:16",
+      "image": "assets/verse1.png"
+    },
+    {
+      "id": "verse-2",
+      "dayOffset": -2,
+      "reference": "Romans 1:16",
+      "image": "assets/verse2.png"
+    },
+    {
+      "id": "verse-3",
+      "dayOffset": -3,
+      "reference": "Romans 1:16",
+      "image": "assets/verse3.png"
+    }
+  ],
+  "books": [
+    {
+      "id": "uncle-john",
+      "title": "Uncle John",
+      "author": "G. J. Whyte-Melville",
+      "image": "assets/bookimage3.png",
+      "description": "A classic novel from 1898, available to read in the app."
+    },
+    {
+      "id": "walk-with-john",
+      "title": "A Walk with John",
+      "author": "F. E. Henderson",
+      "image": "assets/bookimage2.png",
+      "description": "A biography from the church library."
+    }
+  ],
+  "pictures": [
+    {
+      "id": "p1",
+      "image": "assets/picture1.png",
+      "caption": "Church family Sunday",
+      "order": 1
+    },
+    {
+      "id": "p2",
+      "image": "assets/master4.png",
+      "caption": "Anniversary celebration",
+      "order": 2
+    },
+    {
+      "id": "p3",
+      "image": "assets/ministriesimage.png",
+      "caption": "Kids camp",
+      "order": 3
+    },
+    {
+      "id": "p4",
+      "image": "assets/live_event.jpeg",
+      "caption": "Night of worship",
+      "order": 4
+    }
+  ],
+  "readingPlan": [
+    {
+      "reference": "Psalm 23",
+      "title": "The Lord is my shepherd",
+      "verses": [
+        "The LORD is my shepherd; I shall not want.",
+        "He maketh me to lie down in green pastures: he leadeth me beside the still waters.",
+        "He restoreth my soul: he leadeth me in the paths of righteousness for his name's sake.",
+        "Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me.",
+        "Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over.",
+        "Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the LORD for ever."
+      ],
+      "order": 1,
+      "id": "day-1"
+    },
+    {
+      "reference": "John 3:16–17",
+      "title": "God so loved the world",
+      "verses": [
+        "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.",
+        "For God sent not his Son into the world to condemn the world; but that the world through him might be saved."
+      ],
+      "order": 2,
+      "id": "day-2"
+    },
+    {
+      "reference": "Romans 1:16",
+      "title": "Not ashamed of the gospel",
+      "verses": [
+        "For I am not ashamed of the gospel of Christ: for it is the power of God unto salvation to every one that believeth; to the Jew first, and also to the Greek."
+      ],
+      "order": 3,
+      "id": "day-3"
+    },
+    {
+      "reference": "Philippians 4:6–7",
+      "title": "The peace of God",
+      "verses": [
+        "Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.",
+        "And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus."
+      ],
+      "order": 4,
+      "id": "day-4"
+    },
+    {
+      "reference": "Isaiah 40:31",
+      "title": "Renewed strength",
+      "verses": [
+        "But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint."
+      ],
+      "order": 5,
+      "id": "day-5"
+    }
+  ]
+}

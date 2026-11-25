@@ -6,6 +6,13 @@
 /// When [apiBaseUrl] is empty the app runs in demo mode with built-in
 /// sample content (see `lib/data/mock_repository.dart`).
 class AppConfig {
+  /// `firebase` to use Firebase. Otherwise the old .NET API is used when [apiBaseUrl] is set, else built-in samples.
+  static const String backend = String.fromEnvironment('BACKEND', defaultValue: 'demo');
+
+  /// Use the local Firebase emulators (see backend/README.md) instead of the live project.
+  static const bool useFirebaseEmulator = bool.fromEnvironment('USE_FIREBASE_EMULATOR');
+  static const String emulatorHost = String.fromEnvironment('EMULATOR_HOST', defaultValue: '127.0.0.1');
+
   static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
 
   /// Church id used by album/song endpoints (`GetAlbumsByChurchId?id=`).
@@ -23,5 +30,6 @@ class AppConfig {
   static const String churchName = 'Bethel Prayer House';
   static const String churchCity = 'Naperville, IL';
 
-  static bool get isDemo => apiBaseUrl.isEmpty;
+  static bool get isFirebase => backend == 'firebase';
+  static bool get isDemo => !isFirebase && apiBaseUrl.isEmpty;
 }

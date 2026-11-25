@@ -1,0 +1,8 @@
+node_modules/
+lib/
+lib-test/
+lib-test-build/
+*.log
+.secret.local
+firestore-debug.log
+.env.local

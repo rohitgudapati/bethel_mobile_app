@@ -83,7 +83,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
             ),
           ),
           const SliverToBoxAdapter(child: SectionHeader('Prayer wall')),
-          if (!AppConfig.isDemo)
+          if (!AppConfig.isDemo && !AppConfig.isFirebase)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),

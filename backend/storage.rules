@@ -1,0 +1,13 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Church media (images, song recordings, book PDFs): anyone can read, only admins upload.
+    match /public/{path=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

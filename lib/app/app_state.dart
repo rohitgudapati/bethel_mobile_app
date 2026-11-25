@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/api_repository.dart';
+import '../data/firebase_repository.dart';
 import '../data/mock_repository.dart';
 import '../data/models.dart';
 import '../data/repository.dart';
@@ -10,7 +11,12 @@ import 'config.dart';
 /// personal toggles. Exposed to widgets through [AppScope].
 class AppState extends ChangeNotifier {
   AppState({BethelRepository? repository})
-      : repo = repository ?? (AppConfig.isDemo ? MockRepository() : ApiRepository());
+      : repo = repository ??
+            (AppConfig.isFirebase
+                ? FirebaseRepository()
+                : AppConfig.isDemo
+                    ? MockRepository()
+                    : ApiRepository());
 
   final BethelRepository repo;
 

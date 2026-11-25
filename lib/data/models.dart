@@ -35,6 +35,9 @@ class Sermon {
   final String description;
   final String? series;
   final String duration;
+
+  /// YouTube video id, for playing inside the app.
+  final String? youtubeId;
   const Sermon({
     required this.id,
     required this.title,
@@ -45,6 +48,7 @@ class Sermon {
     this.description = '',
     this.series,
     this.duration = '',
+    this.youtubeId,
   });
 }
 
@@ -78,6 +82,8 @@ class LiveStream {
   final String image;
   final String youtubeUrl;
   final bool isLive;
+  final String? youtubeId;
+  final DateTime? scheduledStart;
   const LiveStream({
     required this.id,
     required this.title,
@@ -85,6 +91,8 @@ class LiveStream {
     required this.image,
     required this.youtubeUrl,
     this.isLive = false,
+    this.youtubeId,
+    this.scheduledStart,
   });
 }
 
@@ -178,6 +186,7 @@ class MediaItem {
   final String image;
   final String? videoUrl;
   final String duration;
+  final String? youtubeId;
   const MediaItem({
     required this.id,
     required this.title,
@@ -185,6 +194,7 @@ class MediaItem {
     this.info = '',
     this.videoUrl,
     this.duration = '',
+    this.youtubeId,
   });
 }
 

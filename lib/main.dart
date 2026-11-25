@@ -1,12 +1,24 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'app/app_state.dart';
 import 'app/config.dart';
 import 'app/theme.dart';
+import 'firebase_options.dart';
 import 'screens/shell.dart';
 import 'screens/welcome_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (AppConfig.isFirebase) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    if (AppConfig.useFirebaseEmulator) {
+      FirebaseFirestore.instance.useFirestoreEmulator(AppConfig.emulatorHost, 8080);
+      await FirebaseAuth.instance.useAuthEmulator(AppConfig.emulatorHost, 9099);
+    }
+  }
   runApp(BethelApp(state: AppState()));
 }
 

@@ -11,7 +11,13 @@ flutter pub get
 flutter run                     # demo mode: built-in sample content
 ```
 
-Connect the real backend (`bethel_app_backend`):
+Connect the Firebase backend (see [backend/README.md](backend/README.md) for setup and the YouTube sync):
+
+```bash
+flutter run --dart-define=BACKEND=firebase
+```
+
+The older .NET API (`bethel_app_backend`) is still supported:
 
 ```bash
 flutter run --dart-define=API_BASE_URL=https://YOUR-API-HOST
@@ -21,7 +27,9 @@ Other build-time settings (all optional):
 
 | Define | Purpose |
 |---|---|
-| `API_BASE_URL` | Base URL of the ASP.NET API. Empty = demo mode. |
+| `BACKEND` | `firebase` to use Firebase. Otherwise demo mode, or the .NET API when `API_BASE_URL` is set. |
+| `USE_FIREBASE_EMULATOR` | `true` to use the local Firebase emulators. |
+| `API_BASE_URL` | Base URL of the old ASP.NET API. |
 | `CHURCH_ID` | Church id for album/song endpoints (default `1`). |
 | `GIVING_URL` | Public giving page, e.g. a Stripe Payment Link (`https://buy.stripe.com/...`). |
 | `YOUTUBE_URL` | Church YouTube channel. |
@@ -31,10 +39,11 @@ Other build-time settings (all optional):
 ```
 lib/
   app/        config, theme (cream / navy / gold), app state
-  data/       models, repository interface, mock + API implementations
-  screens/    welcome, shell (bottom nav), home, watch, prayer, music,
-              events, bible, give, more (ministries, gallery, books)
+  data/       models, repository interface; mock, Firebase and .NET API implementations
+  screens/    welcome, shell (bottom nav), home, songs, watch, prayer,
+              events, bible, give, church (services, verses, ministries), more
   widgets/    shared UI pieces
+backend/      Firebase: Firestore rules, Cloud Functions (YouTube sync), seed content
 ```
 
 ## Screens → API endpoints

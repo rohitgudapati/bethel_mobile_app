@@ -5,6 +5,7 @@ import '../app/config.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
+import 'video_screen.dart';
 
 enum _Section { sermons, shorts, interviews, testimonies }
 
@@ -55,7 +56,12 @@ class _WatchScreenState extends State<WatchScreen> {
                   subtitle: s.description,
                   top: s.isLive ? const LivePill() : const Pill('UPCOMING'),
                   trailing: const PlayBadge(size: 52),
-                  onTap: () => openLink(context, s.youtubeUrl),
+                  onTap: () => playVideo(context,
+                      youtubeId: s.youtubeId,
+                      url: s.youtubeUrl,
+                      title: s.title,
+                      subtitle: s.description,
+                      isLive: s.isLive),
                 );
               },
             ),
@@ -156,7 +162,11 @@ class _ShortCard extends StatelessWidget {
         title: item.title,
         subtitle: item.duration.isEmpty ? null : item.duration,
         top: const Pill('SHORT', icon: Icons.bolt_rounded),
-        onTap: () => openLink(context, item.videoUrl ?? AppConfig.youtubeChannelUrl),
+        onTap: () => playVideo(context,
+            youtubeId: item.youtubeId,
+            url: item.videoUrl ?? AppConfig.youtubeChannelUrl,
+            title: item.title,
+            vertical: true),
       );
 }
 
@@ -171,7 +181,12 @@ class _MediaCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => openLink(context, item.videoUrl ?? AppConfig.youtubeChannelUrl),
+        onTap: () => playVideo(context,
+            youtubeId: item.youtubeId,
+            url: item.videoUrl ?? AppConfig.youtubeChannelUrl,
+            title: item.title,
+            subtitle: '$kind${item.duration.isEmpty ? '' : ' · ${item.duration}'}',
+            description: item.info),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           AspectRatio(
             aspectRatio: 16 / 8,
@@ -296,16 +311,19 @@ class _SermonDetailScreenState extends State<SermonDetailScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Message')),
       body: ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
-        GestureDetector(
-          onTap: () => openLink(context, s.videoUrl ?? AppConfig.youtubeChannelUrl),
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Stack(alignment: Alignment.center, children: [
-              Positioned.fill(child: BethelImage(s.image, radius: 18)),
-              const PlayBadge(size: 64),
-            ]),
+        if (s.youtubeId != null && s.youtubeId!.isNotEmpty)
+          InlineYouTube(videoId: s.youtubeId!)
+        else
+          GestureDetector(
+            onTap: () => openLink(context, s.videoUrl ?? AppConfig.youtubeChannelUrl),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(alignment: Alignment.center, children: [
+                Positioned.fill(child: BethelImage(s.image, radius: 18)),
+                const PlayBadge(size: 64),
+              ]),
+            ),
           ),
-        ),
         const SizedBox(height: 18),
         if (s.series != null) Align(alignment: Alignment.centerLeft, child: Pill(s.series!)),
         const SizedBox(height: 8),
