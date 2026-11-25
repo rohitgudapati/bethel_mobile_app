@@ -813,29 +813,51 @@ class _SongAction extends StatelessWidget {
   }
 }
 
+/// Song lyrics, one block per stanza.
+///
+/// Song books like Songs of Zion write their own verse numbers ("1.") and refrain
+/// labels ("Pallavi :", "పల్లవి :"), so the app only adds numbers to songs that
+/// have none. Refrains get a gold bar so they are easy to find while singing.
 class _Lyrics extends StatelessWidget {
   const _Lyrics({required this.text, required this.scale});
   final String text;
   final double scale;
 
+  static final _numbered = RegExp(r'^\s*\d+\s*[.)]');
+  static final _refrain = RegExp(
+      r'^\s*(pallavi|anupallavi|a\.?\s*p\.?|chorus|refrain|పల్లవి|అనుపల్లవి|అ\.?\s*ప\.?)\s*:',
+      caseSensitive: false);
+
   @override
   Widget build(BuildContext context) {
-    final stanzas = text.split(RegExp(r'\n\s*\n'));
+    final stanzas = text.split(RegExp(r'\n\s*\n')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final labelled = stanzas.any((s) => _numbered.hasMatch(s) || _refrain.hasMatch(s));
+    final style = TextStyle(fontSize: 18 * scale, height: 1.7);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       for (var i = 0; i < stanzas.length; i++)
         Padding(
           padding: const EdgeInsets.only(bottom: 22),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SizedBox(
-              width: 26,
-              child: Padding(
-                padding: EdgeInsets.only(top: 4 * scale),
-                child: Text('${i + 1}',
-                    style: const TextStyle(color: BethelColors.gold, fontWeight: FontWeight.w700, fontSize: 13)),
-              ),
-            ),
-            Expanded(child: Text(stanzas[i].trim(), style: TextStyle(fontSize: 18 * scale, height: 1.7))),
-          ]),
+          child: labelled
+              ? (_refrain.hasMatch(stanzas[i])
+                  ? Container(
+                      padding: const EdgeInsets.only(left: 12),
+                      decoration: const BoxDecoration(
+                        border: Border(left: BorderSide(color: BethelColors.gold, width: 3)),
+                      ),
+                      child: Text(stanzas[i], style: style),
+                    )
+                  : Text(stanzas[i], style: style))
+              : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  SizedBox(
+                    width: 26,
+                    child: Padding(
+                      padding: EdgeInsets.only(top: 4 * scale),
+                      child: Text('${i + 1}',
+                          style: const TextStyle(color: BethelColors.gold, fontWeight: FontWeight.w700, fontSize: 13)),
+                    ),
+                  ),
+                  Expanded(child: Text(stanzas[i], style: style)),
+                ]),
         ),
     ]);
   }
