@@ -20,7 +20,7 @@ beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, 'songs/hymns-of-faith-1'), { title: 'Amazing Grace' });
+    await setDoc(doc(db, 'songs/songs-of-zion-1'), { title: 'Aadhaaram Naaku Aadhaaram' });
     await setDoc(doc(db, 'videos/vid1'), { title: 'Sermon', kind: 'sermon', hidden: false });
     await setDoc(doc(db, 'prayerRequests/private1'), { uid: 'alice', request: 'Private request', public: false });
     await setDoc(doc(db, 'prayerRequests/public1'), { uid: 'alice', request: 'Shared request', public: true, prayedCount: 0 });
@@ -34,7 +34,7 @@ const admin = () => env.authenticatedContext('pastor', { admin: true, firebase: 
 const anyone = () => env.unauthenticatedContext().firestore();
 
 test('church content is public to read and admin-only to write', async () => {
-  await assertSucceeds(getDoc(doc(anyone(), 'songs/hymns-of-faith-1')));
+  await assertSucceeds(getDoc(doc(anyone(), 'songs/songs-of-zion-1')));
   await assertFails(setDoc(doc(member(), 'songs/x'), { title: 'Mine' }));
   await assertSucceeds(setDoc(doc(admin(), 'songs/x'), { title: 'New hymn' }));
 });
@@ -86,7 +86,7 @@ test('admins can hide or relabel a video but not rewrite YouTube fields', async 
 });
 
 test('people can only see and change their own profile', async () => {
-  await assertSucceeds(setDoc(doc(member('alice'), 'users/alice'), { savedSongs: ['hymns-of-faith-1'] }));
+  await assertSucceeds(setDoc(doc(member('alice'), 'users/alice'), { savedSongs: ['songs-of-zion-1'] }));
   await assertFails(getDoc(doc(member('bob'), 'users/alice')));
   await assertSucceeds(deleteDoc(doc(member('alice'), 'users/alice')));
   assert.ok(true);

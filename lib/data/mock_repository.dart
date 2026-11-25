@@ -10,7 +10,7 @@ import 'models.dart';
 import 'repository.dart';
 
 /// Sample content for demo mode. Dates are relative to "now" so the demo
-/// always looks current. Scripture is KJV and hymns are public domain.
+/// always looks current. Scripture is KJV (public domain).
 class MockRepository implements BethelRepository {
   MockRepository() {
     _wall = [
@@ -356,14 +356,6 @@ class MockRepository implements BethelRepository {
             language: 'Telugu',
             songCount: (await _zionSongs()).length,
             isSongBook: true),
-        Album(
-            id: 11,
-            title: 'Hymns of Faith',
-            image: 'assets/picture3.png',
-            artist: 'English hymn book',
-            language: 'English',
-            songCount: 20,
-            isSongBook: true),
         if ((await _bundledBook(_bethelEnglish)).isNotEmpty)
           Album(
               id: _bethelEnglish,
@@ -378,7 +370,6 @@ class MockRepository implements BethelRepository {
       ]);
 
   static const _zion = 10;
-  static const _hymns = 11;
   static const _bethelEnglish = 12;
 
   static const _songs = <Song>[
@@ -402,314 +393,6 @@ class MockRepository implements BethelRepository {
       image: 'assets/godsplan.png',
       albumId: _zion,
       albumTitle: 'Songs of Zion',
-    ),
-    // Hymns of Faith: public-domain hymns with full sample lyrics.
-    Song(
-      id: 1,
-      number: 1,
-      title: 'Amazing Grace',
-      artist: 'Traditional',
-      lyricist: 'John Newton (1779)',
-      image: 'assets/church.jpg',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'G',
-      chords: 'G        G7        C        G\n'
-          'G        Em        D        D7\n'
-          'G        G7        C        G\n'
-          'G        D         G',
-      lyrics: {
-        'English': 'Amazing grace! How sweet the sound\nThat saved a wretch like me!\nI once was lost, but now am found;\nWas blind, but now I see.\n\n'
-            '\'Twas grace that taught my heart to fear,\nAnd grace my fears relieved;\nHow precious did that grace appear\nThe hour I first believed.\n\n'
-            'Through many dangers, toils and snares,\nI have already come;\n\'Tis grace hath brought me safe thus far,\nAnd grace will lead me home.\n\n'
-            'When we\'ve been there ten thousand years,\nBright shining as the sun,\nWe\'ve no less days to sing God\'s praise\nThan when we\'d first begun.',
-      },
-    ),
-    Song(
-      id: 2,
-      number: 2,
-      title: 'It Is Well with My Soul',
-      artist: 'Traditional',
-      lyricist: 'Horatio Spafford (1873)',
-      image: 'assets/doe.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'C',
-      chords: 'C        F        C\nC        G        C\nC        Am       Dm       G\nC        F   G    C',
-      lyrics: {
-        'English':
-            'When peace like a river attendeth my way,\nWhen sorrows like sea billows roll;\nWhatever my lot, Thou hast taught me to say,\nIt is well, it is well with my soul.\n\n'
-                'It is well with my soul,\nIt is well, it is well with my soul.\n\n'
-                'Though Satan should buffet, though trials should come,\nLet this blest assurance control,\nThat Christ has regarded my helpless estate,\nAnd hath shed His own blood for my soul.',
-      },
-    ),
-    Song(
-      id: 3,
-      number: 3,
-      title: 'Blessed Assurance',
-      artist: 'Traditional',
-      lyricist: 'Fanny Crosby (1873)',
-      image: 'assets/live_event.jpeg',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'D',
-      chords: 'D        G        D        A\nD        G        A        D',
-      lyrics: {
-        'English': 'Blessed assurance, Jesus is mine!\nO what a foretaste of glory divine!\nHeir of salvation, purchase of God,\nBorn of His Spirit, washed in His blood.\n\n'
-            'This is my story, this is my song,\nPraising my Savior all the day long;\nThis is my story, this is my song,\nPraising my Savior all the day long.\n\n'
-            'Perfect submission, perfect delight,\nVisions of rapture now burst on my sight;\nAngels descending bring from above\nEchoes of mercy, whispers of love.',
-      },
-    ),
-    Song(
-      id: 4,
-      number: 4,
-      title: 'Holy, Holy, Holy',
-      artist: 'Traditional',
-      lyricist: 'Reginald Heber (1826)',
-      image: 'assets/picture2.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'D',
-      lyrics: {
-        'English':
-            'Holy, holy, holy! Lord God Almighty!\nEarly in the morning our song shall rise to Thee;\nHoly, holy, holy! Merciful and mighty!\nGod in three Persons, blessed Trinity!\n\n'
-                'Holy, holy, holy! All the saints adore Thee,\nCasting down their golden crowns around the glassy sea;\nCherubim and seraphim falling down before Thee,\nWhich wert, and art, and evermore shalt be.',
-      },
-    ),
-    Song(
-      id: 5,
-      number: 5,
-      title: 'What a Friend We Have in Jesus',
-      artist: 'Traditional',
-      lyricist: 'Joseph Scriven (1855)',
-      image: 'assets/pray.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'F',
-      lyrics: {
-        'English':
-            'What a friend we have in Jesus,\nAll our sins and griefs to bear!\nWhat a privilege to carry\nEverything to God in prayer!\n\n'
-                'O what peace we often forfeit,\nO what needless pain we bear,\nAll because we do not carry\nEverything to God in prayer!',
-      },
-    ),
-    Song(
-      id: 6,
-      number: 6,
-      title: 'Rock of Ages',
-      artist: 'Traditional',
-      lyricist: 'Augustus Toplady (1776)',
-      image: 'assets/picture3.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      lyrics: {
-        'English':
-            'Rock of Ages, cleft for me,\nLet me hide myself in Thee;\nLet the water and the blood,\nFrom Thy wounded side which flowed,\nBe of sin the double cure,\nSave from wrath and make me pure.',
-      },
-    ),
-    Song(
-      id: 7,
-      number: 7,
-      title: 'Abide with Me',
-      artist: 'Traditional',
-      lyricist: 'Henry F. Lyte (1847)',
-      image: 'assets/sermon-hero.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      lyrics: {
-        'English':
-            'Abide with me; fast falls the eventide;\nThe darkness deepens; Lord, with me abide;\nWhen other helpers fail and comforts flee,\nHelp of the helpless, O abide with me.',
-      },
-    ),
-    Song(
-      id: 8,
-      number: 8,
-      title: 'Jesus Loves Me',
-      artist: 'Traditional',
-      lyricist: 'Anna B. Warner (1860)',
-      image: 'assets/ministriesimage.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'C',
-      lyrics: {
-        'English':
-            'Jesus loves me! This I know,\nFor the Bible tells me so;\nLittle ones to Him belong;\nThey are weak, but He is strong.\n\n'
-                'Yes, Jesus loves me!\nYes, Jesus loves me!\nYes, Jesus loves me!\nThe Bible tells me so.',
-      },
-    ),
-    Song(
-      id: 9,
-      number: 9,
-      title: 'Nearer, My God, to Thee',
-      artist: 'Traditional',
-      lyricist: 'Sarah F. Adams (1841)',
-      image: 'assets/master3.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      lyrics: {
-        'English':
-            'Nearer, my God, to Thee,\nNearer to Thee!\nE\'en though it be a cross\nThat raiseth me,\nStill all my song shall be,\nNearer, my God, to Thee,\nNearer, my God, to Thee,\nNearer to Thee!',
-      },
-    ),
-    Song(
-      id: 10,
-      number: 10,
-      title: 'Come, Thou Fount of Every Blessing',
-      artist: 'Traditional',
-      lyricist: 'Robert Robinson (1758)',
-      image: 'assets/master2.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      lyrics: {
-        'English':
-            'Come, Thou Fount of every blessing,\nTune my heart to sing Thy grace;\nStreams of mercy, never ceasing,\nCall for songs of loudest praise.',
-      },
-    ),
-    Song(
-      id: 11,
-      number: 11,
-      title: 'To God Be the Glory',
-      artist: 'Traditional',
-      lyricist: 'Fanny Crosby (1875)',
-      image: 'assets/church.jpg',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      lyrics: {
-        'English':
-            'To God be the glory, great things He hath done;\nSo loved He the world that He gave us His Son,\nWho yielded His life an atonement for sin,\nAnd opened the life-gate that all may go in.\n\nPraise the Lord, praise the Lord,\nLet the earth hear His voice!\nPraise the Lord, praise the Lord,\nLet the people rejoice!\nO come to the Father, through Jesus the Son,\nAnd give Him the glory, great things He hath done.',
-      },
-    ),
-    Song(
-      id: 12,
-      number: 12,
-      title: 'When I Survey the Wondrous Cross',
-      artist: 'Traditional',
-      lyricist: 'Isaac Watts (1707)',
-      image: 'assets/picture3.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      lyrics: {
-        'English':
-            'When I survey the wondrous cross\nOn which the Prince of glory died,\nMy richest gain I count but loss,\nAnd pour contempt on all my pride.\n\nWere the whole realm of nature mine,\nThat were a present far too small;\nLove so amazing, so divine,\nDemands my soul, my life, my all.',
-      },
-    ),
-    Song(
-      id: 13,
-      number: 13,
-      title: 'The Old Rugged Cross',
-      artist: 'Traditional',
-      lyricist: 'George Bennard (1913)',
-      image: 'assets/sermon-hero.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'G',
-      lyrics: {
-        'English':
-            'On a hill far away stood an old rugged cross,\nThe emblem of suffering and shame;\nAnd I love that old cross where the dearest and best\nFor a world of lost sinners was slain.\n\nSo I\'ll cherish the old rugged cross,\nTill my trophies at last I lay down;\nI will cling to the old rugged cross,\nAnd exchange it some day for a crown.',
-      },
-    ),
-    Song(
-      id: 14,
-      number: 14,
-      title: 'I Surrender All',
-      artist: 'Traditional',
-      lyricist: 'Judson W. Van DeVenter (1896)',
-      image: 'assets/pray.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'D',
-      lyrics: {
-        'English':
-            'All to Jesus I surrender,\nAll to Him I freely give;\nI will ever love and trust Him,\nIn His presence daily live.\n\nI surrender all, I surrender all;\nAll to Thee, my blessed Savior,\nI surrender all.',
-      },
-    ),
-    Song(
-      id: 15,
-      number: 15,
-      title: 'Trust and Obey',
-      artist: 'Traditional',
-      lyricist: 'John H. Sammis (1887)',
-      image: 'assets/doe.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'F',
-      lyrics: {
-        'English':
-            'When we walk with the Lord\nIn the light of His Word,\nWhat a glory He sheds on our way!\nWhile we do His good will,\nHe abides with us still,\nAnd with all who will trust and obey.\n\nTrust and obey, for there\'s no other way\nTo be happy in Jesus, but to trust and obey.',
-      },
-    ),
-    Song(
-      id: 16,
-      number: 16,
-      title: 'Leaning on the Everlasting Arms',
-      artist: 'Traditional',
-      lyricist: 'Elisha A. Hoffman (1887)',
-      image: 'assets/picture1.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'A',
-      lyrics: {
-        'English':
-            'What a fellowship, what a joy divine,\nLeaning on the everlasting arms;\nWhat a blessedness, what a peace is mine,\nLeaning on the everlasting arms.\n\nLeaning, leaning,\nSafe and secure from all alarms;\nLeaning, leaning,\nLeaning on the everlasting arms.',
-      },
-    ),
-    Song(
-      id: 17,
-      number: 17,
-      title: 'Count Your Blessings',
-      artist: 'Traditional',
-      lyricist: 'Johnson Oatman Jr. (1897)',
-      image: 'assets/live_event.jpeg',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'D',
-      lyrics: {
-        'English':
-            'When upon life\'s billows you are tempest tossed,\nWhen you are discouraged, thinking all is lost,\nCount your many blessings, name them one by one,\nAnd it will surprise you what the Lord hath done.\n\nCount your blessings, name them one by one;\nCount your blessings, see what God hath done!\nCount your blessings, name them one by one;\nCount your many blessings, see what God hath done.',
-      },
-    ),
-    Song(
-      id: 18,
-      number: 18,
-      title: 'O for a Thousand Tongues to Sing',
-      artist: 'Traditional',
-      lyricist: 'Charles Wesley (1739)',
-      image: 'assets/master2.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      lyrics: {
-        'English':
-            'O for a thousand tongues to sing\nMy great Redeemer\'s praise,\nThe glories of my God and King,\nThe triumphs of His grace!\n\nJesus! the name that charms our fears,\nThat bids our sorrows cease;\n\'Tis music in the sinner\'s ears,\n\'Tis life, and health, and peace.',
-      },
-    ),
-    Song(
-      id: 19,
-      number: 19,
-      title: 'Joy to the World',
-      artist: 'Traditional',
-      lyricist: 'Isaac Watts (1719)',
-      image: 'assets/master1.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'D',
-      lyrics: {
-        'English':
-            'Joy to the world! the Lord is come;\nLet earth receive her King;\nLet every heart prepare Him room,\nAnd heaven and nature sing,\nAnd heaven and nature sing,\nAnd heaven, and heaven, and nature sing.',
-      },
-    ),
-    Song(
-      id: 20,
-      number: 20,
-      title: 'Softly and Tenderly',
-      artist: 'Traditional',
-      lyricist: 'Will L. Thompson (1880)',
-      image: 'assets/ministriesimage.png',
-      albumId: _hymns,
-      albumTitle: 'Hymns of Faith',
-      chordKey: 'G',
-      lyrics: {
-        'English':
-            'Softly and tenderly Jesus is calling,\nCalling for you and for me;\nSee, on the portals He\'s waiting and watching,\nWatching for you and for me.\n\nCome home, come home,\nYe who are weary, come home;\nEarnestly, tenderly, Jesus is calling,\nCalling, O sinner, come home!',
-      },
     ),
   ];
 
@@ -769,10 +452,11 @@ class MockRepository implements BethelRepository {
   @override
   Future<List<Song>> trendingSongs() async {
     final zion = await _zionSongs();
-    Song? z(int n) => zion.where((s) => s.number == n).firstOrNull;
+    final english = await _bundledBook(_bethelEnglish);
+    Song? pick(List<Song> book, int n) => book.where((s) => s.number == n).firstOrNull;
     return _delay([
-      ...[z(1), z(500), z(2)].whereType<Song>(),
-      for (final id in const [1, 3, 5]) _songs.firstWhere((s) => s.id == id),
+      ...[pick(zion, 1), pick(english, 1), pick(zion, 500), pick(english, 30), pick(zion, 2), pick(english, 60)]
+          .whereType<Song>(),
     ]);
   }
 
@@ -780,8 +464,8 @@ class MockRepository implements BethelRepository {
   Future<List<Song>> songsForAlbum(int albumId) async {
     if (_bundledBooks.containsKey(albumId)) return _delay(await _bundledBook(albumId));
     final list = _songs.where((s) => s.albumId == albumId).toList();
-    // Albums that aren't song books reuse a few hymns in the demo.
-    return _delay(list.isEmpty ? _songs.where((s) => s.albumId == _hymns).take(3).toList() : list);
+    // Albums that aren't song books reuse a few Bethel English songs in the demo.
+    return _delay(list.isEmpty ? (await _bundledBook(_bethelEnglish)).take(5).toList() : list);
   }
 
   @override

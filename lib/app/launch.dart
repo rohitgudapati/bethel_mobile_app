@@ -1,5 +1,5 @@
 /// Optional launch settings read from the web address, used by the shareable
-/// preview, e.g. `index.html?start=songs&book=hymns`.
+/// preview, e.g. `index.html?start=songs&book=zion`.
 ///
 ///   start  songs | watch | home | prayer | more   – skips the welcome screen as a guest
 ///   book   part of a song book title to open first

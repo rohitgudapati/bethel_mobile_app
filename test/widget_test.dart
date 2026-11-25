@@ -81,22 +81,15 @@ void main() {
       isTrue,
     );
 
-    // Switch to the hymn book and search by number.
-    await tester.tap(find.text('Hymns of Faith').first);
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, '3');
-    await tester.pumpAndSettle();
-    expect(find.text('Blessed Assurance'), findsOneWidget);
+    expect(find.text('Hymns of Faith'), findsNothing, reason: 'replaced by Bethel English Songs');
 
-    await tester.tap(find.text('Blessed Assurance'));
+    // Open song 1 of Songs of Zion and save it.
+    await tester.tap(find.byType(ListTile).first);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Fanny Crosby'), findsOneWidget);
-    expect(find.textContaining('Blessed assurance, Jesus is mine!'), findsOneWidget);
-
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
-    expect(state.savedSongs, contains(3));
-    expect(state.recentSongs.first.id, 3);
+    expect(state.savedSongs, hasLength(1));
+    expect(state.recentSongs.first.number, 1);
     expect(tester.takeException(), isNull);
   });
 
@@ -178,7 +171,7 @@ void main() {
   });
 
   testWidgets(
-    'Bethel English Songs book sits next to Hymns of Faith',
+    'Bethel English Songs: second song book, search by number, save',
     (tester) async {
       tester.view.physicalSize = const Size(1170, 2532);
       tester.view.devicePixelRatio = 3;
@@ -190,8 +183,6 @@ void main() {
       await tester.tap(find.text('Songs').last);
       await tester.pumpAndSettle();
 
-      await tester.drag(find.text('Hymns of Faith').first, const Offset(-400, 0));
-      await tester.pumpAndSettle();
       await tester.tap(find.text('Bethel English Songs').first);
       await tester.pumpAndSettle();
       expect(find.text('60 songs'), findsOneWidget);
@@ -200,6 +191,16 @@ void main() {
       await tester.tap(find.text('Be still, for the presence of the Lord'));
       await tester.pumpAndSettle();
       expect(find.textContaining('The Holy one is here'), findsWidgets);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(state.savedSongs, hasLength(1));
+
+      // Search by number across both books.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '30');
+      await tester.pumpAndSettle();
+      expect(find.text('I will sing of the mercies of the Lord'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
     skip: !File('assets/songs/bethel_english.json').existsSync(),

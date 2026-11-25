@@ -10,14 +10,12 @@ import { seed } from '../src/tools/seed';
 test('seed loads the starting church content', async () => {
   const content = JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'seed', 'content.json'), 'utf8'));
   const n = await seed(content, 'demo-bethel');
-  assert.ok(n > 40);
+  assert.ok(n > 25);
   const db = getFirestore();
-  assert.equal((await db.collection('songs').where('bookId', '==', 'hymns-of-faith').get()).size, 20);
+  assert.equal((await db.doc('songBooks/hymns-of-faith').get()).exists, false, 'Hymns of Faith was replaced');
   assert.equal((await db.doc('songBooks/songs-of-zion').get()).get('songCount'), 2);
   assert.equal((await db.doc('songBooks/bethel-english').get()).exists, false, 'empty books are skipped');
-  const grace = (await db.doc('songs/hymns-of-faith-1').get()).data()!;
-  assert.equal(grace.title, 'Amazing Grace');
-  assert.match(grace.lyrics.English, /^Amazing grace! How sweet the sound/);
+  assert.equal((await db.doc('songs/songs-of-zion-1').get()).get('title'), 'Aadhaaram Naaku Aadhaaram');
   assert.equal((await db.doc('church/info').get()).get('address'), '7S201 South River Rd, Naperville, IL 60540');
   const elders = (await db.collection('elders').orderBy('order').get()).docs.map((d) => d.get('name'));
   assert.deepEqual(elders, ['Bro. Moses Polugari', 'Bro. Vinod Somepalli']);

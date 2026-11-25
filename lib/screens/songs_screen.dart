@@ -8,7 +8,7 @@ import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
 
-/// Songs tab: numbered song books (Songs of Zion, hymns), albums and saved songs.
+/// Songs tab: numbered song books (Songs of Zion, Bethel English Songs), albums and saved songs.
 class SongsScreen extends StatefulWidget {
   const SongsScreen({super.key});
 

@@ -57,7 +57,7 @@ You need a Google account. Steps 1–3 happen in the browser.
    firebase deploy               # YOUTUBE_CHANNEL defaults to @bethelprayerhousenaperville
    ```
 
-5. **Load the starting content** (song books, hymns, services, ministries, events, verses),
+5. **Load the starting content** (song books, services, ministries, elders, events, verses),
    including the full Songs of Zion and Bethel English Songs books from `assets/songs/`
    (kept out of git; see `assets/songs/README.md`):
 
