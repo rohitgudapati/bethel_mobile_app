@@ -1,0 +1,120 @@
+rules_version = '2';
+
+// Bethel Prayer House – Firestore security rules.
+//
+// Roles:
+//   anyone   – can read published church content.
+//   signedIn – any Firebase Auth user, including anonymous guests.
+//   member   – a signed-in user with an email account (not anonymous).
+//   admin    – custom claim `admin: true`, set with `npm run make-admin`.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function member() { return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
+    function admin() { return signedIn() && request.auth.token.admin == true; }
+    function str(v, max) { return v is string && v.size() <= max; }
+
+    // ---------------------------------------------------------- church content
+    // Read-only for everyone; written by admins (or by Cloud Functions, which bypass rules).
+    match /church/{doc}          { allow read: if true; allow write: if admin(); }
+    match /events/{id}           { allow read: if true; allow write: if admin(); }
+    match /services/{id}         { allow read: if true; allow write: if admin(); }
+    match /ministries/{id}       { allow read: if true; allow write: if admin(); }
+    match /elders/{id}           { allow read: if true; allow write: if admin(); }
+    match /songBooks/{id}        { allow read: if true; allow write: if admin(); }
+    match /songs/{id}            { allow read: if true; allow write: if admin(); }
+    match /books/{id}            { allow read: if true; allow write: if admin(); }
+    match /pictures/{id}         { allow read: if true; allow write: if admin(); }
+    match /readingPlan/{id}      { allow read: if true; allow write: if admin(); }
+
+    // YouTube videos are written by the sync function. Admins may hide a video,
+    // change its type or name the preacher (these fields survive future syncs).
+    match /videos/{videoId} {
+      allow read: if true;
+      allow update: if admin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['hidden', 'typeOverride', 'preacher', 'seriesOverride']);
+
+      // Sermon comments: members only, max 1000 characters, author can delete.
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if member()
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'createdAt'])
+          && request.resource.data.uid == request.auth.uid
+          && str(request.resource.data.name, 80)
+          && str(request.resource.data.text, 1000) && request.resource.data.text.size() > 0
+          && request.resource.data.createdAt == request.time;
+        allow delete: if admin() || (signedIn() && resource.data.uid == request.auth.uid);
+      }
+    }
+
+    // Verse of the day. Likes are one document per user; a function keeps the count.
+    match /verses/{verseId} {
+      allow read: if true;
+      allow write: if admin();
+      match /likes/{uid} {
+        allow read: if signedIn() && uid == request.auth.uid;
+        allow create, delete: if signedIn() && uid == request.auth.uid;
+      }
+    }
+
+    // ---------------------------------------------------------- prayer
+    // The request text is public only when the person chose to share it.
+    // Contact details go in prayerContacts, which only admins can read.
+    match /prayerRequests/{id} {
+      allow read: if resource.data.public == true || admin()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'request', 'category', 'public', 'createdAt', 'prayedCount'])
+        && request.resource.data.uid == request.auth.uid
+        && str(request.resource.data.name, 60)
+        && str(request.resource.data.request, 2000) && request.resource.data.request.size() >= 5
+        && str(request.resource.data.category, 30)
+        && request.resource.data.public is bool
+        && request.resource.data.prayedCount == 0
+        && request.resource.data.createdAt == request.time;
+      allow update: if admin();
+      allow delete: if admin() || (signedIn() && resource.data.uid == request.auth.uid);
+
+      // "I prayed": one document per person; a function increments prayedCount.
+      match /prayedBy/{uid} {
+        allow read: if signedIn() && uid == request.auth.uid;
+        allow create: if signedIn() && uid == request.auth.uid;
+      }
+    }
+
+    match /prayerContacts/{id} {
+      allow read: if admin();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'phone', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && str(request.resource.data.email, 120)
+        && str(request.resource.data.phone, 30);
+    }
+
+    // Requests for a home visit / special service.
+    match /serviceRequests/{id} {
+      allow read: if admin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'serviceId', 'name', 'phone', 'note', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && str(request.resource.data.name, 80)
+        && str(request.resource.data.phone, 30)
+        && str(request.resource.data.note, 1000);
+      allow update, delete: if admin();
+    }
+
+    // Event RSVPs: one document per person per event.
+    match /events/{eventId}/rsvps/{uid} {
+      allow read: if admin() || (signedIn() && uid == request.auth.uid);
+      allow create, delete: if signedIn() && uid == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------- people
+    // Each person's profile, saved songs and downloads.
+    match /users/{uid} {
+      allow read, write: if signedIn() && uid == request.auth.uid;
+    }
+  }
+}

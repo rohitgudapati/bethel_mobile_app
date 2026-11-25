@@ -1,0 +1,579 @@
+{
+  "church": {
+    "name": "Bethel Prayer House",
+    "address": "7S201 South River Rd, Naperville, IL 60540",
+    "country": "United States",
+    "phone": "(818) 610-9650 · (630) 854-7335",
+    "email": "info@bethelph.com"
+  },
+  "songBooks": [
+    {
+      "id": "songs-of-zion",
+      "title": "Songs of Zion",
+      "language": "Telugu",
+      "image": "assets/church.jpg",
+      "order": 1
+    },
+    {
+      "id": "hymns-of-faith",
+      "title": "Hymns of Faith",
+      "language": "English",
+      "image": "assets/picture3.png",
+      "order": 2
+    }
+  ],
+  "songs": [
+    {
+      "number": 1,
+      "title": "Aadhaaram Naaku Aadhaaram",
+      "artist": "Bethel Worship",
+      "lyricist": "Bonigala Babu Rao",
+      "image": "assets/church.jpg",
+      "bookId": "songs-of-zion",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {}
+    },
+    {
+      "number": 2,
+      "title": "Aagi Mandimchu",
+      "artist": "Manoju Varma, Karthik",
+      "lyricist": "Manoju Varma",
+      "image": "assets/godsplan.png",
+      "bookId": "songs-of-zion",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {}
+    },
+    {
+      "number": 1,
+      "title": "Amazing Grace",
+      "artist": "Traditional",
+      "lyricist": "John Newton (1779)",
+      "image": "assets/church.jpg",
+      "bookId": "hymns-of-faith",
+      "chordKey": "G",
+      "chords": "G        G7        C        G\nG        Em        D        D7\nG        G7        C        G\nG        D         G",
+      "lyrics": {
+        "English": "Amazing grace! How sweet the sound\nThat saved a wretch like me!\nI once was lost, but now am found;\nWas blind, but now I see.\n\n'Twas grace that taught my heart to fear,\nAnd grace my fears relieved;\nHow precious did that grace appear\nThe hour I first believed.\n\nThrough many dangers, toils and snares,\nI have already come;\n'Tis grace hath brought me safe thus far,\nAnd grace will lead me home.\n\nWhen we've been there ten thousand years,\nBright shining as the sun,\nWe've no less days to sing God's praise\nThan when we'd first begun."
+      }
+    },
+    {
+      "number": 2,
+      "title": "It Is Well with My Soul",
+      "artist": "Traditional",
+      "lyricist": "Horatio Spafford (1873)",
+      "image": "assets/doe.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "C",
+      "chords": "C        F        C\nC        G        C\nC        Am       Dm       G\nC        F   G    C",
+      "lyrics": {
+        "English": "When peace like a river attendeth my way,\nWhen sorrows like sea billows roll;\nWhatever my lot, Thou hast taught me to say,\nIt is well, it is well with my soul.\n\nIt is well with my soul,\nIt is well, it is well with my soul.\n\nThough Satan should buffet, though trials should come,\nLet this blest assurance control,\nThat Christ has regarded my helpless estate,\nAnd hath shed His own blood for my soul."
+      }
+    },
+    {
+      "number": 3,
+      "title": "Blessed Assurance",
+      "artist": "Traditional",
+      "lyricist": "Fanny Crosby (1873)",
+      "image": "assets/live_event.jpeg",
+      "bookId": "hymns-of-faith",
+      "chordKey": "D",
+      "chords": "D        G        D        A\nD        G        A        D",
+      "lyrics": {
+        "English": "Blessed assurance, Jesus is mine!\nO what a foretaste of glory divine!\nHeir of salvation, purchase of God,\nBorn of His Spirit, washed in His blood.\n\nThis is my story, this is my song,\nPraising my Savior all the day long;\nThis is my story, this is my song,\nPraising my Savior all the day long.\n\nPerfect submission, perfect delight,\nVisions of rapture now burst on my sight;\nAngels descending bring from above\nEchoes of mercy, whispers of love."
+      }
+    },
+    {
+      "number": 4,
+      "title": "Holy, Holy, Holy",
+      "artist": "Traditional",
+      "lyricist": "Reginald Heber (1826)",
+      "image": "assets/picture2.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "D",
+      "chords": null,
+      "lyrics": {
+        "English": "Holy, holy, holy! Lord God Almighty!\nEarly in the morning our song shall rise to Thee;\nHoly, holy, holy! Merciful and mighty!\nGod in three Persons, blessed Trinity!\n\nHoly, holy, holy! All the saints adore Thee,\nCasting down their golden crowns around the glassy sea;\nCherubim and seraphim falling down before Thee,\nWhich wert, and art, and evermore shalt be."
+      }
+    },
+    {
+      "number": 5,
+      "title": "What a Friend We Have in Jesus",
+      "artist": "Traditional",
+      "lyricist": "Joseph Scriven (1855)",
+      "image": "assets/pray.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "F",
+      "chords": null,
+      "lyrics": {
+        "English": "What a friend we have in Jesus,\nAll our sins and griefs to bear!\nWhat a privilege to carry\nEverything to God in prayer!\n\nO what peace we often forfeit,\nO what needless pain we bear,\nAll because we do not carry\nEverything to God in prayer!"
+      }
+    },
+    {
+      "number": 6,
+      "title": "Rock of Ages",
+      "artist": "Traditional",
+      "lyricist": "Augustus Toplady (1776)",
+      "image": "assets/picture3.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {
+        "English": "Rock of Ages, cleft for me,\nLet me hide myself in Thee;\nLet the water and the blood,\nFrom Thy wounded side which flowed,\nBe of sin the double cure,\nSave from wrath and make me pure."
+      }
+    },
+    {
+      "number": 7,
+      "title": "Abide with Me",
+      "artist": "Traditional",
+      "lyricist": "Henry F. Lyte (1847)",
+      "image": "assets/sermon-hero.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {
+        "English": "Abide with me; fast falls the eventide;\nThe darkness deepens; Lord, with me abide;\nWhen other helpers fail and comforts flee,\nHelp of the helpless, O abide with me."
+      }
+    },
+    {
+      "number": 8,
+      "title": "Jesus Loves Me",
+      "artist": "Traditional",
+      "lyricist": "Anna B. Warner (1860)",
+      "image": "assets/ministriesimage.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "C",
+      "chords": null,
+      "lyrics": {
+        "English": "Jesus loves me! This I know,\nFor the Bible tells me so;\nLittle ones to Him belong;\nThey are weak, but He is strong.\n\nYes, Jesus loves me!\nYes, Jesus loves me!\nYes, Jesus loves me!\nThe Bible tells me so."
+      }
+    },
+    {
+      "number": 9,
+      "title": "Nearer, My God, to Thee",
+      "artist": "Traditional",
+      "lyricist": "Sarah F. Adams (1841)",
+      "image": "assets/master3.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {
+        "English": "Nearer, my God, to Thee,\nNearer to Thee!\nE'en though it be a cross\nThat raiseth me,\nStill all my song shall be,\nNearer, my God, to Thee,\nNearer, my God, to Thee,\nNearer to Thee!"
+      }
+    },
+    {
+      "number": 10,
+      "title": "Come, Thou Fount of Every Blessing",
+      "artist": "Traditional",
+      "lyricist": "Robert Robinson (1758)",
+      "image": "assets/master2.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {
+        "English": "Come, Thou Fount of every blessing,\nTune my heart to sing Thy grace;\nStreams of mercy, never ceasing,\nCall for songs of loudest praise."
+      }
+    },
+    {
+      "number": 11,
+      "title": "To God Be the Glory",
+      "artist": "Traditional",
+      "lyricist": "Fanny Crosby (1875)",
+      "image": "assets/church.jpg",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {
+        "English": "To God be the glory, great things He hath done;\nSo loved He the world that He gave us His Son,\nWho yielded His life an atonement for sin,\nAnd opened the life-gate that all may go in.\n\nPraise the Lord, praise the Lord,\nLet the earth hear His voice!\nPraise the Lord, praise the Lord,\nLet the people rejoice!\nO come to the Father, through Jesus the Son,\nAnd give Him the glory, great things He hath done."
+      }
+    },
+    {
+      "number": 12,
+      "title": "When I Survey the Wondrous Cross",
+      "artist": "Traditional",
+      "lyricist": "Isaac Watts (1707)",
+      "image": "assets/picture3.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {
+        "English": "When I survey the wondrous cross\nOn which the Prince of glory died,\nMy richest gain I count but loss,\nAnd pour contempt on all my pride.\n\nWere the whole realm of nature mine,\nThat were a present far too small;\nLove so amazing, so divine,\nDemands my soul, my life, my all."
+      }
+    },
+    {
+      "number": 13,
+      "title": "The Old Rugged Cross",
+      "artist": "Traditional",
+      "lyricist": "George Bennard (1913)",
+      "image": "assets/sermon-hero.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "G",
+      "chords": null,
+      "lyrics": {
+        "English": "On a hill far away stood an old rugged cross,\nThe emblem of suffering and shame;\nAnd I love that old cross where the dearest and best\nFor a world of lost sinners was slain.\n\nSo I'll cherish the old rugged cross,\nTill my trophies at last I lay down;\nI will cling to the old rugged cross,\nAnd exchange it some day for a crown."
+      }
+    },
+    {
+      "number": 14,
+      "title": "I Surrender All",
+      "artist": "Traditional",
+      "lyricist": "Judson W. Van DeVenter (1896)",
+      "image": "assets/pray.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "D",
+      "chords": null,
+      "lyrics": {
+        "English": "All to Jesus I surrender,\nAll to Him I freely give;\nI will ever love and trust Him,\nIn His presence daily live.\n\nI surrender all, I surrender all;\nAll to Thee, my blessed Savior,\nI surrender all."
+      }
+    },
+    {
+      "number": 15,
+      "title": "Trust and Obey",
+      "artist": "Traditional",
+      "lyricist": "John H. Sammis (1887)",
+      "image": "assets/doe.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "F",
+      "chords": null,
+      "lyrics": {
+        "English": "When we walk with the Lord\nIn the light of His Word,\nWhat a glory He sheds on our way!\nWhile we do His good will,\nHe abides with us still,\nAnd with all who will trust and obey.\n\nTrust and obey, for there's no other way\nTo be happy in Jesus, but to trust and obey."
+      }
+    },
+    {
+      "number": 16,
+      "title": "Leaning on the Everlasting Arms",
+      "artist": "Traditional",
+      "lyricist": "Elisha A. Hoffman (1887)",
+      "image": "assets/picture1.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "A",
+      "chords": null,
+      "lyrics": {
+        "English": "What a fellowship, what a joy divine,\nLeaning on the everlasting arms;\nWhat a blessedness, what a peace is mine,\nLeaning on the everlasting arms.\n\nLeaning, leaning,\nSafe and secure from all alarms;\nLeaning, leaning,\nLeaning on the everlasting arms."
+      }
+    },
+    {
+      "number": 17,
+      "title": "Count Your Blessings",
+      "artist": "Traditional",
+      "lyricist": "Johnson Oatman Jr. (1897)",
+      "image": "assets/live_event.jpeg",
+      "bookId": "hymns-of-faith",
+      "chordKey": "D",
+      "chords": null,
+      "lyrics": {
+        "English": "When upon life's billows you are tempest tossed,\nWhen you are discouraged, thinking all is lost,\nCount your many blessings, name them one by one,\nAnd it will surprise you what the Lord hath done.\n\nCount your blessings, name them one by one;\nCount your blessings, see what God hath done!\nCount your blessings, name them one by one;\nCount your many blessings, see what God hath done."
+      }
+    },
+    {
+      "number": 18,
+      "title": "O for a Thousand Tongues to Sing",
+      "artist": "Traditional",
+      "lyricist": "Charles Wesley (1739)",
+      "image": "assets/master2.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": null,
+      "chords": null,
+      "lyrics": {
+        "English": "O for a thousand tongues to sing\nMy great Redeemer's praise,\nThe glories of my God and King,\nThe triumphs of His grace!\n\nJesus! the name that charms our fears,\nThat bids our sorrows cease;\n'Tis music in the sinner's ears,\n'Tis life, and health, and peace."
+      }
+    },
+    {
+      "number": 19,
+      "title": "Joy to the World",
+      "artist": "Traditional",
+      "lyricist": "Isaac Watts (1719)",
+      "image": "assets/master1.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "D",
+      "chords": null,
+      "lyrics": {
+        "English": "Joy to the world! the Lord is come;\nLet earth receive her King;\nLet every heart prepare Him room,\nAnd heaven and nature sing,\nAnd heaven and nature sing,\nAnd heaven, and heaven, and nature sing."
+      }
+    },
+    {
+      "number": 20,
+      "title": "Softly and Tenderly",
+      "artist": "Traditional",
+      "lyricist": "Will L. Thompson (1880)",
+      "image": "assets/ministriesimage.png",
+      "bookId": "hymns-of-faith",
+      "chordKey": "G",
+      "chords": null,
+      "lyrics": {
+        "English": "Softly and tenderly Jesus is calling,\nCalling for you and for me;\nSee, on the portals He's waiting and watching,\nWatching for you and for me.\n\nCome home, come home,\nYe who are weary, come home;\nEarnestly, tenderly, Jesus is calling,\nCalling, O sinner, come home!"
+      }
+    }
+  ],
+  "services": [
+    {
+      "id": "sunday-worship",
+      "name": "Sunday Worship Service",
+      "schedule": "Every Sunday · 3:00 PM",
+      "description": "A powerful worship experience that blends traditional Indian Christian heritage with contemporary praise: anointed preaching, heartfelt worship and warm fellowship, ending with a shared meal together. Sunday School for children runs at the same time.",
+      "image": "assets/church/worship.jpg",
+      "icon": "worship",
+      "order": 1
+    },
+    {
+      "id": "prayer-meeting",
+      "name": "Prayer Meeting",
+      "schedule": "Every Friday · 7:30 PM",
+      "description": "Dedicated time for corporate prayer and intercession for church and community needs, building spiritual strength together.",
+      "image": "assets/pray.png",
+      "icon": "prayer",
+      "order": 2
+    },
+    {
+      "id": "youth-meeting",
+      "name": "Youth Meeting",
+      "schedule": "Every Sunday · 6:30 PM",
+      "description": "Practical teaching, small group discussions and mentorship, and annual youth retreats and conferences.",
+      "image": "assets/picture2.png",
+      "icon": "bible",
+      "order": 3
+    },
+    {
+      "id": "sisters-meeting",
+      "name": "Sister's Meeting",
+      "schedule": "Every other Sunday",
+      "description": "Prayer gatherings and worship, mentoring and discipleship programs, and monthly fellowship events.",
+      "image": "assets/picture1.png",
+      "icon": "family",
+      "order": 4
+    },
+    {
+      "id": "all-night-prayer",
+      "name": "All Night Prayer",
+      "schedule": "First Friday of the month",
+      "description": "Extended time in God's presence: corporate intercession and worship, fellowship and spiritual renewal.",
+      "image": "assets/church/building.jpg",
+      "icon": "fasting",
+      "order": 5
+    }
+  ],
+  "ministries": [
+    {
+      "id": "children",
+      "name": "Children's Ministry",
+      "info": "Age-appropriate Sunday School that runs alongside the Sunday worship service.",
+      "image": "assets/ministriesimage.png",
+      "meets": "Sundays · 3:00 PM",
+      "order": 1
+    },
+    {
+      "id": "youth",
+      "name": "Youth Ministry",
+      "info": "Practical teaching, small group discussions and mentorship, and annual youth retreats and conferences.",
+      "image": "assets/picture2.png",
+      "meets": "Sundays · 6:30 PM",
+      "order": 2
+    },
+    {
+      "id": "sisters",
+      "name": "Sister's Ministry",
+      "info": "Prayer gatherings and worship, mentoring and discipleship programs, and monthly fellowship events.",
+      "image": "assets/picture1.png",
+      "meets": "Every other Sunday",
+      "order": 3
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Ministry",
+      "info": "Corporate prayer every Friday and an all night prayer on the first Friday of each month.",
+      "image": "assets/pray.png",
+      "meets": "Fridays · 7:30 PM",
+      "order": 4
+    },
+    {
+      "id": "students",
+      "name": "Indian International Student Ministry",
+      "info": "A family away from home for Indian international students across the Chicago area, including UIC, IIT, Lewis University, DePaul, NIU and North Central College. Fellowship and Indian festivals, academic and career guidance, airport pickups, help with housing and transportation, home-cooked Indian meals, and worship in a culturally familiar setting.",
+      "image": "assets/master4.png",
+      "meets": "Join us on Sundays",
+      "order": 5
+    }
+  ],
+  "events": [
+    {
+      "id": "sunday-worship",
+      "title": "Sunday Worship Service",
+      "dayOffset": "nextSunday",
+      "time": "3:00 PM",
+      "venue": "Bethel Prayer House",
+      "description": "Worship, a message from the Word, Sunday School for children, and a fellowship dinner together. Bring your family and friends. All are welcome!",
+      "image": "assets/church/worship.jpg",
+      "speakers": [
+        "Bro. Moses Polugari",
+        "Bro. Vinod Somepalli"
+      ],
+      "category": "Worship"
+    },
+    {
+      "id": "friday-prayer",
+      "title": "Prayer Meeting",
+      "dayOffset": "nextFriday",
+      "time": "7:30 PM",
+      "venue": "Bethel Prayer House",
+      "description": "An evening of intercession for our families, our city and the nations.",
+      "image": "assets/picture3.png",
+      "speakers": [],
+      "category": "Prayer"
+    },
+    {
+      "id": "youth-meeting",
+      "title": "Youth Meeting",
+      "dayOffset": "nextSunday",
+      "time": "6:30 PM",
+      "venue": "Bethel Prayer House",
+      "description": "Practical teaching, small group discussions and mentorship for young people.",
+      "image": "assets/picture2.png",
+      "speakers": [],
+      "category": "Youth"
+    }
+  ],
+  "verses": [
+    {
+      "id": "today",
+      "dayOffset": 0,
+      "text": "But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.",
+      "reference": "Isaiah 40:31",
+      "image": "assets/doe.png"
+    },
+    {
+      "id": "verse-1",
+      "dayOffset": -1,
+      "reference": "Romans 1:16",
+      "image": "assets/verse1.png"
+    },
+    {
+      "id": "verse-2",
+      "dayOffset": -2,
+      "reference": "Romans 1:16",
+      "image": "assets/verse2.png"
+    },
+    {
+      "id": "verse-3",
+      "dayOffset": -3,
+      "reference": "Romans 1:16",
+      "image": "assets/verse3.png"
+    }
+  ],
+  "books": [
+    {
+      "id": "uncle-john",
+      "title": "Uncle John",
+      "author": "G. J. Whyte-Melville",
+      "image": "assets/bookimage3.png",
+      "description": "A classic novel from 1898, available to read in the app."
+    },
+    {
+      "id": "walk-with-john",
+      "title": "A Walk with John",
+      "author": "F. E. Henderson",
+      "image": "assets/bookimage2.png",
+      "description": "A biography from the church library."
+    }
+  ],
+  "pictures": [
+    {
+      "id": "p1",
+      "image": "assets/picture1.png",
+      "caption": "Church family Sunday",
+      "order": 1
+    },
+    {
+      "id": "p2",
+      "image": "assets/master4.png",
+      "caption": "Anniversary celebration",
+      "order": 2
+    },
+    {
+      "id": "p3",
+      "image": "assets/ministriesimage.png",
+      "caption": "Kids camp",
+      "order": 3
+    },
+    {
+      "id": "p4",
+      "image": "assets/live_event.jpeg",
+      "caption": "Night of worship",
+      "order": 4
+    }
+  ],
+  "readingPlan": [
+    {
+      "reference": "Psalm 23",
+      "title": "The Lord is my shepherd",
+      "verses": [
+        "The LORD is my shepherd; I shall not want.",
+        "He maketh me to lie down in green pastures: he leadeth me beside the still waters.",
+        "He restoreth my soul: he leadeth me in the paths of righteousness for his name's sake.",
+        "Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me.",
+        "Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over.",
+        "Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the LORD for ever."
+      ],
+      "order": 1,
+      "id": "day-1"
+    },
+    {
+      "reference": "John 3:16–17",
+      "title": "God so loved the world",
+      "verses": [
+        "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.",
+        "For God sent not his Son into the world to condemn the world; but that the world through him might be saved."
+      ],
+      "order": 2,
+      "id": "day-2"
+    },
+    {
+      "reference": "Romans 1:16",
+      "title": "Not ashamed of the gospel",
+      "verses": [
+        "For I am not ashamed of the gospel of Christ: for it is the power of God unto salvation to every one that believeth; to the Jew first, and also to the Greek."
+      ],
+      "order": 3,
+      "id": "day-3"
+    },
+    {
+      "reference": "Philippians 4:6–7",
+      "title": "The peace of God",
+      "verses": [
+        "Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.",
+        "And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus."
+      ],
+      "order": 4,
+      "id": "day-4"
+    },
+    {
+      "reference": "Isaiah 40:31",
+      "title": "Renewed strength",
+      "verses": [
+        "But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint."
+      ],
+      "order": 5,
+      "id": "day-5"
+    }
+  ],
+  "elders": [
+    {
+      "id": "moses-polugari",
+      "name": "Bro. Moses Polugari",
+      "role": "Elder",
+      "bio": "Bro. Moses leads with a deep commitment to the apostles' teaching. His servant heart ensures that God's Word is faithfully proclaimed, guiding our church in sound doctrine and spiritual truth with passion and dedication.",
+      "image": "assets/church/elder_moses.jpg",
+      "phone": "(818) 610-9650",
+      "order": 1
+    },
+    {
+      "id": "vinod-somepalli",
+      "name": "Bro. Vinod Somepalli",
+      "role": "Elder",
+      "bio": "Bro. Vinod exemplifies compassionate care, dedicating himself to nurturing the church family. He shepherds with a thoughtful and prayerful approach, ensuring every member feels supported and cherished in their walk with Christ.",
+      "image": "assets/church/elder_vinod.jpg",
+      "phone": "(630) 854-7335",
+      "order": 2
+    }
+  ]
+}
