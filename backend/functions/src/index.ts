@@ -38,6 +38,17 @@ export const syncYouTube = onSchedule(
   },
 );
 
+/**
+ * Sundays 2:00–5:58 PM Central, every 2 minutes: the 3:00 PM service shows as LIVE
+ * within about two minutes of the stream starting, and drops off soon after it ends.
+ */
+export const syncYouTubeSunday = onSchedule(
+  { schedule: '*/2 14-17 * * 0', timeZone: 'America/Chicago', secrets: [youtubeApiKey], timeoutSeconds: 100 },
+  async () => {
+    await runSync(false);
+  },
+);
+
 /** Every night: whole channel history and all playlists. */
 export const syncYouTubeFull = onSchedule(
   { schedule: 'every day 03:15', timeZone: 'America/Chicago', secrets: [youtubeApiKey], timeoutSeconds: 540, memory: '512MiB' },

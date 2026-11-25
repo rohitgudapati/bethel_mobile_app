@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../app/config.dart';
+import '../app/launch.dart';
 import 'church_content.dart';
 import 'daily_verses.dart';
 import 'models.dart';
@@ -317,16 +318,27 @@ class MockRepository implements BethelRepository {
   }
 
   @override
-  Future<List<LiveStream>> liveStreams() => _delay([
-        LiveStream(
-          id: 1,
-          title: 'Sunday Worship Service – Live',
-          description: 'Every Sunday at 3:00 PM CT',
-          image: 'assets/church/worship.jpg',
-          youtubeUrl: AppConfig.youtubeLiveUrl,
-          isLive: true,
-        ),
-      ]);
+
+  /// Demo: live only during the Sunday service (3:00–5:30 PM), like the real
+  /// YouTube check. Otherwise nothing is streaming and the app shows the next service.
+  Future<List<LiveStream>> liveStreams() {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day, AppConfig.sundayServiceHour);
+    final duringService = now.weekday == DateTime.sunday &&
+        !now.isBefore(start) &&
+        now.isBefore(start.add(const Duration(hours: 2, minutes: 30)));
+    if (!duringService && !LaunchOptions.forceLive) return _delay(const <LiveStream>[]);
+    return _delay([
+      const LiveStream(
+        id: 1,
+        title: 'Sunday Worship Service – Live',
+        description: '87 watching now',
+        image: 'assets/church/worship.jpg',
+        youtubeUrl: '${AppConfig.youtubeChannelUrl}/live',
+        isLive: true,
+      ),
+    ]);
+  }
 
   @override
   Future<List<Ministry>> ministries() => _delay(churchMinistries);

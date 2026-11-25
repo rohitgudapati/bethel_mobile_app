@@ -3,6 +3,7 @@
 ///
 ///   start  songs | watch | home | prayer | more   – skips the welcome screen as a guest
 ///   book   part of a song book title to open first
+///   live   1 = demo shows the service as live
 class LaunchOptions {
   static Map<String, String> get _params {
     try {
@@ -22,4 +23,7 @@ class LaunchOptions {
   static bool get skipWelcome => startTab != null;
 
   static String? get book => _params['book']?.toLowerCase();
+
+  /// `live=1` shows the demo as if the Sunday service were streaming right now.
+  static bool get forceLive => _params['live'] == '1';
 }

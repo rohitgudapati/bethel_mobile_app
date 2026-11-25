@@ -5,6 +5,7 @@ import '../app/config.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
+import 'live_banner.dart';
 import 'video_screen.dart';
 
 enum _Section { sermons, shorts, interviews, testimonies }
@@ -46,24 +47,7 @@ class _WatchScreenState extends State<WatchScreen> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: AsyncView<List<LiveStream>>(
               load: state.repo.liveStreams,
-              builder: (context, streams) {
-                if (streams.isEmpty) return const SizedBox.shrink();
-                final s = streams.first;
-                return OverlayCard(
-                  image: s.image,
-                  height: 200,
-                  title: s.title,
-                  subtitle: s.description,
-                  top: s.isLive ? const LivePill() : const Pill('UPCOMING'),
-                  trailing: const PlayBadge(size: 52),
-                  onTap: () => playVideo(context,
-                      youtubeId: s.youtubeId,
-                      url: s.youtubeUrl,
-                      title: s.title,
-                      subtitle: s.description,
-                      isLive: s.isLive),
-                );
-              },
+              builder: (context, streams) => LiveBanner(streams: streams, height: 200),
             ),
           ),
         ),

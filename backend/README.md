@@ -6,7 +6,7 @@ Everything the app needs runs on Firebase (Google Cloud):
 |---|---|
 | **Firestore** | Church content: song books and songs, events, services, ministries, verses, prayer wall, sermon comments |
 | **Firebase Auth** | Email/password, Google and guest (anonymous) sign-in |
-| **Cloud Functions** | `syncYouTube` every 10 minutes, `syncYouTubeFull` nightly, `syncYouTubeNow` for admins, and counters for "I prayed" and verse likes |
+| **Cloud Functions** | `syncYouTube` every 10 minutes, `syncYouTubeSunday` every 2 minutes on Sunday afternoons, `syncYouTubeFull` nightly, `syncYouTubeNow` for admins, and counters for "I prayed" and verse likes |
 | **Secret Manager** | The YouTube Data API key |
 | **Storage** | Church images, song recordings and book PDFs (under `public/`) |
 
@@ -14,8 +14,9 @@ Everything the app needs runs on Firebase (Google Cloud):
 
 | On YouTube | In the app |
 |---|---|
-| A live stream that is on air | **LIVE** banner on Home and Watch, plays inside the app |
-| A scheduled stream | "Starts Sun at 10:30 AM" banner |
+| A live stream that is on air (Sunday service or a special event) | **LIVE** banner on Home and Watch, plays inside the app. Only while streaming; checked every 2 minutes on Sunday afternoons and every 10 minutes otherwise |
+| A scheduled stream | "UPCOMING · Starts Sun, Nov 29 · 3:00 PM" banner (no LIVE label) |
+| Nothing live or scheduled | "NEXT SERVICE" banner for the coming Sunday at 3:00 PM |
 | A finished live stream or a normal upload | **Sermon** |
 | A video in a playlist | Sermon in that **series** (e.g. "Romans Series") |
 | A video in a playlist whose name contains "Testimon" | **Testimony** |
@@ -25,7 +26,7 @@ Everything the app needs runs on Firebase (Google Cloud):
 
 Admins can hide a video or change its type or preacher in Firestore (`hidden`,
 `typeOverride`, `preacher`, `seriesOverride`); the sync never overwrites those fields.
-With five playlists it uses about 1,500 of the 10,000 free YouTube API units per day.
+With five playlists it uses about 1,500 of the 10,000 free YouTube API units per day (about 2,600 on Sundays).
 
 ## Set up the live project (one time)
 

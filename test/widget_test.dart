@@ -4,6 +4,8 @@ import 'package:bethelprayerhouse/app/app_state.dart';
 import 'package:bethelprayerhouse/data/daily_verses.dart';
 import 'package:bethelprayerhouse/data/mock_repository.dart';
 import 'package:bethelprayerhouse/main.dart';
+import 'package:bethelprayerhouse/data/models.dart';
+import 'package:bethelprayerhouse/screens/live_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,15 +25,18 @@ void main() {
     await tester.scrollUntilVisible(find.text('Testimonies'), 200, scrollable: find.byType(Scrollable).first);
     expect(find.text('Testimonies'), findsOneWidget, reason: 'heart shortcut opens Testimonies');
     expect(find.text('Give'), findsNothing);
-    await tester.scrollUntilVisible(find.text('Meet our elders'), 300, scrollable: find.byType(Scrollable).first);
-    await tester.pumpAndSettle();
-    expect(find.text('Bro. Moses Polugari'), findsOneWidget);
-    expect(find.text('Bro. Vinod Somepalli'), findsOneWidget);
+    expect(find.text('Meet our elders'), findsNothing, reason: 'elders moved to More');
 
-    for (final tab in ['Songs', 'Watch', 'Prayer', 'More', 'Home']) {
+    for (final tab in ['Songs', 'Watch', 'Prayer', 'More']) {
       await tester.tap(find.text(tab).last);
       await tester.pumpAndSettle();
     }
+    // More: Meet our elders
+    await tester.scrollUntilVisible(find.text('Bro. Moses Polugari'), 300, scrollable: find.byType(Scrollable).last);
+    expect(find.text('Meet our elders'), findsOneWidget);
+    expect(find.text('Bro. Vinod Somepalli'), findsOneWidget);
+    await tester.tap(find.text('Home').last);
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 
@@ -135,5 +140,40 @@ void main() {
     expect(c.reference, isNot(a.reference), reason: 'next day, new verse');
     final month = {for (var d = 1; d <= 30; d++) builtInVerse(DateTime(2026, 11, d)).reference};
     expect(month.length, 30, reason: 'no repeats within a month');
+  });
+
+  test('next Sunday service is the coming Sunday at 3:00 PM', () {
+    expect(nextSundayService(DateTime(2026, 11, 25, 10)), DateTime(2026, 11, 29, 15)); // Wednesday
+    expect(nextSundayService(DateTime(2026, 11, 29, 9)), DateTime(2026, 11, 29, 15)); // Sunday morning
+    expect(nextSundayService(DateTime(2026, 11, 29, 18)), DateTime(2026, 12, 6, 15)); // Sunday evening
+  });
+
+  testWidgets('banner says LIVE only while streaming', (tester) async {
+    Future<void> show(List<LiveStream> s) =>
+        tester.pumpWidget(MaterialApp(home: Scaffold(body: LiveBanner(streams: s))));
+
+    await show(const []);
+    expect(find.text('LIVE'), findsNothing);
+    expect(find.text('NEXT SERVICE'), findsOneWidget);
+    expect(find.textContaining('3:00 PM CT'), findsOneWidget);
+
+    await show([
+      LiveStream(
+        id: 1,
+        title: 'Good Friday Service',
+        description: '',
+        image: '',
+        youtubeUrl: 'https://youtube.com',
+        scheduledStart: DateTime(2027, 3, 26, 11),
+      ),
+    ]);
+    expect(find.text('LIVE'), findsNothing);
+    expect(find.text('UPCOMING'), findsOneWidget, reason: 'special events scheduled on YouTube');
+    expect(find.textContaining('11:00 AM'), findsOneWidget);
+
+    await show(const [
+      LiveStream(id: 1, title: 'Sunday Worship Service', description: '', image: '', youtubeUrl: '', isLive: true),
+    ]);
+    expect(find.text('LIVE'), findsOneWidget);
   });
 }

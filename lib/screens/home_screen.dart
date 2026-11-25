@@ -7,9 +7,8 @@ import '../data/models.dart';
 import '../widgets/common.dart';
 import 'bible_screen.dart';
 import 'events_screen.dart';
-import '../data/church_content.dart';
 import 'church_screens.dart';
-import 'video_screen.dart';
+import 'live_banner.dart';
 import 'shell.dart';
 import 'watch_screen.dart';
 
@@ -100,25 +99,7 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: AsyncView<List<LiveStream>>(
               load: state.repo.liveStreams,
-              builder: (context, streams) {
-                final live = streams.isEmpty ? null : streams.first;
-                return OverlayCard(
-                  image: live?.image ?? 'assets/church.jpg',
-                  height: 210,
-                  title: live?.title ?? 'Sunday Worship Service',
-                  subtitle: live?.description ?? 'Sundays at 10:30 AM',
-                  top: live?.isLive == true
-                      ? const LivePill()
-                      : const Pill('NEXT SERVICE', icon: Icons.schedule_rounded),
-                  trailing: const PlayBadge(),
-                  onTap: () => playVideo(context,
-                      youtubeId: live?.youtubeId,
-                      url: live?.youtubeUrl ?? AppConfig.youtubeLiveUrl,
-                      title: live?.title ?? 'Sunday Worship Service',
-                      subtitle: live?.description ?? '',
-                      isLive: live?.isLive ?? false),
-                );
-              },
+              builder: (context, streams) => LiveBanner(streams: streams),
             ),
           ),
         ),
@@ -194,16 +175,6 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           ),
-        ),
-        // Meet our elders
-        SliverToBoxAdapter(
-          child: SectionHeader('Meet our elders',
-              action: 'About',
-              onAction: () =>
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const EldersScreen(intro: eldersIntro)))),
-        ),
-        SliverToBoxAdapter(
-          child: AsyncView<List<Elder>>(load: state.repo.elders, builder: (_, list) => EldersRow(elders: list)),
         ),
         // Latest sermons
         SliverToBoxAdapter(

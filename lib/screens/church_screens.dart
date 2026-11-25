@@ -372,8 +372,9 @@ class MinistryDetailScreen extends StatelessWidget {
 
 /// Horizontal "Meet our elders" row for Home.
 class EldersRow extends StatelessWidget {
-  const EldersRow({super.key, required this.elders});
+  const EldersRow({super.key, required this.elders, this.padding = const EdgeInsets.symmetric(horizontal: 20)});
   final List<Elder> elders;
+  final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
@@ -382,7 +383,7 @@ class EldersRow extends StatelessWidget {
       height: 236,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: padding,
         itemCount: elders.length,
         separatorBuilder: (_, __) => const SizedBox(width: 14),
         itemBuilder: (_, i) {

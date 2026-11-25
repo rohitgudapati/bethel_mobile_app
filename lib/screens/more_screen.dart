@@ -9,6 +9,7 @@ import '../data/church_content.dart';
 import 'bible_screen.dart';
 import 'church_screens.dart';
 import 'events_screen.dart';
+import 'watch_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -78,12 +79,21 @@ class MoreScreen extends StatelessWidget {
                 label: 'Verses',
                 onTap: () => _push(context, const VerseArchiveScreen())),
             _Tile(
-                icon: Icons.people_alt_rounded,
-                label: 'Elders',
-                onTap: () => _push(context, const EldersScreen(intro: eldersIntro))),
+                icon: Icons.favorite_rounded,
+                label: 'Testimonies',
+                onTap: () => _push(
+                    context, MediaListScreen(title: 'Testimonies', kind: 'Testimony', load: state.repo.testimonies))),
           ],
         ),
-        const SizedBox(height: 20),
+        SectionHeader('Meet our elders',
+            padding: const EdgeInsets.fromLTRB(0, 28, 0, 12),
+            action: 'About',
+            onAction: () => _push(context, const EldersScreen(intro: eldersIntro))),
+        AsyncView<List<Elder>>(
+          load: state.repo.elders,
+          builder: (_, list) => EldersRow(elders: list, padding: EdgeInsets.zero),
+        ),
+        const SizedBox(height: 24),
         Card(
           clipBehavior: Clip.antiAlias,
           child: Column(children: [

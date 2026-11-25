@@ -25,6 +25,9 @@ class AppConfig {
   /// Opens whatever the channel is streaming now (or its next scheduled stream).
   static String get youtubeLiveUrl => '$youtubeChannelUrl/live';
 
+  /// Sunday worship starts at 3:00 PM.
+  static const int sundayServiceHour = 15;
+
   static const String churchName = 'Bethel Prayer House';
   static const String churchCity = 'Naperville, IL';
   static const String churchAddress = '7S201 South River Rd, Naperville, IL 60540';
