@@ -53,7 +53,7 @@ You need a Google account. Steps 1–3 happen in the browser.
    firebase use --add            # pick the project, alias "default"
    cd functions && npm install && cd ..
    firebase functions:secrets:set YOUTUBE_API_KEY   # paste the API key
-   firebase deploy               # asks for YOUTUBE_CHANNEL: paste the channel link or @handle
+   firebase deploy               # YOUTUBE_CHANNEL defaults to @bethelprayerhousenaperville
    ```
 
 5. **Load the starting content** (song books, hymns, services, ministries, events, verses),

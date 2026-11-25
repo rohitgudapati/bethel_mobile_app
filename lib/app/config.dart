@@ -18,17 +18,20 @@ class AppConfig {
   /// Church id used by album/song endpoints (`GetAlbumsByChurchId?id=`).
   static const int churchId = int.fromEnvironment('CHURCH_ID', defaultValue: 1);
 
-  /// Online giving page (e.g. a Stripe Payment Link: https://buy.stripe.com/...).
-  /// Left empty until the church shares its public giving link.
-  static const String givingUrl = String.fromEnvironment('GIVING_URL', defaultValue: '');
+  /// The church's YouTube channel.
+  static const String youtubeChannelUrl =
+      String.fromEnvironment('YOUTUBE_URL', defaultValue: 'https://www.youtube.com/@bethelprayerhousenaperville');
 
-  static const String youtubeChannelUrl = String.fromEnvironment(
-    'YOUTUBE_URL',
-    defaultValue: 'https://www.youtube.com/results?search_query=Bethel+Prayer+House+Naperville',
-  );
+  /// Opens whatever the channel is streaming now (or its next scheduled stream).
+  static String get youtubeLiveUrl => '$youtubeChannelUrl/live';
 
   static const String churchName = 'Bethel Prayer House';
   static const String churchCity = 'Naperville, IL';
+  static const String churchAddress = '7S201 South River Rd, Naperville, IL';
+
+  /// Google Maps pin for the church.
+  static String get mapsUrl =>
+      'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent('$churchName, $churchAddress')}';
 
   static bool get isFirebase => backend == 'firebase';
   static bool get isDemo => !isFirebase && apiBaseUrl.isEmpty;

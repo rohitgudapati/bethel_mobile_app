@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../app/config.dart';
+import 'daily_verses.dart';
 import 'models.dart';
 import 'repository.dart';
 
@@ -70,17 +72,19 @@ class MockRepository implements BethelRepository {
       _delay(UserProfile(name: name.trim(), email: email.trim()));
 
   @override
-  Future<DailyVerse> todayVerse() => _delay(DailyVerse(
-        id: 1,
-        date: _now,
-        text: 'But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; '
-            'they shall run, and not be weary; and they shall walk, and not faint.',
-        reference: 'Isaiah 40:31',
-        image: 'assets/doe.png',
-        likes: 128,
-        shares: 34,
-        views: 1720,
-      ));
+  Future<DailyVerse> todayVerse() {
+    // A different verse every day (see daily_verses.dart), with sample counts.
+    final v = builtInVerse(DateTime.now());
+    return _delay(DailyVerse(
+      id: v.id,
+      date: v.date,
+      text: v.text,
+      reference: v.reference,
+      likes: 40 + v.id % 90,
+      shares: 10 + v.id % 30,
+      views: 900 + v.id % 1000,
+    ));
+  }
 
   @override
   Future<void> likeVerse(int id, bool liked) => _delay(null);
@@ -127,7 +131,7 @@ class MockRepository implements BethelRepository {
   @override
   Future<ChurchInfo> churchInfo() => _delay(const ChurchInfo(
         name: 'Bethel Prayer House',
-        address: '756 South River Rd, Naperville',
+        address: '7S201 South River Rd, Naperville, IL',
         country: 'United States',
       ));
 
@@ -250,7 +254,7 @@ class MockRepository implements BethelRepository {
           duration: '48 min',
           description: 'A walk through Romans 1:16-17 on the power of the gospel to change every life it touches, '
               'and what it means to live unashamed in Naperville and beyond.',
-          videoUrl: 'https://www.youtube.com/',
+          videoUrl: AppConfig.youtubeChannelUrl,
         ),
         Sermon(
           id: 2,
@@ -331,13 +335,13 @@ class MockRepository implements BethelRepository {
       ]..sort((a, b) => a.date.compareTo(b.date)));
 
   @override
-  Future<List<LiveStream>> liveStreams() => _delay(const [
+  Future<List<LiveStream>> liveStreams() => _delay([
         LiveStream(
           id: 1,
           title: 'Sunday Worship Service – Live',
           description: 'Every Sunday at 10:30 AM CT',
           image: 'assets/church.jpg',
-          youtubeUrl: 'https://www.youtube.com/',
+          youtubeUrl: AppConfig.youtubeLiveUrl,
           isLive: true,
         ),
       ]);

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:bethelprayerhouse/app/app_state.dart';
+import 'package:bethelprayerhouse/data/daily_verses.dart';
 import 'package:bethelprayerhouse/data/mock_repository.dart';
 import 'package:bethelprayerhouse/main.dart';
 import 'package:flutter/material.dart';
@@ -17,8 +18,11 @@ void main() {
 
     await tester.tap(find.text('Explore as a guest'));
     await tester.pumpAndSettle();
-    expect(find.text('Verse of the day'), findsOneWidget);
-    expect(find.text('Isaiah 40:31'), findsOneWidget);
+    expect(find.text('VERSE OF THE DAY'), findsOneWidget);
+    expect(find.text(builtInVerse(DateTime.now()).reference!), findsWidgets, reason: "today's verse is shown");
+    await tester.scrollUntilVisible(find.text('YouTube'), 200, scrollable: find.byType(Scrollable).first);
+    expect(find.text('YouTube'), findsOneWidget, reason: 'YouTube replaces Give');
+    expect(find.text('Give'), findsNothing);
 
     for (final tab in ['Songs', 'Watch', 'Prayer', 'More', 'Home']) {
       await tester.tap(find.text(tab).last);
@@ -117,4 +121,15 @@ void main() {
     },
     skip: !File('assets/songs/songs_of_zion.json').existsSync(),
   );
+
+  test('the built-in verse changes every day and repeats the same verse for everyone', () {
+    final a = builtInVerse(DateTime(2026, 11, 25, 6));
+    final b = builtInVerse(DateTime(2026, 11, 25, 23, 59));
+    final c = builtInVerse(DateTime(2026, 11, 26, 0, 1));
+    expect(a.reference, b.reference, reason: 'same day, same verse');
+    expect(a.id, b.id);
+    expect(c.reference, isNot(a.reference), reason: 'next day, new verse');
+    final month = {for (var d = 1; d <= 30; d++) builtInVerse(DateTime(2026, 11, d)).reference};
+    expect(month.length, 30, reason: 'no repeats within a month');
+  });
 }

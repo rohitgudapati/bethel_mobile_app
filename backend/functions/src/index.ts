@@ -18,6 +18,7 @@ const youtubeApiKey = defineSecret('YOUTUBE_API_KEY');
 /** The church channel: id (UC...), @handle or URL. Asked for on first deploy. */
 const youtubeChannel = defineString('YOUTUBE_CHANNEL', {
   description: 'Church YouTube channel: @handle, channel id (UC...) or channel URL',
+  default: '@bethelprayerhousenaperville',
 });
 
 async function runSync(full: boolean) {
@@ -62,9 +63,10 @@ export const onPrayed = onDocumentCreated('prayerRequests/{id}/prayedBy/{uid}', 
 });
 
 export const onVerseLiked = onDocumentCreated('verses/{id}/likes/{uid}', async (event) => {
-  await getFirestore().collection('verses').doc(event.params.id).update({ likes: FieldValue.increment(1) });
+  // set+merge: the built-in daily verse has no document until its first like.
+  await getFirestore().collection('verses').doc(event.params.id).set({ likes: FieldValue.increment(1) }, { merge: true });
 });
 
 export const onVerseUnliked = onDocumentDeleted('verses/{id}/likes/{uid}', async (event) => {
-  await getFirestore().collection('verses').doc(event.params.id).update({ likes: FieldValue.increment(-1) });
+  await getFirestore().collection('verses').doc(event.params.id).set({ likes: FieldValue.increment(-1) }, { merge: true });
 });

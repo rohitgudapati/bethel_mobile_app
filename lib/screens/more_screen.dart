@@ -8,7 +8,6 @@ import '../widgets/common.dart';
 import 'bible_screen.dart';
 import 'church_screens.dart';
 import 'events_screen.dart';
-import 'give_screen.dart';
 import 'shell.dart';
 
 class MoreScreen extends StatelessWidget {
@@ -71,7 +70,8 @@ class MoreScreen extends StatelessWidget {
                 label: 'Gallery',
                 onTap: () => _push(context, const GalleryScreen())),
             _Tile(icon: Icons.auto_stories_rounded, label: 'Books', onTap: () => _push(context, const BooksScreen())),
-            _Tile(icon: Icons.favorite_rounded, label: 'Give', onTap: () => _push(context, const GiveScreen())),
+            _Tile(
+                icon: Icons.directions_rounded, label: 'Directions', onTap: () => openLink(context, AppConfig.mapsUrl)),
             _Tile(icon: Icons.church_rounded, label: 'Services', onTap: () => _push(context, const ServicesScreen())),
             _Tile(
                 icon: Icons.format_quote_rounded,
@@ -90,10 +90,9 @@ class MoreScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.place_outlined),
               title: const Text('Plan a visit'),
-              subtitle: const Text('756 South River Rd, Naperville'),
+              subtitle: const Text(AppConfig.churchAddress),
               trailing: const Icon(Icons.directions_rounded),
-              onTap: () => openLink(context,
-                  'https://www.google.com/maps/search/?api=1&query=Bethel+Prayer+House+756+South+River+Rd+Naperville'),
+              onTap: () => openLink(context, AppConfig.mapsUrl),
             ),
             const Divider(indent: 16, endIndent: 16),
             SwitchListTile(

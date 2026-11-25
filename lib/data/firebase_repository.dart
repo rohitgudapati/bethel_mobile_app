@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../app/config.dart';
+import 'daily_verses.dart';
 import 'models.dart';
 import 'repository.dart';
 
@@ -131,17 +132,31 @@ class FirebaseRepository implements BethelRepository {
     );
   }
 
+  /// The verse an admin published for today, otherwise the built-in verse for today's
+  /// date (daily_verses.dart). Either way it changes every day by itself.
   @override
   Future<DailyVerse> todayVerse() async {
-    final endOfToday = DateTime.now().add(const Duration(days: 1));
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day);
     final q = await _db
         .collection('verses')
-        .where('date', isLessThan: Timestamp.fromDate(DateTime(endOfToday.year, endOfToday.month, endOfToday.day)))
-        .orderBy('date', descending: true)
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('date', isLessThan: Timestamp.fromDate(start.add(const Duration(days: 1))))
         .limit(1)
         .get();
-    if (q.docs.isEmpty) throw 'No verse has been published yet.';
-    return _verse(q.docs.first);
+    if (q.docs.isNotEmpty) return _verse(q.docs.first);
+
+    // Likes for the built-in verse are stored under verses/day-YYYY-MM-DD.
+    final dayId = 'day-${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
+    final counts = (await _db.doc('verses/$dayId').get()).data() ?? const {};
+    final v = builtInVerse(now);
+    return DailyVerse(
+      id: _key(dayId),
+      date: v.date,
+      text: v.text,
+      reference: v.reference,
+      likes: (counts['likes'] as num?)?.toInt() ?? 0,
+    );
   }
 
   @override

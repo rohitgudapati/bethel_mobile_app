@@ -17,7 +17,7 @@ test('seed loads the starting church content', async () => {
   const grace = (await db.doc('songs/hymns-of-faith-1').get()).data()!;
   assert.equal(grace.title, 'Amazing Grace');
   assert.match(grace.lyrics.English, /^Amazing grace! How sweet the sound/);
-  assert.equal((await db.doc('church/info').get()).get('address'), '756 South River Rd, Naperville');
+  assert.equal((await db.doc('church/info').get()).get('address'), '7S201 South River Rd, Naperville, IL');
   const sunday = (await db.doc('events/sunday-worship').get()).get('date').toDate() as Date;
   assert.equal(sunday.getDay(), 0, 'Sunday service lands on a Sunday');
 });

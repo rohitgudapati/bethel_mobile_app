@@ -8,7 +8,6 @@ import '../widgets/common.dart';
 import 'bible_screen.dart';
 import 'events_screen.dart';
 import 'church_screens.dart';
-import 'give_screen.dart';
 import 'video_screen.dart';
 import 'shell.dart';
 import 'watch_screen.dart';
@@ -39,6 +38,21 @@ class HomeScreen extends StatelessWidget {
                   Text('${_greeting()},', style: TextStyle(color: t.colorScheme.onSurfaceVariant, fontSize: 15)),
                   Text(state.guest ? 'Welcome, friend' : state.greetingName,
                       style: t.textTheme.headlineMedium?.copyWith(height: 1.2)),
+                  const SizedBox(height: 4),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => openLink(context, AppConfig.mapsUrl),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.place_rounded, size: 16, color: BethelColors.rose),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(AppConfig.churchAddress,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 13, color: t.colorScheme.onSurfaceVariant)),
+                      ),
+                    ]),
+                  ),
                 ]),
               ),
               IconButton.filledTonal(
@@ -70,6 +84,13 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           ),
+        // Verse of the day (first thing on Home)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: AsyncView<DailyVerse>(load: state.repo.todayVerse, builder: (_, v) => VerseCard(verse: v)),
+          ),
+        ),
         // Live / next service hero
         SliverToBoxAdapter(
           child: Padding(
@@ -89,7 +110,7 @@ class HomeScreen extends StatelessWidget {
                   trailing: const PlayBadge(),
                   onTap: () => playVideo(context,
                       youtubeId: live?.youtubeId,
-                      url: live?.youtubeUrl ?? AppConfig.youtubeChannelUrl,
+                      url: live?.youtubeUrl ?? AppConfig.youtubeLiveUrl,
                       title: live?.title ?? 'Sunday Worship Service',
                       subtitle: live?.description ?? '',
                       isLive: live?.isLive ?? false),
@@ -104,10 +125,10 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 20, 12, 0),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
               _QuickAction(
-                  icon: Icons.favorite_rounded,
-                  label: 'Give',
+                  icon: Icons.smart_display_rounded,
+                  label: 'YouTube',
                   color: BethelColors.rose,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GiveScreen()))),
+                  onTap: () => openLink(context, AppConfig.youtubeChannelUrl)),
               _QuickAction(
                   icon: Icons.volunteer_activism,
                   label: 'Pray',
@@ -123,14 +144,6 @@ class HomeScreen extends StatelessWidget {
                   color: const Color(0xFF4E7D6A),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BibleScreen()))),
             ]),
-          ),
-        ),
-        // Verse of the day
-        const SliverToBoxAdapter(child: SectionHeader('Verse of the day')),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: AsyncView<DailyVerse>(load: state.repo.todayVerse, builder: (_, v) => VerseCard(verse: v)),
           ),
         ),
         // Upcoming events
@@ -286,7 +299,12 @@ class VerseCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           const Icon(Icons.format_quote_rounded, color: BethelColors.gold, size: 30),
-          const Spacer(),
+          const SizedBox(width: 6),
+          const Expanded(
+            child: Text('VERSE OF THE DAY',
+                style:
+                    TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: BethelColors.gold)),
+          ),
           Text(fmtShort(verse.date),
               style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(width: 8),

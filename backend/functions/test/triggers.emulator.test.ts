@@ -19,6 +19,10 @@ test('"I prayed" and verse likes keep their counters', async () => {
 
   assert.equal((await db.doc('prayerRequests/t1').get()).get('prayedCount'), 2);
   assert.equal((await db.doc('verses/t1').get()).get('likes'), 4);
+
+  // The built-in daily verse has no document until someone likes it.
+  await fns.onVerseLiked.run({ params: { id: 'day-2026-11-25', uid: 'a' } });
+  assert.equal((await db.doc('verses/day-2026-11-25').get()).get('likes'), 1);
 });
 
 test('only admins can run a YouTube sync from the app', async () => {
