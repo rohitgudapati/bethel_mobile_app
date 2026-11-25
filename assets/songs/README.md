@@ -15,3 +15,6 @@ Each file is a list of songs:
 
 Stanzas are separated by a blank line. The Firebase seed tool loads the same file:
 `npm run seed -- --book songs-of-zion=../../assets/songs/songs_of_zion.json --book bethel-english=../../assets/songs/bethel_english.json`.
+
+To rebuild the files from the church's Word documents, use `tools/songbooks/build_songbooks.py`
+(see `docs/DEPLOY.md`, step 3).
