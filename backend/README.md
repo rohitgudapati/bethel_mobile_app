@@ -107,6 +107,8 @@ cd ../.. && flutter run --dart-define=BACKEND=firebase --dart-define=USE_FIREBAS
 
 On an Android emulator add `--dart-define=EMULATOR_HOST=10.0.2.2`.
 
+While the emulators run, the admin console at <http://127.0.0.1:4000> shows the data, sign-ins and logs, like the Firebase console.
+
 ## Data model
 
 | Collection | Fields |
