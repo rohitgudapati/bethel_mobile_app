@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "demo-bethel"
+    "default": "bethel-prayer-house-eb47e",
+    "demo": "demo-bethel"
   }
 }
