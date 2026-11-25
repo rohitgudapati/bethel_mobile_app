@@ -94,6 +94,10 @@ export async function seed(content: Json, projectId?: string, songBook?: { bookI
     const { id, ...rest } = m;
     put('ministries', id, rest);
   }
+  for (const e of content.elders ?? []) {
+    const { id, ...rest } = e;
+    put('elders', id, rest);
+  }
   for (const e of content.events) {
     const { id, dayOffset, ...rest } = e;
     put('events', id, { ...rest, date: Timestamp.fromDate(dayFromOffset(dayOffset)) });

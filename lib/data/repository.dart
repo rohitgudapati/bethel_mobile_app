@@ -31,6 +31,7 @@ abstract class BethelRepository {
   Future<List<ChurchService>> services();
   Future<void> bookService(int serviceId, {required String name, required String phone, required String note});
   Future<List<Ministry>> ministries();
+  Future<List<Elder>> elders();
   Future<List<Book>> books();
   Future<List<GalleryPicture>> pictures();
 

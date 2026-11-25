@@ -5,10 +5,10 @@ import '../app/config.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
+import '../data/church_content.dart';
 import 'bible_screen.dart';
 import 'church_screens.dart';
 import 'events_screen.dart';
-import 'shell.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -78,9 +78,9 @@ class MoreScreen extends StatelessWidget {
                 label: 'Verses',
                 onTap: () => _push(context, const VerseArchiveScreen())),
             _Tile(
-                icon: Icons.photo_camera_back_rounded,
-                label: 'Testimonies',
-                onTap: () => AppShell.goToTab(context, AppShell.watch)),
+                icon: Icons.people_alt_rounded,
+                label: 'Elders',
+                onTap: () => _push(context, const EldersScreen(intro: eldersIntro))),
           ],
         ),
         const SizedBox(height: 20),
@@ -93,6 +93,14 @@ class MoreScreen extends StatelessWidget {
               subtitle: const Text(AppConfig.churchAddress),
               trailing: const Icon(Icons.directions_rounded),
               onTap: () => openLink(context, AppConfig.mapsUrl),
+            ),
+            const Divider(indent: 16, endIndent: 16),
+            ListTile(
+              leading: const Icon(Icons.mail_outline_rounded),
+              title: const Text('Contact us'),
+              subtitle: const Text('info@bethelph.com\n(818) 610-9650 · (630) 854-7335'),
+              isThreeLine: true,
+              onTap: () => openLink(context, 'mailto:info@bethelph.com'),
             ),
             const Divider(indent: 16, endIndent: 16),
             SwitchListTile(

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../app/config.dart';
+import 'church_content.dart';
 import 'mock_repository.dart';
 import 'models.dart';
 import 'repository.dart';
@@ -242,6 +243,10 @@ class ApiRepository implements BethelRepository {
     } catch (_) {}
     return song.withLyrics(lyrics, lyricist: lyricist, chords: (chords?.isEmpty ?? true) ? null : chords);
   }
+
+  /// The old API has no elders endpoint; uses the website content.
+  @override
+  Future<List<Elder>> elders() async => churchElders;
 
   @override
   Future<List<Book>> books() async {

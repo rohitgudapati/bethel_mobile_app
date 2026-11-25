@@ -14,7 +14,7 @@ class WelcomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: BethelColors.navyDeep,
       body: Stack(fit: StackFit.expand, children: [
-        const BethelImage('assets/church.jpg'),
+        const BethelImage('assets/church/building.jpg', fit: BoxFit.cover),
         const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -30,11 +30,7 @@ class WelcomeScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: const ClipOval(child: BethelImage('assets/bethel_logo.png', width: 44, height: 44)),
-                ),
+                const ClipOval(child: BethelImage('assets/church/logo.png', width: 64, height: 64)),
                 const SizedBox(width: 12),
                 const Text(AppConfig.churchCity,
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, letterSpacing: 0.3)),

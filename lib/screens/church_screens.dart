@@ -367,3 +367,137 @@ class MinistryDetailScreen extends StatelessWidget {
     );
   }
 }
+
+// ------------------------------------------------------------------ elders
+
+/// Horizontal "Meet our elders" row for Home.
+class EldersRow extends StatelessWidget {
+  const EldersRow({super.key, required this.elders});
+  final List<Elder> elders;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return SizedBox(
+      height: 236,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: elders.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        itemBuilder: (_, i) {
+          final e = elders[i];
+          return SizedBox(
+            width: 172,
+            child: Card(
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ElderScreen(elder: e))),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  BethelImage(e.image, height: 160, width: double.infinity),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(e.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: t.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                      Text(e.role,
+                          style: const TextStyle(fontSize: 12, color: BethelColors.gold, fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                ]),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class EldersScreen extends StatelessWidget {
+  const EldersScreen({super.key, this.intro = ''});
+  final String intro;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    final t = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Our elders')),
+      body: AsyncView<List<Elder>>(
+        load: state.repo.elders,
+        builder: (context, list) => ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
+          if (intro.isNotEmpty) ...[
+            Text(intro, style: TextStyle(color: t.colorScheme.onSurfaceVariant, height: 1.6)),
+            const SizedBox(height: 18),
+          ],
+          for (final e in list) ...[
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ElderScreen(elder: e))),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  AspectRatio(aspectRatio: 4 / 3, child: BethelImage(e.image)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(e.name, style: t.textTheme.titleLarge),
+                      Text(e.role, style: const TextStyle(color: BethelColors.gold, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 8),
+                      Text(e.bio, style: const TextStyle(height: 1.6)),
+                    ]),
+                  ),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+class ElderScreen extends StatelessWidget {
+  const ElderScreen({super.key, required this.elder});
+  final Elder elder;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final tel = elder.phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    return Scaffold(
+      body: CustomScrollView(slivers: [
+        SliverAppBar(
+          expandedHeight: 340,
+          pinned: true,
+          foregroundColor: Colors.white,
+          backgroundColor: BethelColors.navyDeep,
+          flexibleSpace: FlexibleSpaceBar(background: BethelImage(elder.image)),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Pill(elder.role),
+              const SizedBox(height: 10),
+              Text(elder.name, style: t.textTheme.headlineSmall),
+              const SizedBox(height: 14),
+              Text(elder.bio, style: const TextStyle(fontSize: 15, height: 1.7)),
+              if (elder.phone.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: () => openLink(context, 'tel:$tel'),
+                  icon: const Icon(Icons.call_rounded),
+                  label: Text('Call ${elder.phone}'),
+                ),
+              ],
+            ]),
+          ),
+        ),
+      ]),
+    );
+  }
+}

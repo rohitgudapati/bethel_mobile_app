@@ -21,6 +21,7 @@ service cloud.firestore {
     match /events/{id}           { allow read: if true; allow write: if admin(); }
     match /services/{id}         { allow read: if true; allow write: if admin(); }
     match /ministries/{id}       { allow read: if true; allow write: if admin(); }
+    match /elders/{id}           { allow read: if true; allow write: if admin(); }
     match /songBooks/{id}        { allow read: if true; allow write: if admin(); }
     match /songs/{id}            { allow read: if true; allow write: if admin(); }
     match /books/{id}            { allow read: if true; allow write: if admin(); }

@@ -20,9 +20,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('VERSE OF THE DAY'), findsOneWidget);
     expect(find.text(builtInVerse(DateTime.now()).reference!), findsWidgets, reason: "today's verse is shown");
-    await tester.scrollUntilVisible(find.text('YouTube'), 200, scrollable: find.byType(Scrollable).first);
-    expect(find.text('YouTube'), findsOneWidget, reason: 'YouTube replaces Give');
+    await tester.scrollUntilVisible(find.text('Testimonies'), 200, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Testimonies'), findsOneWidget, reason: 'heart shortcut opens Testimonies');
     expect(find.text('Give'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Meet our elders'), 300, scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Bro. Moses Polugari'), findsOneWidget);
+    expect(find.text('Bro. Vinod Somepalli'), findsOneWidget);
 
     for (final tab in ['Songs', 'Watch', 'Prayer', 'More', 'Home']) {
       await tester.tap(find.text(tab).last);

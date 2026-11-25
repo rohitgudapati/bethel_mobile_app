@@ -344,6 +344,21 @@ class FirebaseRepository implements BethelRepository {
   }
 
   @override
+  Future<List<Elder>> elders() async {
+    final q = await _db.collection('elders').orderBy('order').get();
+    return q.docs
+        .map((d) => Elder(
+              id: _key(d.id),
+              name: _s(d.data(), 'name'),
+              role: _s(d.data(), 'role', 'Elder'),
+              bio: _s(d.data(), 'bio'),
+              image: _s(d.data(), 'image', 'assets/church/logo.png'),
+              phone: _s(d.data(), 'phone'),
+            ))
+        .toList();
+  }
+
+  @override
   Future<List<Book>> books() async {
     final q = await _db.collection('books').get();
     return q.docs

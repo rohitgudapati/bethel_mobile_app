@@ -436,3 +436,27 @@ class _SermonDetailScreenState extends State<SermonDetailScreen> {
     );
   }
 }
+
+/// A full-page list of testimonies, interviews or other videos (used by the Home heart button).
+class MediaListScreen extends StatelessWidget {
+  const MediaListScreen({super.key, required this.title, required this.kind, required this.load});
+  final String title;
+  final String kind;
+  final Future<List<MediaItem>> Function() load;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: AsyncView<List<MediaItem>>(
+          load: load,
+          builder: (context, items) => items.isEmpty
+              ? const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('Nothing here yet.')))
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 14),
+                  itemBuilder: (_, i) => _MediaCard(item: items[i], kind: kind),
+                ),
+        ),
+      );
+}

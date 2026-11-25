@@ -235,6 +235,22 @@ class ChurchService {
 
 enum IconDataRef { prayer, worship, bible, family, fasting }
 
+class Elder {
+  final int id;
+  final String name;
+  final String role;
+  final String bio;
+  final String image;
+  final String phone;
+  const Elder(
+      {required this.id,
+      required this.name,
+      required this.role,
+      required this.bio,
+      required this.image,
+      this.phone = ''});
+}
+
 class ChurchInfo {
   final String name;
   final String address;

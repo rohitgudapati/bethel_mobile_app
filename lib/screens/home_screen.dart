@@ -7,6 +7,7 @@ import '../data/models.dart';
 import '../widgets/common.dart';
 import 'bible_screen.dart';
 import 'events_screen.dart';
+import '../data/church_content.dart';
 import 'church_screens.dart';
 import 'video_screen.dart';
 import 'shell.dart';
@@ -33,6 +34,8 @@ class HomeScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Row(children: [
+              const ClipOval(child: BethelImage('assets/church/logo.png', width: 52, height: 52)),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('${_greeting()},', style: TextStyle(color: t.colorScheme.onSurfaceVariant, fontSize: 15)),
@@ -125,10 +128,14 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 20, 12, 0),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
               _QuickAction(
-                  icon: Icons.smart_display_rounded,
-                  label: 'YouTube',
+                  icon: Icons.favorite_rounded,
+                  label: 'Testimonies',
                   color: BethelColors.rose,
-                  onTap: () => openLink(context, AppConfig.youtubeChannelUrl)),
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              MediaListScreen(title: 'Testimonies', kind: 'Testimony', load: state.repo.testimonies)))),
               _QuickAction(
                   icon: Icons.volunteer_activism,
                   label: 'Pray',
@@ -187,6 +194,16 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           ),
+        ),
+        // Meet our elders
+        SliverToBoxAdapter(
+          child: SectionHeader('Meet our elders',
+              action: 'About',
+              onAction: () =>
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const EldersScreen(intro: eldersIntro)))),
+        ),
+        SliverToBoxAdapter(
+          child: AsyncView<List<Elder>>(load: state.repo.elders, builder: (_, list) => EldersRow(elders: list)),
         ),
         // Latest sermons
         SliverToBoxAdapter(
@@ -252,25 +269,30 @@ class _QuickAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Column(children: [
-          Container(
-            width: 62,
-            height: 62,
-            decoration: BoxDecoration(
-              color: t.colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: t.colorScheme.outlineVariant),
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Column(children: [
+            Container(
+              width: 62,
+              height: 62,
+              decoration: BoxDecoration(
+                color: t.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: t.colorScheme.outlineVariant),
+              ),
+              child: Icon(icon, color: color ?? t.colorScheme.primary, size: 27),
             ),
-            child: Icon(icon, color: color ?? t.colorScheme.primary, size: 27),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-        ]),
+            const SizedBox(height: 8),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            ),
+          ]),
+        ),
       ),
     );
   }

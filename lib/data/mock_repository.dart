@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../app/config.dart';
+import 'church_content.dart';
 import 'daily_verses.dart';
 import 'models.dart';
 import 'repository.dart';
@@ -130,9 +131,11 @@ class MockRepository implements BethelRepository {
 
   @override
   Future<ChurchInfo> churchInfo() => _delay(const ChurchInfo(
-        name: 'Bethel Prayer House',
-        address: '7S201 South River Rd, Naperville, IL',
+        name: AppConfig.churchName,
+        address: AppConfig.churchAddress,
         country: 'United States',
+        phone: '(818) 610-9650 · (630) 854-7335',
+        email: 'info@bethelph.com',
       ));
 
   final Map<int, List<SermonComment>> _comments = {
@@ -201,42 +204,7 @@ class MockRepository implements BethelRepository {
       ]);
 
   @override
-  Future<List<ChurchService>> services() => _delay(const [
-        ChurchService(
-            id: 1,
-            name: 'Sunday Prayer',
-            schedule: 'Sundays · 10:30 AM',
-            description: 'Our main gathering: worship, prayer and the Word for the whole family.',
-            image: 'assets/church.jpg',
-            icon: IconDataRef.worship),
-        ChurchService(
-            id: 2,
-            name: 'Monday Prayer',
-            schedule: 'Mondays · 7:00 PM',
-            description: 'Start the week in prayer for our families, church and city.',
-            image: 'assets/pray.png'),
-        ChurchService(
-            id: 3,
-            name: 'Worship Prayer',
-            schedule: 'Thursdays · 7:30 PM',
-            description: 'An evening of extended worship and intercession.',
-            image: 'assets/live_event.jpeg',
-            icon: IconDataRef.worship),
-        ChurchService(
-            id: 4,
-            name: 'Bible Study',
-            schedule: 'Wednesdays · 7:30 PM',
-            description: 'Going deeper in Scripture together, book by book.',
-            image: 'assets/picture3.png',
-            icon: IconDataRef.bible),
-        ChurchService(
-            id: 5,
-            name: 'Fasting Prayer',
-            schedule: 'First Friday · 10:00 AM',
-            description: 'A monthly day of fasting and prayer.',
-            image: 'assets/master1.png',
-            icon: IconDataRef.fasting),
-      ]);
+  Future<List<ChurchService>> services() => _delay(churchServices);
 
   @override
   Future<void> bookService(int serviceId, {required String name, required String phone, required String note}) =>
@@ -289,101 +257,82 @@ class MockRepository implements BethelRepository {
       ]);
 
   @override
-  Future<List<ChurchEvent>> events() => _delay(<ChurchEvent>[
-        ChurchEvent(
-          id: 1,
-          title: 'Sunday Worship Service',
-          date: _nextSunday,
-          time: '10:30 AM',
-          venue: 'Main Sanctuary',
-          description: 'Join us for praise, worship and the Word. Children\'s church runs during the message.',
-          image: 'assets/church.jpg',
-          speakers: const ['Senior Pastor', 'Worship Team'],
-          category: 'Worship',
-        ),
-        ChurchEvent(
-          id: 2,
-          title: 'Friday Night Prayer',
-          date: _day((5 - _now.weekday) % 7 == 0 ? 7 : (5 - _now.weekday) % 7),
-          time: '7:30 PM',
-          venue: 'Prayer Hall',
-          description: 'An evening of intercession for our families, our city and the nations.',
-          image: 'assets/picture3.png',
-          category: 'Prayer',
-        ),
-        ChurchEvent(
-          id: 3,
-          title: 'Night of Worship',
-          date: _day(12),
-          time: '6:00 PM',
-          venue: 'Main Sanctuary',
-          description: 'A full evening of worship led by our worship team and guest musicians. Bring a friend!',
-          image: 'assets/live_event.jpeg',
-          speakers: const ['Worship Team'],
-          category: 'Worship',
-        ),
-        ChurchEvent(
-          id: 4,
-          title: 'Kids Summer Bible Camp',
-          date: _day(20),
-          time: '9:00 AM',
-          venue: 'Fellowship Hall',
-          description: 'Games, crafts, Bible stories and worship for ages 4 to 12. Registration required.',
-          image: 'assets/ministriesimage.png',
-          category: 'Kids',
-        ),
-      ]..sort((a, b) => a.date.compareTo(b.date)));
+  Future<List<ChurchEvent>> events() {
+    // Regular meetings from the church website, on their next dates.
+    final nextFriday = _day(((5 - _now.weekday) % 7) == 0 ? 7 : (5 - _now.weekday) % 7);
+    var firstFriday = DateTime(_now.year, _now.month, 1);
+    while (firstFriday.weekday != DateTime.friday) {
+      firstFriday = firstFriday.add(const Duration(days: 1));
+    }
+    if (firstFriday.isBefore(_day(0))) {
+      firstFriday = DateTime(_now.year, _now.month + 1, 1);
+      while (firstFriday.weekday != DateTime.friday) {
+        firstFriday = firstFriday.add(const Duration(days: 1));
+      }
+    }
+    return _delay(<ChurchEvent>[
+      ChurchEvent(
+        id: 1,
+        title: 'Sunday Worship Service',
+        date: _nextSunday,
+        time: '3:00 PM',
+        venue: AppConfig.churchName,
+        description: 'Worship, a message from the Word, Sunday School for children, and a fellowship dinner together. '
+            'Bring your family and friends. All are welcome!',
+        image: 'assets/church/worship.jpg',
+        speakers: const ['Bro. Moses Polugari', 'Bro. Vinod Somepalli'],
+        category: 'Worship',
+      ),
+      ChurchEvent(
+        id: 2,
+        title: 'Prayer Meeting',
+        date: nextFriday,
+        time: '7:30 PM',
+        venue: AppConfig.churchName,
+        description: 'Corporate prayer and intercession for church and community needs.',
+        image: 'assets/pray.png',
+        category: 'Prayer',
+      ),
+      ChurchEvent(
+        id: 3,
+        title: 'Youth Meeting',
+        date: _nextSunday,
+        time: '6:30 PM',
+        venue: AppConfig.churchName,
+        description: 'Practical teaching, small group discussions and mentorship for young people.',
+        image: 'assets/picture2.png',
+        category: 'Youth',
+      ),
+      ChurchEvent(
+        id: 4,
+        title: 'All Night Prayer',
+        date: firstFriday,
+        time: 'All night',
+        venue: AppConfig.churchName,
+        description: 'Extended time in God\'s presence: corporate intercession and worship, fellowship and renewal.',
+        image: 'assets/church/building.jpg',
+        category: 'Prayer',
+      ),
+    ]..sort((a, b) => a.date.compareTo(b.date)));
+  }
 
   @override
   Future<List<LiveStream>> liveStreams() => _delay([
         LiveStream(
           id: 1,
           title: 'Sunday Worship Service – Live',
-          description: 'Every Sunday at 10:30 AM CT',
-          image: 'assets/church.jpg',
+          description: 'Every Sunday at 3:00 PM CT',
+          image: 'assets/church/worship.jpg',
           youtubeUrl: AppConfig.youtubeLiveUrl,
           isLive: true,
         ),
       ]);
 
   @override
-  Future<List<Ministry>> ministries() => _delay(const [
-        Ministry(
-          id: 1,
-          name: 'Children\'s Ministry',
-          info: 'Helping kids know and love Jesus through Bible stories, songs and play.',
-          image: 'assets/ministriesimage.png',
-          meets: 'Sundays · 10:30 AM',
-        ),
-        Ministry(
-          id: 2,
-          name: 'Youth',
-          info: 'Students in grades 6 to 12 growing in faith and friendship.',
-          image: 'assets/picture2.png',
-          meets: 'Fridays · 7:00 PM',
-        ),
-        Ministry(
-          id: 3,
-          name: 'Worship & Music',
-          info: 'Singers and musicians leading the church in praise.',
-          image: 'assets/live_event.jpeg',
-          meets: 'Thursdays · 7:30 PM',
-        ),
-        Ministry(
-          id: 4,
-          name: 'Prayer Ministry',
-          info: 'Standing in the gap for our church family and city.',
-          image: 'assets/pray.png',
-          meets: 'Daily · 6:00 AM (online)',
-        ),
-        Ministry(
-          id: 5,
-          name: 'Families & Fellowship',
-          info: 'Meals, home groups and support for every season of life.',
-          image: 'assets/picture1.png',
-          meets: 'Monthly',
-        ),
-      ]);
+  Future<List<Ministry>> ministries() => _delay(churchMinistries);
+
+  @override
+  Future<List<Elder>> elders() => _delay(churchElders);
 
   @override
   Future<List<Album>> albums() async => _delay([

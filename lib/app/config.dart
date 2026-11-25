@@ -27,7 +27,7 @@ class AppConfig {
 
   static const String churchName = 'Bethel Prayer House';
   static const String churchCity = 'Naperville, IL';
-  static const String churchAddress = '7S201 South River Rd, Naperville, IL';
+  static const String churchAddress = '7S201 South River Rd, Naperville, IL 60540';
 
   /// Google Maps pin for the church.
   static String get mapsUrl =>

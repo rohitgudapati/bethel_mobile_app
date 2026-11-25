@@ -1,10 +1,10 @@
 {
   "church": {
     "name": "Bethel Prayer House",
-    "address": "7S201 South River Rd, Naperville, IL",
+    "address": "7S201 South River Rd, Naperville, IL 60540",
     "country": "United States",
-    "phone": "",
-    "email": ""
+    "phone": "(818) 610-9650 · (630) 854-7335",
+    "email": "info@bethelph.com"
   },
   "songBooks": [
     {
@@ -308,47 +308,47 @@
   ],
   "services": [
     {
-      "id": "sunday-prayer",
-      "name": "Sunday Prayer",
-      "schedule": "Sundays · 10:30 AM",
-      "description": "Our main gathering: worship, prayer and the Word for the whole family.",
-      "image": "assets/church.jpg",
+      "id": "sunday-worship",
+      "name": "Sunday Worship Service",
+      "schedule": "Every Sunday · 3:00 PM",
+      "description": "A powerful worship experience that blends traditional Indian Christian heritage with contemporary praise: anointed preaching, heartfelt worship and warm fellowship, ending with a shared meal together. Sunday School for children runs at the same time.",
+      "image": "assets/church/worship.jpg",
       "icon": "worship",
       "order": 1
     },
     {
-      "id": "monday-prayer",
-      "name": "Monday Prayer",
-      "schedule": "Mondays · 7:00 PM",
-      "description": "Start the week in prayer for our families, church and city.",
+      "id": "prayer-meeting",
+      "name": "Prayer Meeting",
+      "schedule": "Every Friday · 7:30 PM",
+      "description": "Dedicated time for corporate prayer and intercession for church and community needs, building spiritual strength together.",
       "image": "assets/pray.png",
       "icon": "prayer",
       "order": 2
     },
     {
-      "id": "worship-prayer",
-      "name": "Worship Prayer",
-      "schedule": "Thursdays · 7:30 PM",
-      "description": "An evening of extended worship and intercession.",
-      "image": "assets/live_event.jpeg",
-      "icon": "worship",
+      "id": "youth-meeting",
+      "name": "Youth Meeting",
+      "schedule": "Every Sunday · 6:30 PM",
+      "description": "Practical teaching, small group discussions and mentorship, and annual youth retreats and conferences.",
+      "image": "assets/picture2.png",
+      "icon": "bible",
       "order": 3
     },
     {
-      "id": "bible-study",
-      "name": "Bible Study",
-      "schedule": "Wednesdays · 7:30 PM",
-      "description": "Going deeper in Scripture together, book by book.",
-      "image": "assets/picture3.png",
-      "icon": "bible",
+      "id": "sisters-meeting",
+      "name": "Sister's Meeting",
+      "schedule": "Every other Sunday",
+      "description": "Prayer gatherings and worship, mentoring and discipleship programs, and monthly fellowship events.",
+      "image": "assets/picture1.png",
+      "icon": "family",
       "order": 4
     },
     {
-      "id": "fasting-prayer",
-      "name": "Fasting Prayer",
-      "schedule": "First Friday · 10:00 AM",
-      "description": "A monthly day of fasting and prayer.",
-      "image": "assets/master1.png",
+      "id": "all-night-prayer",
+      "name": "All Night Prayer",
+      "schedule": "First Friday of the month",
+      "description": "Extended time in God's presence: corporate intercession and worship, fellowship and spiritual renewal.",
+      "image": "assets/church/building.jpg",
       "icon": "fasting",
       "order": 5
     }
@@ -357,41 +357,41 @@
     {
       "id": "children",
       "name": "Children's Ministry",
-      "info": "Helping kids know and love Jesus through Bible stories, songs and play.",
+      "info": "Age-appropriate Sunday School that runs alongside the Sunday worship service.",
       "image": "assets/ministriesimage.png",
-      "meets": "Sundays · 10:30 AM",
+      "meets": "Sundays · 3:00 PM",
       "order": 1
     },
     {
       "id": "youth",
-      "name": "Youth",
-      "info": "Students in grades 6 to 12 growing in faith and friendship.",
+      "name": "Youth Ministry",
+      "info": "Practical teaching, small group discussions and mentorship, and annual youth retreats and conferences.",
       "image": "assets/picture2.png",
-      "meets": "Fridays · 7:00 PM",
+      "meets": "Sundays · 6:30 PM",
       "order": 2
     },
     {
-      "id": "worship",
-      "name": "Worship & Music",
-      "info": "Singers and musicians leading the church in praise.",
-      "image": "assets/live_event.jpeg",
-      "meets": "Thursdays · 7:30 PM",
+      "id": "sisters",
+      "name": "Sister's Ministry",
+      "info": "Prayer gatherings and worship, mentoring and discipleship programs, and monthly fellowship events.",
+      "image": "assets/picture1.png",
+      "meets": "Every other Sunday",
       "order": 3
     },
     {
       "id": "prayer",
       "name": "Prayer Ministry",
-      "info": "Standing in the gap for our church family and city.",
+      "info": "Corporate prayer every Friday and an all night prayer on the first Friday of each month.",
       "image": "assets/pray.png",
-      "meets": "Daily · 6:00 AM (online)",
+      "meets": "Fridays · 7:30 PM",
       "order": 4
     },
     {
-      "id": "families",
-      "name": "Families & Fellowship",
-      "info": "Meals, home groups and support for every season of life.",
-      "image": "assets/picture1.png",
-      "meets": "Monthly",
+      "id": "students",
+      "name": "Indian International Student Ministry",
+      "info": "A family away from home for Indian international students across the Chicago area, including UIC, IIT, Lewis University, DePaul, NIU and North Central College. Fellowship and Indian festivals, academic and career guidance, airport pickups, help with housing and transportation, home-cooked Indian meals, and worship in a culturally familiar setting.",
+      "image": "assets/master4.png",
+      "meets": "Join us on Sundays",
       "order": 5
     }
   ],
@@ -400,50 +400,37 @@
       "id": "sunday-worship",
       "title": "Sunday Worship Service",
       "dayOffset": "nextSunday",
-      "time": "10:30 AM",
-      "venue": "Main Sanctuary",
-      "description": "Join us for praise, worship and the Word. Children's church runs during the message.",
-      "image": "assets/church.jpg",
+      "time": "3:00 PM",
+      "venue": "Bethel Prayer House",
+      "description": "Worship, a message from the Word, Sunday School for children, and a fellowship dinner together. Bring your family and friends. All are welcome!",
+      "image": "assets/church/worship.jpg",
       "speakers": [
-        "Senior Pastor",
-        "Worship Team"
+        "Bro. Moses Polugari",
+        "Bro. Vinod Somepalli"
       ],
       "category": "Worship"
     },
     {
       "id": "friday-prayer",
-      "title": "Friday Night Prayer",
+      "title": "Prayer Meeting",
       "dayOffset": "nextFriday",
       "time": "7:30 PM",
-      "venue": "Prayer Hall",
+      "venue": "Bethel Prayer House",
       "description": "An evening of intercession for our families, our city and the nations.",
       "image": "assets/picture3.png",
       "speakers": [],
       "category": "Prayer"
     },
     {
-      "id": "night-of-worship",
-      "title": "Night of Worship",
-      "dayOffset": 12,
-      "time": "6:00 PM",
-      "venue": "Main Sanctuary",
-      "description": "A full evening of worship led by our worship team and guest musicians. Bring a friend!",
-      "image": "assets/live_event.jpeg",
-      "speakers": [
-        "Worship Team"
-      ],
-      "category": "Worship"
-    },
-    {
-      "id": "kids-camp",
-      "title": "Kids Summer Bible Camp",
-      "dayOffset": 20,
-      "time": "9:00 AM",
-      "venue": "Fellowship Hall",
-      "description": "Games, crafts, Bible stories and worship for ages 4 to 12. Registration required.",
-      "image": "assets/ministriesimage.png",
+      "id": "youth-meeting",
+      "title": "Youth Meeting",
+      "dayOffset": "nextSunday",
+      "time": "6:30 PM",
+      "venue": "Bethel Prayer House",
+      "description": "Practical teaching, small group discussions and mentorship for young people.",
+      "image": "assets/picture2.png",
       "speakers": [],
-      "category": "Kids"
+      "category": "Youth"
     }
   ],
   "verses": [
@@ -567,6 +554,26 @@
       ],
       "order": 5,
       "id": "day-5"
+    }
+  ],
+  "elders": [
+    {
+      "id": "moses-polugari",
+      "name": "Bro. Moses Polugari",
+      "role": "Elder",
+      "bio": "Bro. Moses leads with a deep commitment to the apostles' teaching. His servant heart ensures that God's Word is faithfully proclaimed, guiding our church in sound doctrine and spiritual truth with passion and dedication.",
+      "image": "assets/church/elder_moses.jpg",
+      "phone": "(818) 610-9650",
+      "order": 1
+    },
+    {
+      "id": "vinod-somepalli",
+      "name": "Bro. Vinod Somepalli",
+      "role": "Elder",
+      "bio": "Bro. Vinod exemplifies compassionate care, dedicating himself to nurturing the church family. He shepherds with a thoughtful and prayerful approach, ensuring every member feels supported and cherished in their walk with Christ.",
+      "image": "assets/church/elder_vinod.jpg",
+      "phone": "(630) 854-7335",
+      "order": 2
     }
   ]
 }
