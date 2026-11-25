@@ -74,8 +74,7 @@ class ApiRepository implements BethelRepository {
     return 0;
   }
 
-  static DateTime _d(Map<String, dynamic> m, List<String> keys) =>
-      DateTime.tryParse(_s(m, keys)) ?? DateTime.now();
+  static DateTime _d(Map<String, dynamic> m, List<String> keys) => DateTime.tryParse(_s(m, keys)) ?? DateTime.now();
 
   // ---------------------------------------------------------------- auth
 
@@ -188,29 +187,60 @@ class ApiRepository implements BethelRepository {
               title: _s(m, ['albumName'], 'Album'),
               artist: _s(m, ['albumBelongsTo']),
               image: _s(m, ['presignedUrl'], 'assets/church.jpg'),
+              // Every album in the backend is a numbered song book (e.g. Songs of Zion).
+              isSongBook: true,
             ))
         .toList();
   }
 
-  Song _song(Map<String, dynamic> m) => Song(
+  Song _song(Map<String, dynamic> m, [int number = 0]) => Song(
         id: _i(m, ['songId']),
-        title: _s(m, ['songTitle', 'mainTitle'], 'Song'),
+        number: number,
+        title: _s(m, ['songTitle', 'songName', 'mainTitle'], 'Song'),
         artist: _s(m, ['singerName']),
-        image: _s(m, ['presignedUrl', 'albumPresignedUrl'], 'assets/church.jpg'),
+        image: _s(m, ['presignedUrl', 'albumPic', 'albumPresignedUrl'], 'assets/church.jpg'),
+        albumId: _i(m, ['albumId']),
         albumTitle: _s(m, ['albumName']),
       );
 
   @override
   Future<List<Song>> trendingSongs() async {
-    final json = await _get('AlbumApi/GetTrendingSongsByChurchId', {'id': AppConfig.churchId, 'page': 1, 'pageSize': 20});
-    return _list(json).map(_song).toList();
+    final json =
+        await _get('AlbumApi/GetTrendingSongsByChurchId', {'id': AppConfig.churchId, 'page': 1, 'pageSize': 20});
+    return _list(json).map((m) => _song(m)).toList();
   }
 
   @override
   Future<List<Song>> songsForAlbum(int albumId) async {
     // Note: the backend names this query parameter `SongId` but it is the album id.
     final json = await _get('AlbumApi/GetSongsByAlbumId', {'SongId': albumId});
-    return _list(json).map(_song).toList();
+    final list = _list(json);
+    return [for (var i = 0; i < list.length; i++) _song(list[i], i + 1)];
+  }
+
+  @override
+  Future<Song> songDetail(Song song) async {
+    final langs = _list(await _get('AlbumApi/LanguageVersionsBySongId', {'id': song.id}));
+    final lyrics = <String, String>{};
+    String? lyricist;
+    for (final l in langs) {
+      final name = _s(l, ['languageName', 'value']);
+      if (name.isEmpty) continue;
+      final v = await _get('AlbumApi/SongVerByLanVNameandSongId', {'name': name, 'id': song.id});
+      final m = v is List && v.isNotEmpty
+          ? (v.first as Map).cast<String, dynamic>()
+          : (v is Map ? v.cast<String, dynamic>() : null);
+      if (m == null) continue;
+      final text = _s(m, ['lyrics']);
+      if (text.isNotEmpty) lyrics[name] = text;
+      lyricist ??= _s(m, ['lyricsWritter', 'author']);
+    }
+    String? chords;
+    try {
+      final c = await _get('AlbumApi/GetKeyBoardChordsBySongId', {'id': song.id});
+      if (c is Map) chords = _s(c.cast<String, dynamic>(), ['keyBoardChordsText']);
+    } catch (_) {}
+    return song.withLyrics(lyrics, lyricist: lyricist, chords: (chords?.isEmpty ?? true) ? null : chords);
   }
 
   @override
@@ -234,6 +264,87 @@ class ApiRepository implements BethelRepository {
         .map((m) => GalleryPicture(id: _i(m, ['pictureId']), image: _s(m, ['presignedUrl'], 'assets/picture1.png')))
         .toList();
   }
+
+  // ---------------------------------------------------------------- church & resources
+
+  @override
+  Future<ChurchInfo> churchInfo() async {
+    final json = await _get('ChurchApi/ChurchDetailsById', {'id': AppConfig.churchId});
+    final m = json is List ? (json.first as Map).cast<String, dynamic>() : (json as Map).cast<String, dynamic>();
+    return ChurchInfo(
+      name: _s(m, ['churchName'], AppConfig.churchName),
+      address: _s(m, ['churchAddress'], AppConfig.churchCity),
+      country: 'United States',
+    );
+  }
+
+  @override
+  Future<List<DailyVerse>> verseArchive() async {
+    final json = await _get('DailyVerseAPI/GetAllDailyVerses', {'page': 1, 'pageSize': 20});
+    return _list(json)
+        .map((m) => DailyVerse(
+              id: _i(m, ['dailyVerseId']),
+              date: _d(m, ['dateToBePublish']),
+              image: _s(m, ['presignedUrl']),
+              likes: _i(m, ['countOfLikes']),
+              shares: _i(m, ['countOfShares']),
+            ))
+        .toList();
+  }
+
+  @override
+  Future<void> shareVerse(int id) => _postForm('DailyVerseAPI/ShareDailyVerse', const {}, {'id': id, 'isShared': true});
+
+  @override
+  Future<List<SermonComment>> sermonComments(int sermonId) async {
+    final json = await _get('SermonApi/GetSermonCommentsBySermonId', {'id': sermonId});
+    return _list(json)
+        .map((m) =>
+            SermonComment(name: _s(m, ['userName'], 'Member'), text: _s(m, ['comment']), at: _d(m, ['createdAt'])))
+        .toList();
+  }
+
+  @override
+  Future<void> addSermonComment(int sermonId, String text) =>
+      _postForm('SermonApi/SaveCommentForSermon', const {}, {'id': sermonId, 'comment': text});
+
+  List<MediaItem> _media(dynamic json, String prefix) => _list(json)
+      .map((m) => MediaItem(
+            id: _i(m, ['${prefix}Id']),
+            title: _s(m, ['${prefix}Title', '${prefix}ServiceName'], 'Video'),
+            info: _s(m, ['${prefix}Info']),
+            image: _s(m, ['presignedUrl', '${prefix}Picture'], 'assets/videoimage.png'),
+            videoUrl: _s(m, ['${prefix}Video', '${prefix}ServiceURL']),
+          ))
+      .toList();
+
+  @override
+  Future<List<MediaItem>> shorts() async =>
+      _media(await _get('ShortsApi/GetAllShortVideos', {'page': 1, 'pageSize': 20}), 'short');
+
+  @override
+  Future<List<MediaItem>> interviews() async =>
+      _media(await _get('InterviewApi/GetAllInterviewVideos', {'page': 1, 'pageSize': 20}), 'interview');
+
+  @override
+  Future<List<MediaItem>> testimonies() async => _media(await _get('TestimoniesApi/GetAllTestimonies'), 'testimony');
+
+  @override
+  Future<List<ChurchService>> services() async {
+    final json = await _get('ServiceApi/GetAllService', {'page': 1, 'pageSize': 20});
+    return _list(json)
+        .map((m) => ChurchService(
+              id: _i(m, ['serviceId']),
+              name: _s(m, ['serviceName'], 'Service'),
+              description: _s(m, ['description']),
+              image: _s(m, ['presignedUrl'], 'assets/church.jpg'),
+            ))
+        .toList();
+  }
+
+  @override
+  Future<void> bookService(int serviceId, {required String name, required String phone, required String note}) =>
+      _postForm('ServiceApi/BookTheServiceForUser', {'Name': name, 'Phone': phone, 'Comment': note}, {'id': serviceId});
 
   // ---------------------------------------------------------------- prayer
 

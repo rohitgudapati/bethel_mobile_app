@@ -66,7 +66,8 @@ class _PrayerScreenState extends State<PrayerScreen> {
                   const Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('"In every thing by prayer… let your requests be made known unto God."',
-                          style: TextStyle(color: Colors.white, fontSize: 15, height: 1.5, fontStyle: FontStyle.italic)),
+                          style:
+                              TextStyle(color: Colors.white, fontSize: 15, height: 1.5, fontStyle: FontStyle.italic)),
                       SizedBox(height: 8),
                       Text('Philippians 4:6',
                           style: TextStyle(color: BethelColors.goldSoft, fontWeight: FontWeight.w600)),
@@ -135,8 +136,7 @@ class PrayerCard extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(prayer.isMine ? '${prayer.name} (you)' : prayer.name,
                     style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text(timeAgo(prayer.createdAt),
-                    style: TextStyle(fontSize: 12, color: t.colorScheme.onSurfaceVariant)),
+                Text(timeAgo(prayer.createdAt), style: TextStyle(fontSize: 12, color: t.colorScheme.onSurfaceVariant)),
               ]),
             ),
             Pill(prayer.category),

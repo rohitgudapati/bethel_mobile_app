@@ -64,8 +64,8 @@ class BethelTheme {
         foregroundColor: scheme.onSurface,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: TextStyle(
-          fontFamily: 'Poppins', fontSize: 20, fontWeight: FontWeight.w600, color: scheme.onSurface),
+        titleTextStyle:
+            TextStyle(fontFamily: 'Poppins', fontSize: 20, fontWeight: FontWeight.w600, color: scheme.onSurface),
       ),
       cardTheme: CardThemeData(
         color: scheme.surfaceContainerLow,

@@ -25,10 +25,8 @@ class BethelImage extends StatelessWidget {
     final Widget img = source.isEmpty
         ? placeholder
         : source.startsWith('http')
-            ? Image.network(source, fit: fit, width: width, height: height,
-                errorBuilder: (_, __, ___) => placeholder)
-            : Image.asset(source, fit: fit, width: width, height: height,
-                errorBuilder: (_, __, ___) => placeholder);
+            ? Image.network(source, fit: fit, width: width, height: height, errorBuilder: (_, __, ___) => placeholder)
+            : Image.asset(source, fit: fit, width: width, height: height, errorBuilder: (_, __, ___) => placeholder);
     return radius == 0 ? img : ClipRRect(borderRadius: BorderRadius.circular(radius), child: img);
   }
 }
@@ -155,6 +153,12 @@ const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 String fmtDate(DateTime d) => '${_months[d.month - 1]} ${d.day}, ${d.year}';
 String fmtShort(DateTime d) => '${_weekdays[d.weekday - 1]}, ${_months[d.month - 1]} ${d.day}';
 String fmtMonth(DateTime d) => _months[d.month - 1].toUpperCase();
+
+String compactCount(int n) {
+  if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+  if (n >= 1000) return '${(n / 1000).toStringAsFixed(n >= 10000 ? 0 : 1)}k';
+  return '$n';
+}
 
 String timeAgo(DateTime d) {
   final diff = DateTime.now().difference(d);

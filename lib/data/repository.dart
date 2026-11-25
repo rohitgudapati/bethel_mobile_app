@@ -9,19 +9,41 @@ abstract class BethelRepository {
   Future<UserProfile> signIn(String email, String password);
   Future<UserProfile> signUp(String name, String email, String password);
 
-  Future<DailyVerse> todayVerse();
-  Future<void> likeVerse(int id, bool liked);
+  Future<ChurchInfo> churchInfo();
 
-  Future<List<Sermon>> sermons();
-  Future<List<ChurchEvent>> events();
+  // Verse of the day
+  Future<DailyVerse> todayVerse();
+  Future<List<DailyVerse>> verseArchive();
+  Future<void> likeVerse(int id, bool liked);
+  Future<void> shareVerse(int id);
+
+  // Watch / resources
   Future<List<LiveStream>> liveStreams();
+  Future<List<Sermon>> sermons();
+  Future<List<SermonComment>> sermonComments(int sermonId);
+  Future<void> addSermonComment(int sermonId, String text);
+  Future<List<MediaItem>> shorts();
+  Future<List<MediaItem>> interviews();
+  Future<List<MediaItem>> testimonies();
+
+  // Church life
+  Future<List<ChurchEvent>> events();
+  Future<List<ChurchService>> services();
+  Future<void> bookService(int serviceId, {required String name, required String phone, required String note});
   Future<List<Ministry>> ministries();
-  Future<List<Album>> albums();
-  Future<List<Song>> trendingSongs();
-  Future<List<Song>> songsForAlbum(int albumId);
   Future<List<Book>> books();
   Future<List<GalleryPicture>> pictures();
 
+  // Songs & song books
+  /// Song books and albums. Song books (`isSongBook`) come first.
+  Future<List<Album>> albums();
+  Future<List<Song>> songsForAlbum(int albumId);
+  Future<List<Song>> trendingSongs();
+
+  /// Full song with lyrics in every available language, lyricist and chords.
+  Future<Song> songDetail(Song song);
+
+  // Prayer
   /// Public prayer wall. The API has no list endpoint yet, so the API
   /// implementation returns only what this device submitted.
   Future<List<PrayerRequest>> prayerWall();

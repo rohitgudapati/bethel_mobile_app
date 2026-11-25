@@ -74,10 +74,165 @@ class MockRepository implements BethelRepository {
         reference: 'Isaiah 40:31',
         image: 'assets/doe.png',
         likes: 128,
+        shares: 34,
+        views: 1720,
       ));
 
   @override
   Future<void> likeVerse(int id, bool liked) => _delay(null);
+
+  @override
+  Future<void> shareVerse(int id) => _delay(null);
+
+  @override
+  Future<List<DailyVerse>> verseArchive() => _delay([
+        DailyVerse(
+            id: 11,
+            date: _day(-1),
+            image: 'assets/verse1.png',
+            reference: 'Romans 1:16',
+            likes: 4241,
+            shares: 217,
+            views: 18300),
+        DailyVerse(
+            id: 12,
+            date: _day(-2),
+            image: 'assets/verse2.png',
+            reference: 'Romans 1:16',
+            likes: 3870,
+            shares: 190,
+            views: 15200),
+        DailyVerse(
+            id: 13,
+            date: _day(-3),
+            image: 'assets/verse3.png',
+            reference: 'Romans 1:16',
+            likes: 2954,
+            shares: 172,
+            views: 12900),
+        DailyVerse(
+            id: 14,
+            date: _day(-4),
+            image: 'assets/doe.png',
+            reference: 'Isaiah 40:31',
+            likes: 2102,
+            shares: 98,
+            views: 9400),
+      ]);
+
+  @override
+  Future<ChurchInfo> churchInfo() => _delay(const ChurchInfo(
+        name: 'Bethel Prayer House',
+        address: '756 South River Rd, Naperville',
+        country: 'United States',
+      ));
+
+  final Map<int, List<SermonComment>> _comments = {
+    1: [
+      SermonComment(
+          name: 'Grace',
+          text: 'This message was exactly what I needed this week. Thank you, Pastor!',
+          at: _now.subtract(const Duration(days: 2))),
+      SermonComment(
+          name: 'Daniel', text: 'Sharing this with my small group.', at: _now.subtract(const Duration(days: 1))),
+    ],
+  };
+
+  @override
+  Future<List<SermonComment>> sermonComments(int sermonId) => _delay(List.of(_comments[sermonId] ?? const []));
+
+  @override
+  Future<void> addSermonComment(int sermonId, String text) async {
+    (_comments[sermonId] ??= []).add(SermonComment(name: 'You', text: text, at: DateTime.now()));
+  }
+
+  @override
+  Future<List<MediaItem>> shorts() => _delay(const [
+        MediaItem(id: 1, title: 'A one-minute prayer for peace', image: 'assets/shortsimage.png', duration: '0:58'),
+        MediaItem(id: 2, title: 'Why we pray together', image: 'assets/pray.png', duration: '0:45'),
+        MediaItem(id: 3, title: 'Worship night moments', image: 'assets/live_event.jpeg', duration: '0:52'),
+        MediaItem(id: 4, title: 'Verse for your week', image: 'assets/verse2.png', duration: '0:30'),
+      ]);
+
+  @override
+  Future<List<MediaItem>> interviews() => _delay(const [
+        MediaItem(
+            id: 1,
+            title: 'How Bethel began',
+            info: 'Our founding members share the story of the first prayer meetings in Naperville.',
+            image: 'assets/picture1.png',
+            duration: '18 min'),
+        MediaItem(
+            id: 2,
+            title: 'Raising kids in faith',
+            info: 'A conversation with our children\'s ministry team.',
+            image: 'assets/ministriesimage.png',
+            duration: '22 min'),
+      ]);
+
+  @override
+  Future<List<MediaItem>> testimonies() => _delay(const [
+        MediaItem(
+            id: 1,
+            title: 'Healed and restored',
+            info: 'A church member shares how God carried their family through illness.',
+            image: 'assets/doe.png',
+            duration: '9 min'),
+        MediaItem(
+            id: 2,
+            title: 'From doubt to faith',
+            info: 'A student\'s journey back to Jesus during college.',
+            image: 'assets/sermon-hero.png',
+            duration: '7 min'),
+        MediaItem(
+            id: 3,
+            title: 'God provided a home',
+            info: 'A new family to Naperville on finding a church home.',
+            image: 'assets/picture1.png',
+            duration: '6 min'),
+      ]);
+
+  @override
+  Future<List<ChurchService>> services() => _delay(const [
+        ChurchService(
+            id: 1,
+            name: 'Sunday Prayer',
+            schedule: 'Sundays · 10:30 AM',
+            description: 'Our main gathering: worship, prayer and the Word for the whole family.',
+            image: 'assets/church.jpg',
+            icon: IconDataRef.worship),
+        ChurchService(
+            id: 2,
+            name: 'Monday Prayer',
+            schedule: 'Mondays · 7:00 PM',
+            description: 'Start the week in prayer for our families, church and city.',
+            image: 'assets/pray.png'),
+        ChurchService(
+            id: 3,
+            name: 'Worship Prayer',
+            schedule: 'Thursdays · 7:30 PM',
+            description: 'An evening of extended worship and intercession.',
+            image: 'assets/live_event.jpeg',
+            icon: IconDataRef.worship),
+        ChurchService(
+            id: 4,
+            name: 'Bible Study',
+            schedule: 'Wednesdays · 7:30 PM',
+            description: 'Going deeper in Scripture together, book by book.',
+            image: 'assets/picture3.png',
+            icon: IconDataRef.bible),
+        ChurchService(
+            id: 5,
+            name: 'Fasting Prayer',
+            schedule: 'First Friday · 10:00 AM',
+            description: 'A monthly day of fasting and prayer.',
+            image: 'assets/master1.png',
+            icon: IconDataRef.fasting),
+      ]);
+
+  @override
+  Future<void> bookService(int serviceId, {required String name, required String phone, required String note}) =>
+      _delay(null);
 
   @override
   Future<List<Sermon>> sermons() => _delay([
@@ -224,89 +379,242 @@ class MockRepository implements BethelRepository {
 
   @override
   Future<List<Album>> albums() => _delay(const [
-        Album(id: 1, title: 'Classic Hymns', image: 'assets/church.jpg', artist: 'Bethel Worship'),
-        Album(id: 2, title: 'Sunday Praise', image: 'assets/live_event.jpeg', artist: 'Bethel Worship'),
-        Album(id: 3, title: 'Quiet Prayer', image: 'assets/picture3.png', artist: 'Instrumental'),
-        Album(id: 4, title: 'Kids Worship', image: 'assets/ministriesimage.png', artist: 'Children\'s Ministry'),
+        Album(
+            id: 10,
+            title: 'Songs of Zion',
+            image: 'assets/church.jpg',
+            artist: 'Telugu song book',
+            language: 'Telugu',
+            songCount: 2,
+            isSongBook: true),
+        Album(
+            id: 11,
+            title: 'Hymns of Faith',
+            image: 'assets/picture3.png',
+            artist: 'English hymn book',
+            language: 'English',
+            songCount: 10,
+            isSongBook: true),
+        Album(id: 1, title: 'Sunday Praise', image: 'assets/live_event.jpeg', artist: 'Bethel Worship'),
+        Album(id: 2, title: 'Kids Worship', image: 'assets/ministriesimage.png', artist: 'Children\'s Ministry'),
       ]);
 
-  static const _songs = [
+  static const _zion = 10;
+  static const _hymns = 11;
+
+  static const _songs = <Song>[
+    // Songs of Zion: titles from the original app. Lyrics come from the song database (API).
+    Song(
+      id: 101,
+      number: 1,
+      title: 'Aadhaaram Naaku Aadhaaram',
+      artist: 'Bethel Worship',
+      lyricist: 'Bonigala Babu Rao',
+      image: 'assets/church.jpg',
+      albumId: _zion,
+      albumTitle: 'Songs of Zion',
+    ),
+    Song(
+      id: 102,
+      number: 2,
+      title: 'Aagi Mandimchu',
+      artist: 'Manoju Varma, Karthik',
+      lyricist: 'Manoju Varma',
+      image: 'assets/godsplan.png',
+      albumId: _zion,
+      albumTitle: 'Songs of Zion',
+    ),
+    // Hymns of Faith: public-domain hymns with full sample lyrics.
     Song(
       id: 1,
+      number: 1,
       title: 'Amazing Grace',
-      artist: 'John Newton',
+      artist: 'Traditional',
+      lyricist: 'John Newton (1779)',
       image: 'assets/church.jpg',
-      albumTitle: 'Classic Hymns',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
       chordKey: 'G',
+      chords: 'G        G7        C        G\n'
+          'G        Em        D        D7\n'
+          'G        G7        C        G\n'
+          'G        D         G',
       lyrics: {
         'English': 'Amazing grace! How sweet the sound\nThat saved a wretch like me!\nI once was lost, but now am found;\nWas blind, but now I see.\n\n'
-            '\'Twas grace that taught my heart to fear,\nAnd grace my fears relieved;\nHow precious did that grace appear\nThe hour I first believed.',
+            '\'Twas grace that taught my heart to fear,\nAnd grace my fears relieved;\nHow precious did that grace appear\nThe hour I first believed.\n\n'
+            'Through many dangers, toils and snares,\nI have already come;\n\'Tis grace hath brought me safe thus far,\nAnd grace will lead me home.\n\n'
+            'When we\'ve been there ten thousand years,\nBright shining as the sun,\nWe\'ve no less days to sing God\'s praise\nThan when we\'d first begun.',
       },
     ),
     Song(
       id: 2,
+      number: 2,
       title: 'It Is Well with My Soul',
-      artist: 'Horatio Spafford',
+      artist: 'Traditional',
+      lyricist: 'Horatio Spafford (1873)',
       image: 'assets/doe.png',
-      albumTitle: 'Classic Hymns',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
       chordKey: 'C',
+      chords: 'C        F        C\nC        G        C\nC        Am       Dm       G\nC        F   G    C',
       lyrics: {
-        'English': 'When peace like a river attendeth my way,\nWhen sorrows like sea billows roll;\nWhatever my lot, Thou hast taught me to say,\nIt is well, it is well with my soul.\n\n'
-            'It is well with my soul,\nIt is well, it is well with my soul.',
+        'English':
+            'When peace like a river attendeth my way,\nWhen sorrows like sea billows roll;\nWhatever my lot, Thou hast taught me to say,\nIt is well, it is well with my soul.\n\n'
+                'It is well with my soul,\nIt is well, it is well with my soul.\n\n'
+                'Though Satan should buffet, though trials should come,\nLet this blest assurance control,\nThat Christ has regarded my helpless estate,\nAnd hath shed His own blood for my soul.',
       },
     ),
     Song(
       id: 3,
+      number: 3,
       title: 'Blessed Assurance',
-      artist: 'Fanny Crosby',
+      artist: 'Traditional',
+      lyricist: 'Fanny Crosby (1873)',
       image: 'assets/live_event.jpeg',
-      albumTitle: 'Sunday Praise',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
       chordKey: 'D',
+      chords: 'D        G        D        A\nD        G        A        D',
       lyrics: {
         'English': 'Blessed assurance, Jesus is mine!\nO what a foretaste of glory divine!\nHeir of salvation, purchase of God,\nBorn of His Spirit, washed in His blood.\n\n'
-            'This is my story, this is my song,\nPraising my Savior all the day long.',
+            'This is my story, this is my song,\nPraising my Savior all the day long;\nThis is my story, this is my song,\nPraising my Savior all the day long.\n\n'
+            'Perfect submission, perfect delight,\nVisions of rapture now burst on my sight;\nAngels descending bring from above\nEchoes of mercy, whispers of love.',
       },
     ),
     Song(
       id: 4,
+      number: 4,
       title: 'Holy, Holy, Holy',
-      artist: 'Reginald Heber',
+      artist: 'Traditional',
+      lyricist: 'Reginald Heber (1826)',
       image: 'assets/picture2.png',
-      albumTitle: 'Sunday Praise',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
       chordKey: 'D',
       lyrics: {
-        'English': 'Holy, holy, holy! Lord God Almighty!\nEarly in the morning our song shall rise to Thee;\nHoly, holy, holy! Merciful and mighty!\nGod in three Persons, blessed Trinity!',
+        'English':
+            'Holy, holy, holy! Lord God Almighty!\nEarly in the morning our song shall rise to Thee;\nHoly, holy, holy! Merciful and mighty!\nGod in three Persons, blessed Trinity!\n\n'
+                'Holy, holy, holy! All the saints adore Thee,\nCasting down their golden crowns around the glassy sea;\nCherubim and seraphim falling down before Thee,\nWhich wert, and art, and evermore shalt be.',
       },
     ),
     Song(
       id: 5,
+      number: 5,
       title: 'What a Friend We Have in Jesus',
-      artist: 'Joseph Scriven',
+      artist: 'Traditional',
+      lyricist: 'Joseph Scriven (1855)',
       image: 'assets/pray.png',
-      albumTitle: 'Quiet Prayer',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
       chordKey: 'F',
       lyrics: {
-        'English': 'What a friend we have in Jesus,\nAll our sins and griefs to bear!\nWhat a privilege to carry\nEverything to God in prayer!',
+        'English':
+            'What a friend we have in Jesus,\nAll our sins and griefs to bear!\nWhat a privilege to carry\nEverything to God in prayer!\n\n'
+                'O what peace we often forfeit,\nO what needless pain we bear,\nAll because we do not carry\nEverything to God in prayer!',
+      },
+    ),
+    Song(
+      id: 6,
+      number: 6,
+      title: 'Rock of Ages',
+      artist: 'Traditional',
+      lyricist: 'Augustus Toplady (1776)',
+      image: 'assets/picture3.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      lyrics: {
+        'English':
+            'Rock of Ages, cleft for me,\nLet me hide myself in Thee;\nLet the water and the blood,\nFrom Thy wounded side which flowed,\nBe of sin the double cure,\nSave from wrath and make me pure.',
+      },
+    ),
+    Song(
+      id: 7,
+      number: 7,
+      title: 'Abide with Me',
+      artist: 'Traditional',
+      lyricist: 'Henry F. Lyte (1847)',
+      image: 'assets/sermon-hero.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      lyrics: {
+        'English':
+            'Abide with me; fast falls the eventide;\nThe darkness deepens; Lord, with me abide;\nWhen other helpers fail and comforts flee,\nHelp of the helpless, O abide with me.',
+      },
+    ),
+    Song(
+      id: 8,
+      number: 8,
+      title: 'Jesus Loves Me',
+      artist: 'Traditional',
+      lyricist: 'Anna B. Warner (1860)',
+      image: 'assets/ministriesimage.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      chordKey: 'C',
+      lyrics: {
+        'English':
+            'Jesus loves me! This I know,\nFor the Bible tells me so;\nLittle ones to Him belong;\nThey are weak, but He is strong.\n\n'
+                'Yes, Jesus loves me!\nYes, Jesus loves me!\nYes, Jesus loves me!\nThe Bible tells me so.',
+      },
+    ),
+    Song(
+      id: 9,
+      number: 9,
+      title: 'Nearer, My God, to Thee',
+      artist: 'Traditional',
+      lyricist: 'Sarah F. Adams (1841)',
+      image: 'assets/master3.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      lyrics: {
+        'English':
+            'Nearer, my God, to Thee,\nNearer to Thee!\nE\'en though it be a cross\nThat raiseth me,\nStill all my song shall be,\nNearer, my God, to Thee,\nNearer, my God, to Thee,\nNearer to Thee!',
+      },
+    ),
+    Song(
+      id: 10,
+      number: 10,
+      title: 'Come, Thou Fount of Every Blessing',
+      artist: 'Traditional',
+      lyricist: 'Robert Robinson (1758)',
+      image: 'assets/master2.png',
+      albumId: _hymns,
+      albumTitle: 'Hymns of Faith',
+      lyrics: {
+        'English':
+            'Come, Thou Fount of every blessing,\nTune my heart to sing Thy grace;\nStreams of mercy, never ceasing,\nCall for songs of loudest praise.',
       },
     ),
   ];
 
   @override
-  Future<List<Song>> trendingSongs() => _delay(_songs);
+  Future<List<Song>> trendingSongs() => _delay([
+        for (final id in const [1, 101, 3, 2, 102, 5]) _songs.firstWhere((s) => s.id == id)
+      ]);
 
   @override
-  Future<List<Song>> songsForAlbum(int albumId) async {
-    final albums = await this.albums();
-    final title = albums.firstWhere((a) => a.id == albumId).title;
-    final list = _songs.where((s) => s.albumTitle == title).toList();
-    return list.isEmpty ? _songs.take(2).toList() : list;
+  Future<List<Song>> songsForAlbum(int albumId) {
+    final list = _songs.where((s) => s.albumId == albumId).toList();
+    // Albums that aren't song books reuse a few hymns in the demo.
+    return _delay(list.isEmpty ? _songs.where((s) => s.albumId == _hymns).take(3).toList() : list);
   }
 
   @override
+  Future<Song> songDetail(Song song) => _delay(_songs.firstWhere((s) => s.id == song.id, orElse: () => song));
+
+  @override
   Future<List<Book>> books() => _delay(const [
-        Book(id: 1, title: 'Uncle John', author: 'G. J. Whyte-Melville', image: 'assets/bookimage3.png',
+        Book(
+            id: 1,
+            title: 'Uncle John',
+            author: 'G. J. Whyte-Melville',
+            image: 'assets/bookimage3.png',
             description: 'A classic novel from 1898, available to read in the app.'),
-        Book(id: 2, title: 'A Walk with John', author: 'F. E. Henderson', image: 'assets/bookimage2.png',
+        Book(
+            id: 2,
+            title: 'A Walk with John',
+            author: 'F. E. Henderson',
+            image: 'assets/bookimage2.png',
             description: 'A biography from the church library.'),
       ]);
 

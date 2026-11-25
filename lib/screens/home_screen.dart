@@ -7,6 +7,7 @@ import '../data/models.dart';
 import '../widgets/common.dart';
 import 'bible_screen.dart';
 import 'events_screen.dart';
+import 'church_screens.dart';
 import 'give_screen.dart';
 import 'shell.dart';
 import 'watch_screen.dart';
@@ -40,7 +41,8 @@ class HomeScreen extends StatelessWidget {
                 ]),
               ),
               IconButton.filledTonal(
-                onPressed: () => showToast(context, 'Notifications: service reminders, new sermons and prayer updates.'),
+                onPressed: () =>
+                    showToast(context, 'Notifications: service reminders, new sermons and prayer updates.'),
                 icon: const Icon(Icons.notifications_none_rounded),
               ),
             ]),
@@ -104,7 +106,7 @@ class HomeScreen extends StatelessWidget {
                   icon: Icons.volunteer_activism,
                   label: 'Pray',
                   color: BethelColors.gold,
-                  onTap: () => AppShell.goToTab(context, 2)),
+                  onTap: () => AppShell.goToTab(context, 3)),
               _QuickAction(
                   icon: Icons.event_rounded,
                   label: 'Events',
@@ -146,9 +148,30 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ),
+        // Services
+        SliverToBoxAdapter(
+          child: SectionHeader('Services',
+              action: 'View all',
+              onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ServicesScreen()))),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 128,
+            child: AsyncView<List<ChurchService>>(
+              load: state.repo.services,
+              builder: (context, services) => ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: services.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (_, i) => ServiceChipCard(service: services[i]),
+              ),
+            ),
+          ),
+        ),
         // Latest sermons
         SliverToBoxAdapter(
-          child: SectionHeader('Latest messages', action: 'All sermons', onAction: () => AppShell.goToTab(context, 1)),
+          child: SectionHeader('Latest messages', action: 'All sermons', onAction: () => AppShell.goToTab(context, 2)),
         ),
         AsyncView<List<Sermon>>(
           sliver: true,
@@ -160,6 +183,38 @@ class HomeScreen extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (_, i) => SermonTile(sermon: sermons[i]),
             ),
+          ),
+        ),
+        // Verse of the day images (archive)
+        SliverToBoxAdapter(
+          child: SectionHeader('Verse of the day images',
+              padding: const EdgeInsets.fromLTRB(20, 0, 12, 12),
+              action: 'View more',
+              onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerseArchiveScreen()))),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 150,
+            child: AsyncView<List<DailyVerse>>(
+              load: state.repo.verseArchive,
+              builder: (context, verses) => ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: verses.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (_, i) => GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerseArchiveScreen())),
+                  child: BethelImage(verses[i].image ?? '', width: 150, height: 150, radius: 18),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Church address
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
+            child: AsyncView<ChurchInfo>(load: state.repo.churchInfo, builder: (_, c) => ChurchAddressCard(info: c)),
           ),
         ),
       ]),
@@ -216,9 +271,7 @@ class VerseCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: dark
-              ? const [Color(0xFF2A2F3A), Color(0xFF232731)]
-              : const [Color(0xFFF7EBD3), Color(0xFFFBF3E4)],
+          colors: dark ? const [Color(0xFF2A2F3A), Color(0xFF232731)] : const [Color(0xFFF7EBD3), Color(0xFFFBF3E4)],
         ),
         border: Border.all(color: dark ? const Color(0xFF3A3F4B) : const Color(0xFFEBD9B4)),
       ),
@@ -235,8 +288,7 @@ class VerseCard extends StatelessWidget {
         if (hasText)
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: Text(verse.text!,
-                style: const TextStyle(fontSize: 17, height: 1.55, fontWeight: FontWeight.w500)),
+            child: Text(verse.text!, style: const TextStyle(fontSize: 17, height: 1.55, fontWeight: FontWeight.w500)),
           )
         else if (verse.image != null)
           BethelImage(verse.image!, radius: 14, height: 220, width: double.infinity),
@@ -249,18 +301,34 @@ class VerseCard extends StatelessWidget {
         Row(children: [
           IconButton(
             onPressed: () => state.toggleVerseLike(verse.id),
-            icon: Icon(state.verseLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                color: state.verseLiked ? BethelColors.rose : null),
+            icon: Icon(state.isVerseLiked(verse.id) ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                color: state.isVerseLiked(verse.id) ? BethelColors.rose : null),
           ),
-          Text('${verse.likes + (state.verseLiked ? 1 : 0)}', style: const TextStyle(fontSize: 13)),
+          Text(compactCount(verse.likes + (state.isVerseLiked(verse.id) ? 1 : 0)),
+              style: const TextStyle(fontSize: 13)),
           IconButton(
-            onPressed: () => showToast(context, 'Share sheet opens here (copies "${verse.reference ?? 'verse'}").'),
+            onPressed: () {
+              state.repo.shareVerse(verse.id).ignore();
+              showToast(context, 'Share sheet opens here (copies "${verse.reference ?? 'verse'}").');
+            },
             icon: const Icon(Icons.ios_share_rounded),
           ),
-          const Spacer(),
-          TextButton(
+          Expanded(
+            child: verse.views > 0
+                ? Row(children: [
+                    Icon(Icons.visibility_outlined, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(compactCount(verse.views),
+                          maxLines: 1, overflow: TextOverflow.clip, style: const TextStyle(fontSize: 13)),
+                    ),
+                  ])
+                : const SizedBox.shrink(),
+          ),
+          IconButton(
+            tooltip: 'Read in the Bible',
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BibleScreen())),
-            child: const Text('Read more'),
+            icon: const Icon(Icons.menu_book_rounded),
           ),
         ]),
       ]),

@@ -11,7 +11,18 @@ class DailyVerse {
   final String? reference;
   final String? image;
   final int likes;
-  const DailyVerse({required this.id, required this.date, this.text, this.reference, this.image, this.likes = 0});
+  final int shares;
+  final int views;
+  const DailyVerse({
+    required this.id,
+    required this.date,
+    this.text,
+    this.reference,
+    this.image,
+    this.likes = 0,
+    this.shares = 0,
+    this.views = 0,
+  });
 }
 
 class Sermon {
@@ -86,31 +97,136 @@ class Ministry {
   const Ministry({required this.id, required this.name, required this.info, required this.image, this.meets = ''});
 }
 
+/// A song book or album (the API's `Album`), e.g. "Songs of Zion".
 class Album {
   final int id;
   final String title;
   final String image;
   final String artist;
-  const Album({required this.id, required this.title, required this.image, this.artist = ''});
+  final String language;
+  final int songCount;
+  final bool isSongBook;
+  const Album({
+    required this.id,
+    required this.title,
+    required this.image,
+    this.artist = '',
+    this.language = '',
+    this.songCount = 0,
+    this.isSongBook = false,
+  });
 }
 
 class Song {
   final int id;
+
+  /// Number in its song book (e.g. 112 in Songs of Zion). 0 when not numbered.
+  final int number;
   final String title;
+
+  /// Singer or composer.
   final String artist;
+  final String lyricist;
   final String image;
+  final int? albumId;
   final String? albumTitle;
+
   /// Lyrics keyed by language name, e.g. {'English': '...', 'Telugu': '...'}.
+  /// Stanzas are separated by a blank line.
   final Map<String, String> lyrics;
   final String? chordKey;
+  final String? chords;
+  final String? audioUrl;
   const Song({
     required this.id,
     required this.title,
     required this.artist,
     required this.image,
+    this.number = 0,
+    this.lyricist = '',
+    this.albumId,
     this.albumTitle,
     this.lyrics = const {},
     this.chordKey,
+    this.chords,
+    this.audioUrl,
+  });
+
+  String get label => number > 0 ? '$number. $title' : title;
+
+  Song withLyrics(Map<String, String> lyrics, {String? lyricist, String? chords}) => Song(
+        id: id,
+        number: number,
+        title: title,
+        artist: artist,
+        lyricist: lyricist ?? this.lyricist,
+        image: image,
+        albumId: albumId,
+        albumTitle: albumTitle,
+        lyrics: lyrics,
+        chordKey: chordKey,
+        chords: chords ?? this.chords,
+        audioUrl: audioUrl,
+      );
+}
+
+/// Short clip, interview or testimony video.
+class MediaItem {
+  final int id;
+  final String title;
+  final String info;
+  final String image;
+  final String? videoUrl;
+  final String duration;
+  const MediaItem({
+    required this.id,
+    required this.title,
+    required this.image,
+    this.info = '',
+    this.videoUrl,
+    this.duration = '',
+  });
+}
+
+class SermonComment {
+  final String name;
+  final String text;
+  final DateTime at;
+  const SermonComment({required this.name, required this.text, required this.at});
+}
+
+/// A regular church service (API `Service`), e.g. Sunday Prayer.
+class ChurchService {
+  final int id;
+  final String name;
+  final String description;
+  final String schedule;
+  final String image;
+  final IconDataRef icon;
+  const ChurchService({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.image,
+    this.schedule = '',
+    this.icon = IconDataRef.prayer,
+  });
+}
+
+enum IconDataRef { prayer, worship, bible, family, fasting }
+
+class ChurchInfo {
+  final String name;
+  final String address;
+  final String country;
+  final String phone;
+  final String email;
+  const ChurchInfo({
+    required this.name,
+    required this.address,
+    required this.country,
+    this.phone = '',
+    this.email = '',
   });
 }
 

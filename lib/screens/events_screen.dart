@@ -24,7 +24,10 @@ class _EventsScreenState extends State<EventsScreen> {
       body: AsyncView<List<ChurchEvent>>(
         load: state.repo.events,
         builder: (context, events) {
-          final cats = ['All', ...{for (final e in events) e.category}];
+          final cats = [
+            'All',
+            ...{for (final e in events) e.category}
+          ];
           final shown = _filter == 'All' ? events : events.where((e) => e.category == _filter).toList();
           return ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
             SizedBox(
@@ -65,7 +68,8 @@ class DateBlock extends StatelessWidget {
         ),
         child: Column(children: [
           Text(fmtMonth(date),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: BethelColors.rose, letterSpacing: 0.6)),
+              style: const TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w700, color: BethelColors.rose, letterSpacing: 0.6)),
           Text('${date.day}',
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: BethelColors.ink, height: 1.15)),
         ]),
@@ -182,8 +186,7 @@ class EventDetailScreen extends StatelessWidget {
               _InfoRow(icon: Icons.calendar_today_rounded, text: fmtShort(event.date)),
               _InfoRow(icon: Icons.schedule_rounded, text: event.time),
               _InfoRow(icon: Icons.place_outlined, text: '${event.venue} · ${AppConfig.churchName}'),
-              if (event.speakers.isNotEmpty)
-                _InfoRow(icon: Icons.mic_none_rounded, text: event.speakers.join(', ')),
+              if (event.speakers.isNotEmpty) _InfoRow(icon: Icons.mic_none_rounded, text: event.speakers.join(', ')),
               const SizedBox(height: 16),
               Text(event.description, style: const TextStyle(fontSize: 15, height: 1.6)),
             ]),

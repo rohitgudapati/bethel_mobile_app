@@ -44,8 +44,7 @@ class WelcomeScreen extends StatelessWidget {
                   style: TextStyle(color: BethelColors.goldSoft, fontSize: 16, fontWeight: FontWeight.w500)),
               const SizedBox(height: 6),
               const Text('Bethel\nPrayer House',
-                  style: TextStyle(
-                      fontFamily: 'Quintessential', color: Colors.white, fontSize: 46, height: 1.05)),
+                  style: TextStyle(fontFamily: 'Quintessential', color: Colors.white, fontSize: 46, height: 1.05)),
               const SizedBox(height: 14),
               const Text(
                 'Worship live, read today\'s verse, share prayer requests and stay close to your church family, all in one place.',

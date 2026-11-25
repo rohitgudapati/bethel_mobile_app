@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'home_screen.dart';
 import 'more_screen.dart';
-import 'music_screen.dart';
 import 'prayer_screen.dart';
+import 'songs_screen.dart';
 import 'watch_screen.dart';
 
-/// Bottom navigation: Home · Watch · Prayer · Music · More.
+/// Bottom navigation: Home · Songs · Watch · Prayer · More.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
@@ -27,9 +27,9 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       body: IndexedStack(index: _index, children: const [
         HomeScreen(),
+        SongsScreen(),
         WatchScreen(),
         PrayerScreen(),
-        MusicScreen(),
         MoreScreen(),
       ]),
       bottomNavigationBar: NavigationBar(
@@ -38,14 +38,17 @@ class _AppShellState extends State<AppShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
           NavigationDestination(
+              icon: Icon(Icons.library_music_outlined),
+              selectedIcon: Icon(Icons.library_music_rounded),
+              label: 'Songs'),
+          NavigationDestination(
               icon: Icon(Icons.play_circle_outline), selectedIcon: Icon(Icons.play_circle_rounded), label: 'Watch'),
           NavigationDestination(
               icon: Icon(Icons.volunteer_activism_outlined),
               selectedIcon: Icon(Icons.volunteer_activism),
               label: 'Prayer'),
           NavigationDestination(
-              icon: Icon(Icons.music_note_outlined), selectedIcon: Icon(Icons.music_note_rounded), label: 'Music'),
-          NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: 'More'),
+              icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: 'More'),
         ],
       ),
     );

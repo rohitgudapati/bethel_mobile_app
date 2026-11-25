@@ -18,7 +18,7 @@ void main() {
     expect(find.text('Verse of the day'), findsOneWidget);
     expect(find.text('Isaiah 40:31'), findsOneWidget);
 
-    for (final tab in ['Watch', 'Prayer', 'Music', 'More', 'Home']) {
+    for (final tab in ['Songs', 'Watch', 'Prayer', 'More', 'Home']) {
       await tester.tap(find.text(tab).last);
       await tester.pumpAndSettle();
     }
@@ -45,5 +45,38 @@ void main() {
 
     expect(find.text('Please pray for our exams this week.'), findsOneWidget);
     expect(find.text('Sam (you)'), findsOneWidget);
+  });
+
+  testWidgets('song book: search by number, open lyrics, save', (tester) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final state = AppState(repository: MockRepository())..continueAsGuest();
+    await tester.pumpWidget(BethelApp(state: state));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Songs').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Songs of Zion'), findsWidgets);
+    expect(find.text('Aadhaaram Naaku Aadhaaram'), findsWidgets);
+
+    // Switch to the hymn book and search by number.
+    await tester.tap(find.text('Hymns of Faith').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '3');
+    await tester.pumpAndSettle();
+    expect(find.text('Blessed Assurance'), findsOneWidget);
+
+    await tester.tap(find.text('Blessed Assurance'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Fanny Crosby'), findsOneWidget);
+    expect(find.textContaining('Blessed assurance, Jesus is mine!'), findsOneWidget);
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(state.savedSongs, contains(3));
+    expect(state.recentSongs.first.id, 3);
+    expect(tester.takeException(), isNull);
   });
 }

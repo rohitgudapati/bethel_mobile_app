@@ -6,14 +6,15 @@ import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
 import 'bible_screen.dart';
+import 'church_screens.dart';
 import 'events_screen.dart';
 import 'give_screen.dart';
+import 'shell.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
 
-  void _push(BuildContext context, Widget page) =>
-      Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+  void _push(BuildContext context, Widget page) => Navigator.push(context, MaterialPageRoute(builder: (_) => page));
 
   @override
   Widget build(BuildContext context) {
@@ -61,12 +62,23 @@ class MoreScreen extends StatelessWidget {
           crossAxisSpacing: 12,
           childAspectRatio: 1.02,
           children: [
-            _Tile(icon: Icons.groups_rounded, label: 'Ministries', onTap: () => _push(context, const MinistriesScreen())),
+            _Tile(
+                icon: Icons.groups_rounded, label: 'Ministries', onTap: () => _push(context, const MinistriesScreen())),
             _Tile(icon: Icons.event_rounded, label: 'Events', onTap: () => _push(context, const EventsScreen())),
             _Tile(icon: Icons.menu_book_rounded, label: 'Bible', onTap: () => _push(context, const BibleScreen())),
-            _Tile(icon: Icons.photo_library_rounded, label: 'Gallery', onTap: () => _push(context, const GalleryScreen())),
+            _Tile(
+                icon: Icons.photo_library_rounded,
+                label: 'Gallery',
+                onTap: () => _push(context, const GalleryScreen())),
             _Tile(icon: Icons.auto_stories_rounded, label: 'Books', onTap: () => _push(context, const BooksScreen())),
             _Tile(icon: Icons.favorite_rounded, label: 'Give', onTap: () => _push(context, const GiveScreen())),
+            _Tile(icon: Icons.church_rounded, label: 'Services', onTap: () => _push(context, const ServicesScreen())),
+            _Tile(
+                icon: Icons.format_quote_rounded,
+                label: 'Verses',
+                onTap: () => _push(context, const VerseArchiveScreen())),
+            _Tile(
+                icon: Icons.photo_camera_back_rounded, label: 'Testimonies', onTap: () => AppShell.goToTab(context, 2)),
           ],
         ),
         const SizedBox(height: 20),
@@ -76,10 +88,10 @@ class MoreScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.place_outlined),
               title: const Text('Plan a visit'),
-              subtitle: const Text('${AppConfig.churchName} · ${AppConfig.churchCity}'),
+              subtitle: const Text('756 South River Rd, Naperville'),
               trailing: const Icon(Icons.directions_rounded),
-              onTap: () => openLink(
-                  context, 'https://www.google.com/maps/search/?api=1&query=Bethel+Prayer+House+Naperville+IL'),
+              onTap: () => openLink(context,
+                  'https://www.google.com/maps/search/?api=1&query=Bethel+Prayer+House+756+South+River+Rd+Naperville'),
             ),
             const Divider(indent: 16, endIndent: 16),
             SwitchListTile(
@@ -154,26 +166,31 @@ class MinistriesScreen extends StatelessWidget {
             final m = list[i];
             return Card(
               clipBehavior: Clip.antiAlias,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                BethelImage(m.image, height: 150, width: double.infinity),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(m.name, style: t.textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(m.info, style: TextStyle(color: t.colorScheme.onSurfaceVariant, height: 1.5)),
-                    const SizedBox(height: 8),
-                    Row(children: [
-                      if (m.meets.isNotEmpty) Pill(m.meets, icon: Icons.schedule_rounded),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () => showToast(context, 'Thanks! A ministry leader will reach out.'),
-                        child: const Text('Get involved'),
-                      ),
+              child: InkWell(
+                onTap: () =>
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => MinistryDetailScreen(ministry: m))),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  BethelImage(m.image, height: 150, width: double.infinity),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(m.name, style: t.textTheme.titleMedium),
+                      const SizedBox(height: 4),
+                      Text(m.info, style: TextStyle(color: t.colorScheme.onSurfaceVariant, height: 1.5)),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        if (m.meets.isNotEmpty) Pill(m.meets, icon: Icons.schedule_rounded),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => Navigator.push(
+                              context, MaterialPageRoute(builder: (_) => MinistryDetailScreen(ministry: m))),
+                          child: const Text('Learn more'),
+                        ),
+                      ]),
                     ]),
-                  ]),
-                ),
-              ]),
+                  ),
+                ]),
+              ),
             );
           },
         ),
@@ -245,7 +262,8 @@ class BooksScreen extends StatelessWidget {
                       Text(b.title, style: t.textTheme.titleMedium),
                       Text(b.author, style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
                       const SizedBox(height: 6),
-                      Text(b.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
+                      Text(b.description,
+                          maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(

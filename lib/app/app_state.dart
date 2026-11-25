@@ -17,8 +17,11 @@ class AppState extends ChangeNotifier {
   UserProfile? user;
   bool guest = false;
   ThemeMode themeMode = ThemeMode.light;
-  bool verseLiked = false;
+  final Set<int> likedVerses = {};
   final Set<int> savedSongs = {};
+  final Set<int> downloadedSongs = {};
+  final List<Song> recentSongs = [];
+  double lyricsScale = 1;
   final Set<int> prayedFor = {};
   final Set<int> rsvps = {};
 
@@ -46,9 +49,29 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool isVerseLiked(int id) => likedVerses.contains(id);
+
   void toggleVerseLike(int id) {
-    verseLiked = !verseLiked;
-    repo.likeVerse(id, verseLiked).ignore();
+    final liked = likedVerses.add(id);
+    if (!liked) likedVerses.remove(id);
+    repo.likeVerse(id, liked).ignore();
+    notifyListeners();
+  }
+
+  void openedSong(Song song) {
+    recentSongs.removeWhere((s) => s.id == song.id);
+    recentSongs.insert(0, song);
+    if (recentSongs.length > 12) recentSongs.removeLast();
+    notifyListeners();
+  }
+
+  void toggleDownload(int id) {
+    downloadedSongs.contains(id) ? downloadedSongs.remove(id) : downloadedSongs.add(id);
+    notifyListeners();
+  }
+
+  void setLyricsScale(double v) {
+    lyricsScale = v.clamp(0.8, 1.8);
     notifyListeners();
   }
 
@@ -75,10 +98,8 @@ class AppState extends ChangeNotifier {
 class AppScope extends InheritedNotifier<AppState> {
   const AppScope({super.key, required AppState state, required super.child}) : super(notifier: state);
 
-  static AppState of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<AppScope>()!.notifier!;
+  static AppState of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<AppScope>()!.notifier!;
 
   /// Read without subscribing to changes (for callbacks).
-  static AppState read(BuildContext context) =>
-      context.getInheritedWidgetOfExactType<AppScope>()!.notifier!;
+  static AppState read(BuildContext context) => context.getInheritedWidgetOfExactType<AppScope>()!.notifier!;
 }

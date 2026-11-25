@@ -6,17 +6,14 @@
 /// When [apiBaseUrl] is empty the app runs in demo mode with built-in
 /// sample content (see `lib/data/mock_repository.dart`).
 class AppConfig {
-  static const String apiBaseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: '');
+  static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
 
   /// Church id used by album/song endpoints (`GetAlbumsByChurchId?id=`).
-  static const int churchId =
-      int.fromEnvironment('CHURCH_ID', defaultValue: 1);
+  static const int churchId = int.fromEnvironment('CHURCH_ID', defaultValue: 1);
 
   /// Online giving page (e.g. a Stripe Payment Link: https://buy.stripe.com/...).
   /// Left empty until the church shares its public giving link.
-  static const String givingUrl =
-      String.fromEnvironment('GIVING_URL', defaultValue: '');
+  static const String givingUrl = String.fromEnvironment('GIVING_URL', defaultValue: '');
 
   static const String youtubeChannelUrl = String.fromEnvironment(
     'YOUTUBE_URL',
