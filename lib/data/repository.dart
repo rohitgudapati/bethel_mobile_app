@@ -74,4 +74,7 @@ abstract class BethelRepository {
   Future<void> prayFor(int prayerId);
 
   Future<List<BiblePassage>> readingPlan();
+
+  /// Newest first. Read state is kept on the device.
+  Future<List<NotificationItem>> notifications();
 }

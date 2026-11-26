@@ -890,4 +890,16 @@ class MockRepository implements BethelRepository {
           'But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.',
         ]),
       ]);
+
+  @override
+  Future<List<NotificationItem>> notifications() {
+    final now = DateTime.now();
+    return _delay([
+      NotificationItem(id: 1, title: 'Prayer Meeting is tomorrow', detail: 'Fri · 7:30 PM', at: now.subtract(const Duration(hours: 1)), kind: 'event'),
+      NotificationItem(id: 2, title: 'New message: Peace That Guards Your Heart', detail: 'Associate Pastor', at: now.subtract(const Duration(hours: 3)), kind: 'sermon'),
+      NotificationItem(id: 3, title: '12 people prayed for your request', detail: 'Prayer wall', at: now.subtract(const Duration(days: 2)), kind: 'prayer'),
+      NotificationItem(id: 4, title: 'Day 3 of your reading plan is ready', detail: 'Peace and Strength', at: now.subtract(const Duration(days: 2)), kind: 'reading'),
+      NotificationItem(id: 5, title: 'Sunday Worship Service starts in 1 hour', detail: 'Sunday · 3:00 PM', at: now.subtract(const Duration(days: 4)), kind: 'service'),
+    ]);
+  }
 }

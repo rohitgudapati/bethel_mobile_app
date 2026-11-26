@@ -19,6 +19,7 @@ dependencies:
   smart_auth: ^4.0.0
   flutter_svg: ^2.5.1
   shared_preferences: ^2.3.2
+  share_plus: ^11.0.0
 
 dev_dependencies:
   flutter_test:
