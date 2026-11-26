@@ -1,0 +1,35 @@
+
+::group::✅ Passing tests
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule bible in 1 month: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule bible in 3 months: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule bible in 6 months: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule bible in 1 year: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule newTestament in 1 month: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule newTestament in 3 months: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule newTestament in 6 months: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule 3 months from Dec 1 ends Feb 28
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: progress and streak finishing a day counts once; unticking undoes it; streak counts back from today or yesterday
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: progress and streak celebrations change and never repeat the last one
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: reminders partway nudge only when part of today is left
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: reminders nothing for a finished day; morning reminders for the coming days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: reminders streak reminder in the evening only if nothing is read and there is a streak
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: set up a 3-month plan starting today, then finish the day
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: guest can reach every tab
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: submitting a prayer request adds it to the wall
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/bible_test.dart: bundled texts line up: 66 books, same chapters and verses
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: song book: search by number, open lyrics, save
+::endgroup::
+::group::⏭️ Skipped tests
+⏭️ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: Songs of Zion: find song 500 by number and read it in Telugu and English (skipped)
+::endgroup::
+::group::✅ Passing tests
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/bible_test.dart: read John 3, go to the next chapter, switch to Telugu, highlight
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: sign up with a phone number and a texted code
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: the built-in verse changes every day and repeats the same verse for everyone
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: next Sunday service is the coming Sunday at 3:00 PM
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: banner says LIVE only while streaming
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/bible_test.dart: pick Psalms 23 from the book list
+::endgroup::
+
+🎉 24 tests passed, 1 skipped.
+exit code: 0
