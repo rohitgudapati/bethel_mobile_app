@@ -59,7 +59,7 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pumpAndSettle();
     expect(state.bibleVersion, BibleVersion.te);
-    expect(find.text('యోహాను సువార్త 4'), findsOneWidget);
+    expect(find.text(bibleRef(42, 4, telugu: true)), findsOneWidget);
 
     // Select verse 1 and highlight it.
     await tester.tap(find.bySemanticsLabel('Verse 1'));
@@ -86,6 +86,8 @@ void main() {
     await tester.tap(find.text('Old Testament'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Psalms'), 300, scrollable: find.byType(Scrollable).last);
+    await tester.ensureVisible(find.text('Psalms'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Psalms'));
     await tester.pumpAndSettle();
     final ch23 = find.widgetWithText(InkWell, '23');
