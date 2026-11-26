@@ -414,7 +414,10 @@ class _PlanTodayState extends State<_PlanToday> {
               Row(children: [
                 Icon(Icons.local_fire_department_outlined, size: 16, color: tk.brassText),
                 const SizedBox(width: 4),
-                Text(streak == 0 ? 'Start a streak today' : '$streak-day streak', style: t.textTheme.bodySmall?.copyWith(color: tk.brassText)),
+                Flexible(
+                  child: Text(streak == 0 ? 'Start a streak today' : '$streak-day streak',
+                      style: t.textTheme.bodySmall?.copyWith(color: tk.brassText)),
+                ),
               ]),
             ]),
           ),
