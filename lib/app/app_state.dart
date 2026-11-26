@@ -23,7 +23,8 @@ class AppState extends ChangeNotifier {
 
   UserProfile? user;
   bool guest = LaunchOptions.skipWelcome;
-  ThemeMode themeMode = ThemeMode.light;
+  /// Follows the phone's light or dark setting until the member picks one in More.
+  ThemeMode themeMode = ThemeMode.system;
   final Set<int> likedVerses = {};
   final Set<int> savedSongs = {};
   final Set<int> downloadedSongs = {};

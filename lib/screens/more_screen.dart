@@ -116,7 +116,7 @@ class MoreScreen extends StatelessWidget {
             SwitchListTile(
               secondary: const Icon(Icons.dark_mode_outlined),
               title: const Text('Dark mode'),
-              value: state.themeMode == ThemeMode.dark,
+              value: Theme.of(context).brightness == Brightness.dark,
               onChanged: (v) => state.setThemeMode(v ? ThemeMode.dark : ThemeMode.light),
             ),
             const Divider(indent: 16, endIndent: 16),
