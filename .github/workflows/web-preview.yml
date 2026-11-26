@@ -65,3 +65,11 @@ jobs:
           git -c user.name="web-preview" -c user.email="actions@github.com" add -A
           git -c user.name="web-preview" -c user.email="actions@github.com" commit -q -m "Web build of ${{ github.ref_name }} @ ${{ github.sha }}"
           git push -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" "publish:refs/heads/web/${{ github.ref_name }}"
+
+      - name: Fail the run if tests failed
+        if: always()
+        run: |
+          if ! grep -q "^exit code: 0$" test.txt; then
+            echo "::error::Flutter tests failed. See test.txt in the published build."
+            exit 1
+          fi
