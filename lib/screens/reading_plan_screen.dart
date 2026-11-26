@@ -184,6 +184,8 @@ class _PlanSetupState extends State<_PlanSetup> {
         );
     final custom = ![today, tomorrow, monday, firstOfMonth].contains(_start);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Expanded(
+        child: ListView(children: [
       _heading(t, 'When do you want to start?'),
       const SizedBox(height: 20),
       Wrap(spacing: 8, runSpacing: 8, children: [
@@ -197,7 +199,8 @@ class _PlanSetupState extends State<_PlanSetup> {
           onPressed: _pickDate,
         ),
       ]),
-      const Spacer(),
+        ]),
+      ),
       Text.rich(
         TextSpan(children: [
           const TextSpan(text: 'Starts '),
@@ -220,6 +223,8 @@ class _PlanSetupState extends State<_PlanSetup> {
     final (_, minutes) = ReadingPlan.pace(_scope, _length);
     final time = TimeOfDay(hour: _prefs.morningHour, minute: _prefs.morningMinute).format(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Expanded(
+        child: ListView(children: [
       _heading(t, 'When should we remind you?', 'Reminders only come when there’s something left to read.'),
       const SizedBox(height: 12),
       _ReminderRow(
@@ -244,7 +249,7 @@ class _PlanSetupState extends State<_PlanSetup> {
         value: _prefs.streak,
         onChanged: (v) => setState(() => _prefs = _prefs.copyWith(streak: v)),
       ),
-      const Spacer(),
+      const SizedBox(height: 24),
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: tk.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: tk.hairline)),
@@ -254,6 +259,8 @@ class _PlanSetupState extends State<_PlanSetup> {
           Text('${plan.scope == PlanScope.bible ? 'Whole Bible' : 'New Testament'} in ${_length.label}', style: t.textTheme.titleLarge),
           const SizedBox(height: 4),
           Text('${longDate(plan.start)} to ${fullDate(plan.end)} · about $minutes minutes a day', style: t.textTheme.bodySmall),
+        ]),
+      ),
         ]),
       ),
       const SizedBox(height: 16),
