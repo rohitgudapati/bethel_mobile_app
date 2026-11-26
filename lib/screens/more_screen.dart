@@ -142,10 +142,9 @@ class _MoreScreenState extends State<MoreScreen> {
             const SizedBox(height: 16),
             EldersRow(elders: elders.take(2).toList()),
           ],
-          const SizedBox(height: 20),
-          HairlineRow(leading: const RowIcon(Icons.groups_outlined), title: 'Ministries', onTap: () => _push(context, const MinistriesScreen())),
-          HairlineRow(leading: const RowIcon(Icons.church_outlined), title: 'Services', onTap: () => _push(context, const ServicesScreen())),
-          HairlineRow(leading: const RowIcon(Icons.event_outlined), title: 'Events', onTap: () => _push(context, const EventsScreen())),
+          const SizedBox(height: 32),
+          const BethelSectionTitle('Your Bible'),
+          const SizedBox(height: 4),
           HairlineRow(
               leading: const RowIcon(Icons.menu_book_outlined),
               title: 'Bible',
@@ -155,12 +154,25 @@ class _MoreScreenState extends State<MoreScreen> {
           HairlineRow(
               leading: const RowIcon(Icons.event_note_outlined),
               title: 'Reading plan',
+              trailing: state.plan == null
+                  ? null
+                  : Text(
+                      state.plan!.dayFor(DateTime.now()) > state.plan!.days
+                          ? 'Finished'
+                          : 'Day ${state.plan!.dayFor(DateTime.now()).clamp(1, state.plan!.days)} of ${state.plan!.days}',
+                      style: t.textTheme.bodySmall),
               onTap: () => _push(context, const ReadingPlanScreen())),
           HairlineRow(
               leading: const RowIcon(Icons.edit_note_rounded),
               title: 'Notes',
               trailing: state.notes.isEmpty ? null : Text('${state.notes.length}', style: t.textTheme.bodySmall),
               onTap: () => _push(context, const NotesScreen())),
+          const SizedBox(height: 28),
+          const BethelSectionTitle('Church'),
+          const SizedBox(height: 4),
+          HairlineRow(leading: const RowIcon(Icons.groups_outlined), title: 'Ministries', onTap: () => _push(context, const MinistriesScreen())),
+          HairlineRow(leading: const RowIcon(Icons.church_outlined), title: 'Services', onTap: () => _push(context, const ServicesScreen())),
+          HairlineRow(leading: const RowIcon(Icons.event_outlined), title: 'Events', onTap: () => _push(context, const EventsScreen())),
           HairlineRow(leading: const RowIcon(Icons.photo_library_outlined), title: 'Gallery', onTap: () => _push(context, const GalleryScreen())),
           HairlineRow(leading: const RowIcon(Icons.auto_stories_outlined), title: 'Books', onTap: () => _push(context, const BooksScreen())),
           HairlineRow(leading: const RowIcon(Icons.map_outlined), title: 'Directions', subtitle: AppConfig.churchAddress, onTap: () => _directions(context)),
