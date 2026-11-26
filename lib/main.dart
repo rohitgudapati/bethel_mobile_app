@@ -19,7 +19,9 @@ Future<void> main() async {
       await FirebaseAuth.instance.useAuthEmulator(AppConfig.emulatorHost, 9099);
     }
   }
-  runApp(BethelApp(state: AppState()));
+  final state = AppState();
+  await state.restore();
+  runApp(BethelApp(state: state));
 }
 
 class BethelApp extends StatelessWidget {

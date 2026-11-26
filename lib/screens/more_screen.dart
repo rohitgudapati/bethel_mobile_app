@@ -6,6 +6,8 @@ import '../app/theme.dart';
 import '../data/church_content.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
+import '../bible/bible_text.dart';
+import 'bible_reader_screen.dart';
 import 'bible_screen.dart';
 import 'church_screens.dart';
 import 'events_screen.dart';
@@ -145,7 +147,13 @@ class _MoreScreenState extends State<MoreScreen> {
           HairlineRow(leading: const RowIcon(Icons.event_outlined), title: 'Events', onTap: () => _push(context, const EventsScreen())),
           HairlineRow(
               leading: const RowIcon(Icons.menu_book_outlined),
-              title: 'Bible and reading plan',
+              title: 'Bible',
+              trailing: Text('${state.bibleVersion.short} · ${bibleRef(state.bibleBook, state.bibleChapter)}',
+                  style: t.textTheme.bodySmall),
+              onTap: () => _push(context, const BibleReaderScreen())),
+          HairlineRow(
+              leading: const RowIcon(Icons.event_note_outlined),
+              title: 'Reading plan',
               onTap: () => _push(context, const BibleScreen())),
           HairlineRow(leading: const RowIcon(Icons.photo_library_outlined), title: 'Gallery', onTap: () => _push(context, const GalleryScreen())),
           HairlineRow(leading: const RowIcon(Icons.auto_stories_outlined), title: 'Books', onTap: () => _push(context, const BooksScreen())),

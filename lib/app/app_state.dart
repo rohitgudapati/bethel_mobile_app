@@ -5,8 +5,10 @@ import '../data/firebase_repository.dart';
 import '../data/mock_repository.dart';
 import '../data/models.dart';
 import '../data/repository.dart';
+import '../bible/bible_text.dart';
 import 'config.dart';
 import 'launch.dart';
+import 'local_store.dart';
 
 /// Small app-wide state: data source, signed-in user, theme and a few
 /// personal toggles. Exposed to widgets through [AppScope].
@@ -20,6 +22,75 @@ class AppState extends ChangeNotifier {
                     : ApiRepository());
 
   final BethelRepository repo;
+
+  LocalStore _store = LocalStore.memory();
+
+  /// Loads what was saved on this phone. Call once before the app starts.
+  Future<void> restore([LocalStore? store]) async {
+    _store = store ?? await LocalStore.open();
+    final b = _store.read('bible');
+    if (b is Map) {
+      bibleVersion = BibleVersion.fromName(b['version'] as String?);
+      bibleBook = ((b['book'] as num?) ?? bibleBook).toInt().clamp(0, 65);
+      bibleChapter = ((b['chapter'] as num?) ?? bibleChapter).toInt().clamp(1, 150);
+      bibleParallel = b['parallel'] == true;
+      bibleScale = ((b['scale'] as num?) ?? 1).toDouble().clamp(0.8, 1.6);
+    }
+    final h = _store.read('highlights');
+    if (h is List) highlights.addAll(h.whereType<String>());
+    notifyListeners();
+  }
+
+  // ------------------------------------------------------------ Bible
+  BibleVersion bibleVersion = BibleVersion.kjv;
+  int bibleBook = 42; // John
+  int bibleChapter = 3;
+  bool bibleParallel = false;
+  double bibleScale = 1;
+
+  /// Highlighted verses as "book:chapter:verse".
+  final Set<String> highlights = {};
+
+  void _saveBible() => _store.write('bible', {
+        'version': bibleVersion.name,
+        'book': bibleBook,
+        'chapter': bibleChapter,
+        'parallel': bibleParallel,
+        'scale': bibleScale,
+      });
+
+  void openBible(int book, int chapter) {
+    bibleBook = book;
+    bibleChapter = chapter;
+    _saveBible();
+    notifyListeners();
+  }
+
+  void setBibleVersion(BibleVersion v) {
+    bibleVersion = v;
+    _saveBible();
+    notifyListeners();
+  }
+
+  void setBibleParallel(bool on) {
+    bibleParallel = on;
+    _saveBible();
+    notifyListeners();
+  }
+
+  void setBibleScale(double s) {
+    bibleScale = s;
+    _saveBible();
+    notifyListeners();
+  }
+
+  /// Highlights the verses, or removes the highlight if they all have one already.
+  void toggleHighlights(Iterable<String> keys) {
+    final all = keys.every(highlights.contains);
+    all ? highlights.removeAll(keys) : highlights.addAll(keys);
+    _store.write('highlights', highlights.toList());
+    notifyListeners();
+  }
 
   UserProfile? user;
   bool guest = LaunchOptions.skipWelcome;
