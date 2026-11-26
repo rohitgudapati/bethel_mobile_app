@@ -8,6 +8,7 @@ import '../widgets/common.dart';
 
 const prayerCategories = ['Healing', 'Family', 'Work', 'Church', 'Thanksgiving', 'Other'];
 
+/// Prayer tab: a verse, the prayer wall, and "Request prayer".
 class PrayerScreen extends StatefulWidget {
   const PrayerScreen({super.key});
 
@@ -16,157 +17,164 @@ class PrayerScreen extends StatefulWidget {
 }
 
 class _PrayerScreenState extends State<PrayerScreen> {
-  Key _reload = UniqueKey();
+  late Future<List<PrayerRequest>> _wall = AppScope.read(context).repo.prayerWall();
+
+  void _reload() => setState(() => _wall = AppScope.read(context).repo.prayerWall());
 
   Future<void> _newRequest() async {
-    final added = await showModalBottomSheet<bool>(
+    final sent = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
       builder: (_) => const PrayerRequestSheet(),
     );
-    if (added == true && mounted) {
-      setState(() => _reload = UniqueKey());
-      showToast(context, 'Your request was sent to our prayer team. We\'re praying with you.');
-    }
+    if (sent == true && mounted) _reload();
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
     final t = Theme.of(context);
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _newRequest,
-        backgroundColor: BethelColors.forest,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.edit_rounded),
-        label: const Text('Request prayer', style: TextStyle(fontWeight: FontWeight.w600)),
+        elevation: 2,
+        highlightElevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: t.filledButtonTheme.style?.backgroundColor?.resolve({}),
+        foregroundColor: t.filledButtonTheme.style?.foregroundColor?.resolve({}),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Request prayer', style: TextStyle(fontSize: BethelType.body, fontWeight: FontWeight.w500)),
       ),
       body: SafeArea(
         bottom: false,
-        child: CustomScrollView(slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            _reload();
+            await _wall.catchError((Object _) => <PrayerRequest>[]);
+          },
+          child: CustomScrollView(slivers: [
+            SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Text('Prayer', style: t.textTheme.headlineMedium),
+              sliver: SliverList.list(children: [
+                const ScreenTitle('Prayer'),
+                const SizedBox(height: 20),
+                Text('“In every thing by prayer and supplication with thanksgiving let your requests be made known unto God.”',
+                    style: t.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400, height: 1.45)),
+                const SizedBox(height: 12),
+                Text('Philippians 4:6 · KJV', style: t.textTheme.bodySmall),
+                const SizedBox(height: 32),
+                const BethelSectionTitle('Prayer wall'),
+              ]),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: BethelColors.forest,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Row(children: [
-                  const Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('"In every thing by prayer… let your requests be made known unto God."',
-                          style:
-                              TextStyle(color: Colors.white, fontSize: 15, height: 1.5, fontStyle: FontStyle.italic)),
-                      SizedBox(height: 8),
-                      Text('Philippians 4:6',
-                          style: TextStyle(color: BethelColors.brassSoft, fontWeight: FontWeight.w600)),
-                    ]),
-                  ),
-                  const SizedBox(width: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: const BethelImage('assets/pray.png', width: 76, height: 96),
-                  ),
-                ]),
-              ),
+            FutureBuilder<List<PrayerRequest>>(
+              future: _wall,
+              builder: (context, snap) {
+                if (snap.connectionState != ConnectionState.done) {
+                  return const SliverToBoxAdapter(
+                      child: Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator())));
+                }
+                if (snap.hasError) {
+                  return SliverToBoxAdapter(
+                    child: BethelEmptyState(
+                      icon: Icons.error_outline_rounded,
+                      title: 'Couldn’t load the prayer wall',
+                      message: 'Check your connection and try again. You can still send a request.',
+                      action: OutlinedButton(onPressed: _reload, child: const Text('Try again')),
+                    ),
+                  );
+                }
+                final wall = snap.data ?? const <PrayerRequest>[];
+                if (wall.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: BethelEmptyState(
+                      icon: Icons.favorite_border_rounded,
+                      title: 'The wall is quiet right now',
+                      message: !AppConfig.isDemo && !AppConfig.isFirebase
+                          ? 'Requests the church shares will appear here once the church server supports listing them.'
+                          : 'Requests the church shares will appear here. Yours can be the first.',
+                    ),
+                  );
+                }
+                return SliverPadding(
+                  // Room for the Request prayer button.
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 104),
+                  sliver: SliverList.builder(itemCount: wall.length, itemBuilder: (_, i) => PrayerCard(prayer: wall[i])),
+                );
+              },
             ),
-          ),
-          const SliverToBoxAdapter(child: SectionHeader('Prayer wall')),
-          if (!AppConfig.isDemo && !AppConfig.isFirebase)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Text('Requests shared by the church will appear here once the API supports listing them.',
-                    style: TextStyle(fontSize: 13, color: t.colorScheme.onSurfaceVariant)),
-              ),
-            ),
-          AsyncView<List<PrayerRequest>>(
-            key: _reload,
-            sliver: true,
-            load: state.repo.prayerWall,
-            builder: (context, wall) => SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-              sliver: SliverList.separated(
-                itemCount: wall.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (_, i) => PrayerCard(prayer: wall[i]),
-              ),
-            ),
-          ),
-        ]),
+          ]),
+        ),
       ),
     );
   }
 }
 
+/// One request on the wall: name and category, the request, and "I prayed".
 class PrayerCard extends StatelessWidget {
   const PrayerCard({super.key, required this.prayer});
   final PrayerRequest prayer;
+
+  void _pray(BuildContext context) {
+    final state = AppScope.read(context);
+    state.prayFor(prayer.id);
+    final anonymous = prayer.name.trim().isEmpty || prayer.name == 'Anonymous';
+    showBethelToast(context, anonymous ? 'Thank you for praying' : '${prayer.name} will see that you prayed',
+        icon: Icons.favorite_rounded);
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
     final t = Theme.of(context);
+    final tk = BethelTokens.of(context);
     final prayed = state.prayedFor.contains(prayer.id);
     final count = prayer.prayedCount + (prayed ? 1 : 0);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            CircleAvatar(
-              radius: 17,
-              backgroundColor: t.colorScheme.surfaceContainer,
-              child: Text(prayer.name == 'Anonymous' ? '?' : prayer.name[0],
-                  style: TextStyle(color: t.colorScheme.primary, fontWeight: FontWeight.w700)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(prayer.isMine ? '${prayer.name} (you)' : prayer.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text(timeAgo(prayer.createdAt), style: TextStyle(fontSize: 12, color: t.colorScheme.onSurfaceVariant)),
+    final color = prayed ? tk.brassText : t.colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tk.hairline))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text.rich(
+          TextSpan(children: [
+            TextSpan(
+                text: prayer.name,
+                style: TextStyle(fontSize: BethelType.body, fontWeight: FontWeight.w500, color: t.colorScheme.onSurface)),
+            TextSpan(text: '  ·  ${prayer.category}'),
+            if (prayer.isMine) const TextSpan(text: '  ·  Your request'),
+          ]),
+          style: t.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        Text(prayer.request, style: t.textTheme.bodyMedium?.copyWith(height: 1.5)),
+        const SizedBox(height: 4),
+        Semantics(
+          button: !prayed,
+          label: prayed ? 'You prayed. $count praying' : 'I prayed for ${prayer.name}. $count praying',
+          excludeSemantics: true,
+          child: InkWell(
+            onTap: prayed || prayer.isMine ? null : () => _pray(context),
+            borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 44),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(prayed ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 16, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  prayer.isMine ? '$count praying' : '${prayed ? 'You prayed' : 'I prayed'} · $count',
+                  style: TextStyle(fontSize: BethelType.caption, fontWeight: FontWeight.w500, color: color),
+                ),
               ]),
             ),
-            Pill(prayer.category),
-            const SizedBox(width: 8),
-          ]),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Text(prayer.request, style: const TextStyle(fontSize: 14.5, height: 1.55)),
           ),
-          const SizedBox(height: 4),
-          Row(children: [
-            Expanded(
-              child: Text(count == 1 ? '1 person prayed' : '$count people prayed',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12.5, color: t.colorScheme.onSurfaceVariant)),
-            ),
-            TextButton.icon(
-              onPressed: prayed ? null : () => state.prayFor(prayer.id),
-              icon: Icon(prayed ? Icons.check_rounded : Icons.volunteer_activism_outlined, size: 18),
-              label: Text(prayed ? 'Prayed' : 'I prayed'),
-            ),
-          ]),
-        ]),
-      ),
+        ),
+      ]),
     );
   }
 }
 
+/// "How can we pray for you?" sheet: category, request, share on the wall, then a sent state.
+/// Members send under their account; guests add a name and a way to reach them.
 class PrayerRequestSheet extends StatefulWidget {
   const PrayerRequestSheet({super.key});
 
@@ -175,36 +183,49 @@ class PrayerRequestSheet extends StatefulWidget {
 }
 
 class _PrayerRequestSheetState extends State<PrayerRequestSheet> {
-  late final _name = TextEditingController(text: AppScope.read(context).user?.name ?? '');
-  late final _email = TextEditingController(text: AppScope.read(context).user?.email ?? '');
-  final _phone = TextEditingController();
   final _request = TextEditingController();
+  final _name = TextEditingController();
+  final _contact = TextEditingController();
   String _category = prayerCategories.first;
   bool _share = true;
   bool _busy = false;
+  bool _sent = false;
+  String? _requestError;
+  String? _nameError;
   String? _error;
 
+  @override
+  void dispose() {
+    _request.dispose();
+    _name.dispose();
+    _contact.dispose();
+    super.dispose();
+  }
+
+  String _firstName(String name) => name.trim().split(RegExp(r'\s+')).first;
+
   Future<void> _send() async {
-    if (_request.text.trim().length < 5) {
-      setState(() => _error = 'Please share a little about what we can pray for.');
-      return;
-    }
+    final user = AppScope.read(context).user;
     setState(() {
-      _busy = true;
+      _requestError = _request.text.trim().length < 5 ? 'Write a few words so the team knows how to pray' : null;
+      _nameError = user == null && _name.text.trim().isEmpty ? 'Add your name' : null;
       _error = null;
     });
+    if (_requestError != null || _nameError != null) return;
+    setState(() => _busy = true);
     try {
+      final contact = _contact.text.trim();
       await AppScope.read(context).repo.submitPrayer(
-            name: _name.text,
-            email: _email.text,
-            phone: _phone.text,
-            request: _request.text,
+            name: user?.name ?? _name.text.trim(),
+            email: user?.email ?? (contact.contains('@') ? contact : ''),
+            phone: user?.phone ?? (contact.contains('@') ? '' : contact),
+            request: _request.text.trim(),
             category: _category,
             shareOnWall: _share,
           );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) setState(() => _sent = true);
     } catch (e) {
-      setState(() => _error = '$e');
+      if (mounted) setState(() => _error = 'Couldn’t send your request. Check your connection and try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -213,65 +234,132 @@ class _PrayerRequestSheetState extends State<PrayerRequestSheet> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + MediaQuery.viewInsetsOf(context).bottom),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('How can we pray for you?', style: t.textTheme.headlineSmall),
-        const SizedBox(height: 4),
-        Text('Our prayer team reads every request.', style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 18),
-        Wrap(spacing: 8, runSpacing: 8, children: [
+    final user = AppScope.of(context).user;
+    return AnimatedSize(
+      duration: reduceMotion(context) ? Duration.zero : const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + MediaQuery.viewInsetsOf(context).bottom),
+        child: _sent ? _sentView(t, user) : _form(t, user),
+      ),
+    );
+  }
+
+  Widget _sentView(ThemeData t, UserProfile? user) {
+    final who = _firstName(user?.name ?? _name.text);
+    final where = _share
+        ? (who.isEmpty ? 'It’s on the prayer wall.' : 'It’s on the wall as $who.')
+        : 'It stays private with the prayer team.';
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const SizedBox(height: 8),
+      Center(
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: const BoxDecoration(color: BethelColors.forest, shape: BoxShape.circle),
+          child: const Icon(Icons.check_rounded, size: 28, color: BethelColors.ivory),
+        ),
+      ),
+      const SizedBox(height: 20),
+      Text('Request sent', textAlign: TextAlign.center, style: t.textTheme.headlineSmall),
+      const SizedBox(height: 8),
+      Text('Our prayer team will be praying with you this week. $where',
+          textAlign: TextAlign.center, style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+      const SizedBox(height: 24),
+      FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Done')),
+    ]);
+  }
+
+  Widget _form(ThemeData t, UserProfile? user) {
+    final tk = BethelTokens.of(context);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text('How can we pray for you?', style: t.textTheme.headlineSmall),
+      const SizedBox(height: 4),
+      Text('Our prayer team reads every request', style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+      const SizedBox(height: 20),
+      Semantics(
+        label: 'Category',
+        child: Wrap(spacing: 8, runSpacing: 8, children: [
           for (final c in prayerCategories)
             ChoiceChip(
               label: Text(c),
               selected: _category == c,
               showCheckmark: false,
-              onSelected: (_) => setState(() => _category = c),
+              onSelected: _busy ? null : (_) => setState(() => _category = c),
             ),
         ]),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _request,
-          minLines: 4,
-          maxLines: 8,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(hintText: 'Share your prayer request…', alignLabelWithHint: true),
+      ),
+      const SizedBox(height: 20),
+      TextField(
+        controller: _request,
+        enabled: !_busy,
+        minLines: 4,
+        maxLines: 8,
+        textCapitalization: TextCapitalization.sentences,
+        style: const TextStyle(fontSize: BethelType.lead, height: 1.45),
+        onChanged: (_) {
+          if (_requestError != null) setState(() => _requestError = null);
+        },
+        decoration: InputDecoration(
+          hintText: 'Your prayer request',
+          errorText: _requestError,
+          enabledBorder: _requestError == null
+              ? null
+              : OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: tk.error, width: 2)),
+        ),
+      ),
+      if (user == null) ...[
+        const SizedBox(height: 12),
+        TileField(
+          controller: _name,
+          label: 'Your name',
+          hint: 'Your name',
+          errorText: _nameError,
+          onChanged: (_) {
+            if (_nameError != null) setState(() => _nameError = null);
+          },
         ),
         const SizedBox(height: 12),
-        TextField(controller: _name, decoration: const InputDecoration(labelText: 'Name')),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(
-            child: TextField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email')),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-                controller: _phone,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Phone (optional)')),
-          ),
-        ]),
-        const SizedBox(height: 8),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: _share,
-          onChanged: (v) => setState(() => _share = v),
-          title: const Text('Share on the prayer wall', style: TextStyle(fontWeight: FontWeight.w500)),
-          subtitle: const Text('Only your first name is shown. Turn off to keep it private with the prayer team.'),
+        TileField(
+          controller: _contact,
+          label: 'Phone or email',
+          hint: 'Phone or email (optional)',
+          keyboardType: TextInputType.emailAddress,
         ),
-        if (_error != null) Text(_error!, style: TextStyle(color: t.colorScheme.error)),
-        const SizedBox(height: 12),
-        FilledButton(
-          onPressed: _busy ? null : _send,
-          child: _busy
-              ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4))
-              : const Text('Send request'),
+      ],
+      const SizedBox(height: 16),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Share on the prayer wall', style: t.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Text('Only your first name is shown. Turn off to keep it private with the prayer team.', style: t.textTheme.bodySmall),
+          ]),
         ),
+        const SizedBox(width: 16),
+        Switch(value: _share, onChanged: _busy ? null : (v) => setState(() => _share = v)),
       ]),
-    );
+      if (_error != null) ...[
+        const SizedBox(height: 12),
+        Text(_error!, style: t.textTheme.bodyMedium?.copyWith(color: tk.error)),
+      ],
+      const SizedBox(height: 20),
+      FilledButton(
+        onPressed: _busy ? null : _send,
+        child: _busy
+            ? Row(mainAxisSize: MainAxisSize.min, children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: t.filledButtonTheme.style?.foregroundColor?.resolve({})),
+                ),
+                const SizedBox(width: 12),
+                const Text('Sending'),
+              ])
+            : const Text('Send request'),
+      ),
+    ]);
   }
 }
