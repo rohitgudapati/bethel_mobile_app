@@ -41,7 +41,7 @@ class _BibleScreenState extends State<BibleScreen> {
                 child: LinearProgressIndicator(
                   value: progress,
                   minHeight: 8,
-                  color: BethelColors.gold,
+                  color: BethelColors.brass,
                   backgroundColor: t.colorScheme.surfaceContainer,
                 ),
               ),
@@ -96,7 +96,7 @@ class PassageScreen extends StatelessWidget {
             for (var i = 0; i < passage.verses.length; i++) ...[
               TextSpan(
                 text: '${i + 1} ',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: BethelColors.gold),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: BethelColors.brassText),
               ),
               TextSpan(text: '${passage.verses[i]}  '),
             ],

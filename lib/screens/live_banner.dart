@@ -91,6 +91,6 @@ class _Badge extends StatelessWidget {
         width: 46,
         height: 46,
         decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-        child: Icon(icon, color: BethelColors.navy, size: 24),
+        child: Icon(icon, color: BethelColors.forest, size: 24),
       );
 }

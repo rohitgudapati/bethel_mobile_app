@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../app/config.dart';
 import 'daily_verses.dart';
@@ -95,7 +98,80 @@ class FirebaseRepository implements BethelRepository {
     }
   }
 
+  // Phone sign-in. The web uses reCAPTCHA + ConfirmationResult; Android/iOS use a verification id.
+  ConfirmationResult? _webConfirmation;
+  String? _verificationId;
+  String _pendingPhone = '';
+
+  @override
+  Future<void> sendPhoneCode(String phone) async {
+    _pendingPhone = phone;
+    _webConfirmation = null;
+    _verificationId = null;
+    try {
+      if (kIsWeb) {
+        _webConfirmation = await _auth.signInWithPhoneNumber(phone);
+        return;
+      }
+      final sent = Completer<void>();
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phone,
+        // Android can read the SMS itself and sign in straight away.
+        verificationCompleted: (cred) async {
+          await _auth.signInWithCredential(cred);
+          if (!sent.isCompleted) sent.complete();
+        },
+        verificationFailed: (e) {
+          if (!sent.isCompleted) sent.completeError(_authMessage(e));
+        },
+        codeSent: (id, _) {
+          _verificationId = id;
+          if (!sent.isCompleted) sent.complete();
+        },
+        codeAutoRetrievalTimeout: (id) => _verificationId ??= id,
+      );
+      await sent.future;
+    } on FirebaseAuthException catch (e) {
+      throw _authMessage(e);
+    }
+  }
+
+  @override
+  Future<UserProfile> verifyPhoneCode(String code, {String name = ''}) async {
+    try {
+      final UserCredential cred;
+      if (_webConfirmation != null) {
+        cred = await _webConfirmation!.confirm(code.trim());
+      } else if (_verificationId != null) {
+        cred = await _auth
+            .signInWithCredential(PhoneAuthProvider.credential(verificationId: _verificationId!, smsCode: code.trim()));
+      } else if (_auth.currentUser?.phoneNumber != null) {
+        return await _phoneProfile(_auth.currentUser!, name); // auto-verified on Android
+      } else {
+        throw 'Please request a code first.';
+      }
+      return await _phoneProfile(cred.user!, name);
+    } on FirebaseAuthException catch (e) {
+      throw _authMessage(e);
+    }
+  }
+
+  Future<UserProfile> _phoneProfile(User u, String name) async {
+    final phone = u.phoneNumber ?? _pendingPhone;
+    if (name.trim().isNotEmpty && (u.displayName ?? '').isEmpty) {
+      await u.updateDisplayName(name.trim());
+      await _db.doc('users/${u.uid}').set(
+          {'name': name.trim(), 'phone': phone, 'createdAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+    }
+    final display = (u.displayName ?? '').isNotEmpty ? u.displayName! : name.trim();
+    return UserProfile(name: display.isEmpty ? 'Friend' : display, email: u.email ?? '', phone: phone);
+  }
+
   String _authMessage(FirebaseAuthException e) => switch (e.code) {
+        'invalid-phone-number' => 'Please enter a valid phone number, including the country code.',
+        'invalid-verification-code' => 'That code isn\'t right. Please check the text and try again.',
+        'session-expired' || 'code-expired' => 'That code has expired. Please send a new one.',
+        'too-many-requests' => 'Too many attempts. Please wait a little and try again.',
         'invalid-credential' || 'wrong-password' || 'user-not-found' => 'That email and password don\'t match.',
         'email-already-in-use' => 'An account with this email already exists. Try signing in.',
         'weak-password' => 'Please choose a password with at least 6 characters.',

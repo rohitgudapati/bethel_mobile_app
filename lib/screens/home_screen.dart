@@ -5,6 +5,7 @@ import '../app/config.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
+import '../widgets/line_art.dart';
 import 'bible_screen.dart';
 import 'events_screen.dart';
 import 'church_screens.dart';
@@ -103,35 +104,11 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ),
-        // Quick actions
-        SliverToBoxAdapter(
+        // Shortcuts: illustrated cards that show what's new in each place
+        const SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 20, 12, 0),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-              _QuickAction(
-                  icon: Icons.favorite_rounded,
-                  label: 'Testimonies',
-                  color: BethelColors.rose,
-                  onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) =>
-                              MediaListScreen(title: 'Testimonies', kind: 'Testimony', load: state.repo.testimonies)))),
-              _QuickAction(
-                  icon: Icons.volunteer_activism,
-                  label: 'Pray',
-                  color: BethelColors.gold,
-                  onTap: () => AppShell.goToTab(context, AppShell.prayer)),
-              _QuickAction(
-                  icon: Icons.event_rounded,
-                  label: 'Events',
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EventsScreen()))),
-              _QuickAction(
-                  icon: Icons.menu_book_rounded,
-                  label: 'Bible',
-                  color: const Color(0xFF4E7D6A),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BibleScreen()))),
-            ]),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: _HomeShortcuts(),
           ),
         ),
         // Upcoming events
@@ -230,38 +207,144 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({required this.icon, required this.label, this.color, required this.onTap});
-  final IconData icon;
-  final String label;
-  final Color? color;
+/// 2×2 grid of illustrated cards. Each card says something current
+/// (today's reading, the next event…) so it invites a tap rather than just naming a section.
+class _HomeShortcuts extends StatefulWidget {
+  const _HomeShortcuts();
+
+  @override
+  State<_HomeShortcuts> createState() => _HomeShortcutsState();
+}
+
+class _HomeShortcutsState extends State<_HomeShortcuts> {
+  String? _testimony, _prayer, _event, _reading;
+  bool _loaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loaded) return;
+    _loaded = true;
+    final repo = AppScope.read(context).repo;
+
+    void load<T>(Future<T> f, String? Function(T) describe, void Function(String?) set) {
+      f.then((v) {
+        if (mounted) setState(() => set(describe(v)));
+      }).catchError((_) {});
+    }
+
+    load<List<MediaItem>>(repo.testimonies(), (l) => l.isEmpty ? null : 'New: ${l.first.title}', (s) => _testimony = s);
+    load<List<PrayerRequest>>(
+        repo.prayerWall(),
+        (l) => l.isEmpty ? null : '${l.length} ${l.length == 1 ? 'request' : 'requests'} to lift up',
+        (s) => _prayer = s);
+    load<List<ChurchEvent>>(repo.events(), (l) {
+      final today = DateUtils.dateOnly(DateTime.now());
+      final next = l.where((e) => !e.date.isBefore(today)).toList()..sort((a, b) => a.date.compareTo(b.date));
+      return next.isEmpty ? null : '${fmtShort(next.first.date).split(',').first} · ${next.first.title}';
+    }, (s) => _event = s);
+    load<List<BiblePassage>>(
+        repo.readingPlan(), (l) => l.isEmpty ? null : 'Today: ${l.first.reference}', (s) => _reading = s);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    // Muted tints drawn from the brand palette: terracotta, gold, navy, sage.
+    Color tint(int light) => dark ? BethelColors.nightCard : Color(light);
+    Color wash(Color c) => c.withValues(alpha: dark ? 0.22 : 0.16);
+
+    final cards = [
+      _ShortcutCard(
+        title: 'Testimonies',
+        subtitle: _testimony ?? 'Stories of God at work',
+        art: LineArtKind.lamp,
+        background: tint(0xFFF2EBE4),
+        wash: wash(BethelColors.rose),
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) =>
+                    MediaListScreen(title: 'Testimonies', kind: 'Testimony', load: state.repo.testimonies))),
+      ),
+      _ShortcutCard(
+        title: 'Pray',
+        subtitle: _prayer ?? 'Share a request',
+        art: LineArtKind.prayingHands,
+        background: tint(0xFFEFE8DA),
+        wash: wash(BethelColors.brass),
+        onTap: () => AppShell.goToTab(context, AppShell.prayer),
+      ),
+      _ShortcutCard(
+        title: 'Events',
+        subtitle: _event ?? 'What\'s on at church',
+        art: LineArtKind.chapel,
+        background: tint(0xFFE4EAE6),
+        wash: wash(BethelColors.forest),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EventsScreen())),
+      ),
+      _ShortcutCard(
+        title: 'Bible',
+        subtitle: _reading ?? 'Reading plan',
+        art: LineArtKind.openBible,
+        background: tint(0xFFECEAE2),
+        wash: wash(const Color(0xFF4E7D6A)),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BibleScreen())),
+      ),
+    ];
+
+    Widget row(Widget a, Widget b) => IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Expanded(child: a),
+            const SizedBox(width: 12),
+            Expanded(child: b),
+          ]),
+        );
+    return Column(children: [row(cards[0], cards[1]), const SizedBox(height: 12), row(cards[2], cards[3])]);
+  }
+}
+
+class _ShortcutCard extends StatelessWidget {
+  const _ShortcutCard({
+    required this.title,
+    required this.subtitle,
+    required this.art,
+    required this.background,
+    required this.wash,
+    required this.onTap,
+  });
+  final String title;
+  final String subtitle;
+  final LineArtKind art;
+  final Color background;
+  final Color wash;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return Expanded(
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(22),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Column(children: [
-            Container(
-              width: 62,
-              height: 62,
-              decoration: BoxDecoration(
-                color: t.colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: t.colorScheme.outlineVariant),
-              ),
-              child: Icon(icon, color: color ?? t.colorScheme.primary, size: 27),
-            ),
-            const SizedBox(height: 8),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-            ),
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              LineArt(art, size: 58, wash: wash),
+              const Spacer(),
+              Icon(Icons.arrow_outward_rounded, size: 18, color: t.colorScheme.onSurfaceVariant),
+            ]),
+            const SizedBox(height: 10),
+            Text(title, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600, height: 1.2)),
+            const SizedBox(height: 3),
+            Text(subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12.5, height: 1.35, color: t.colorScheme.onSurfaceVariant)),
           ]),
         ),
       ),
@@ -284,19 +367,19 @@ class VerseCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: dark ? const [Color(0xFF2A2F3A), Color(0xFF232731)] : const [Color(0xFFF7EBD3), Color(0xFFFBF3E4)],
+          colors: dark ? const [Color(0xFF26302D), Color(0xFF202725)] : const [Color(0xFFEFE7D8), Color(0xFFF8F5EF)],
         ),
-        border: Border.all(color: dark ? const Color(0xFF3A3F4B) : const Color(0xFFEBD9B4)),
+        border: Border.all(color: dark ? const Color(0xFF34403C) : const Color(0xFFE2D6C0)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Icon(Icons.format_quote_rounded, color: BethelColors.gold, size: 30),
+          const Icon(Icons.format_quote_rounded, color: BethelColors.brass, size: 30),
           const SizedBox(width: 6),
           const Expanded(
             child: Text('VERSE OF THE DAY',
-                style:
-                    TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: BethelColors.gold)),
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: BethelColors.brassText)),
           ),
           Text(fmtShort(verse.date),
               style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
@@ -313,7 +396,7 @@ class VerseCard extends StatelessWidget {
         if (verse.reference != null) ...[
           const SizedBox(height: 10),
           Text(verse.reference!,
-              style: const TextStyle(color: BethelColors.gold, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
+              style: const TextStyle(color: BethelColors.brassText, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
         ],
         const SizedBox(height: 4),
         Row(children: [

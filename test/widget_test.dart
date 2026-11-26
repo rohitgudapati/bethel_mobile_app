@@ -16,9 +16,10 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(BethelApp(state: AppState(repository: MockRepository())));
-    expect(find.text('Explore as a guest'), findsOneWidget);
+    expect(find.text('Continue as guest'), findsOneWidget);
 
-    await tester.tap(find.text('Explore as a guest'));
+    await tester.ensureVisible(find.text('Continue as guest'));
+    await tester.tap(find.text('Continue as guest'));
     await tester.pumpAndSettle();
     expect(find.text('VERSE OF THE DAY'), findsOneWidget);
     expect(find.text(builtInVerse(DateTime.now()).reference!), findsWidgets, reason: "today's verse is shown");
@@ -130,6 +131,41 @@ void main() {
     },
     skip: !File('assets/songs/songs_of_zion.json').existsSync(),
   );
+
+  testWidgets('sign up with a phone number and a texted code', (tester) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final state = AppState(repository: MockRepository());
+    await tester.pumpWidget(BethelApp(state: state));
+    await tester.tap(find.text('Get started'));
+    await tester.pumpAndSettle();
+    expect(find.text('Join the family'), findsOneWidget, reason: 'floating sign-up card');
+
+    await tester.tap(find.text('Phone'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Full name'), 'Grace Paul');
+    await tester.enterText(find.widgetWithText(TextField, 'Phone number'), '(630) 555-0123');
+    await tester.tap(find.text('Send code'));
+    // The resend countdown ticks every second, so step the clock instead of pumpAndSettle.
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Verify your phone number'), findsOneWidget, reason: 'its own step');
+    expect(find.textContaining('+1 (630) 555‑0123', findRichText: true), findsOneWidget);
+    expect(find.text('Join the family'), findsNothing);
+    expect(find.text('Resend in 0:30'), findsOneWidget);
+
+    // A wrong-length paste is trimmed to six digits, which verifies straight away.
+    await tester.enterText(find.byType(TextField), '12a3456789');
+    await tester.pump();
+    expect(find.text('6'), findsOneWidget, reason: 'only digits, at most six');
+    expect(find.text('Verifying…'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(state.user?.name, 'Grace Paul');
+    expect(state.user?.contact, '+16305550123');
+    expect(find.text('VERSE OF THE DAY'), findsOneWidget, reason: 'signed in and on Home');
+  });
 
   test('the built-in verse changes every day and repeats the same verse for everyone', () {
     final a = builtInVerse(DateTime(2026, 11, 25, 6));

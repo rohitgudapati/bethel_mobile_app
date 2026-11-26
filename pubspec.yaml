@@ -16,6 +16,8 @@ dependencies:
   cloud_firestore: ^7.2.0
   firebase_auth: ^7.1.0
   youtube_player_iframe: ^6.0.4
+  smart_auth: ^4.0.0
+  flutter_svg: ^2.5.1
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +31,29 @@ flutter:
     - assets/songs/
     - assets/church/
   fonts:
+    # Display serif for headings (BethelFonts.display). Playfair Display stands in for
+    # Domaine Display, which is a licensed font: once the church has a licence, put the
+    # Domaine Display files in this folder and point these three entries at them.
+    - family: Display
+      fonts:
+        - asset: assets/fonts/DisplaySerif/PlayfairDisplay-500.ttf
+          weight: 500
+        - asset: assets/fonts/DisplaySerif/PlayfairDisplay-600.ttf
+          weight: 600
+        - asset: assets/fonts/DisplaySerif/PlayfairDisplay-700.ttf
+          weight: 700
+        - asset: assets/fonts/DisplaySerif/PlayfairDisplay-500-Italic.ttf
+          weight: 500
+          style: italic
+    # Welcome screen. Git-ignored (licence); see assets/fonts/Switzer/README.md to download.
+    - family: Switzer
+      fonts:
+        - asset: assets/fonts/Switzer/Switzer-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Switzer/Switzer-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Switzer/Switzer-Semibold.ttf
+          weight: 600
     - family: Quintessential
       fonts:
         - asset: assets/fonts/Quintessential/Quintessential-Regular.ttf

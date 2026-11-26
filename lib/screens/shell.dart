@@ -71,7 +71,7 @@ class _HomeIcon extends StatelessWidget {
         height: 40,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: selected ? BethelColors.navy : BethelColors.gold,
+          color: selected ? BethelColors.forest : BethelColors.brass,
           boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 8, offset: Offset(0, 3))],
         ),
         child: Icon(selected ? Icons.home_rounded : Icons.home_outlined, color: Colors.white),

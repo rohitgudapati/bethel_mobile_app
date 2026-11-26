@@ -5,13 +5,20 @@ import '../app/theme.dart';
 
 /// Shows an asset (`assets/...`) or a network image with a soft placeholder.
 class BethelImage extends StatelessWidget {
-  const BethelImage(this.source, {super.key, this.fit = BoxFit.cover, this.radius = 0, this.width, this.height});
+  const BethelImage(this.source,
+      {super.key,
+      this.fit = BoxFit.cover,
+      this.radius = 0,
+      this.width,
+      this.height,
+      this.alignment = Alignment.center});
 
   final String source;
   final BoxFit fit;
   final double radius;
   final double? width;
   final double? height;
+  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
@@ -25,8 +32,14 @@ class BethelImage extends StatelessWidget {
     final Widget img = source.isEmpty
         ? placeholder
         : source.startsWith('http')
-            ? Image.network(source, fit: fit, width: width, height: height, errorBuilder: (_, __, ___) => placeholder)
-            : Image.asset(source, fit: fit, width: width, height: height, errorBuilder: (_, __, ___) => placeholder);
+            ? Image.network(source,
+                fit: fit, width: width, height: height, alignment: alignment, errorBuilder: (_, __, ___) => placeholder)
+            : Image.asset(source,
+                fit: fit,
+                width: width,
+                height: height,
+                alignment: alignment,
+                errorBuilder: (_, __, ___) => placeholder);
     return radius == 0 ? img : ClipRRect(borderRadius: BorderRadius.circular(radius), child: img);
   }
 }
@@ -73,7 +86,7 @@ class Pill extends StatelessWidget {
     final fg = textColor ?? BethelColors.ink;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color ?? BethelColors.goldSoft, borderRadius: BorderRadius.circular(40)),
+      decoration: BoxDecoration(color: color ?? BethelColors.brassSoft, borderRadius: BorderRadius.circular(40)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         if (icon != null) ...[Icon(icon, size: 13, color: fg), const SizedBox(width: 4)],
         Text(label, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: fg, letterSpacing: 0.2)),
@@ -254,6 +267,6 @@ class PlayBadge extends StatelessWidget {
         width: size,
         height: size,
         decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-        child: Icon(Icons.play_arrow_rounded, color: BethelColors.navy, size: size * 0.6),
+        child: Icon(Icons.play_arrow_rounded, color: BethelColors.forest, size: size * 0.6),
       );
 }

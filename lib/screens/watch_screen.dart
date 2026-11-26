@@ -190,7 +190,7 @@ class _MediaCard extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(kind.toUpperCase(),
                   style: const TextStyle(
-                      fontSize: 10.5, fontWeight: FontWeight.w700, color: BethelColors.gold, letterSpacing: 0.6)),
+                      fontSize: 10.5, fontWeight: FontWeight.w700, color: BethelColors.brassText, letterSpacing: 0.6)),
               Text(item.title, style: t.textTheme.titleMedium),
               if (item.info.isNotEmpty) ...[
                 const SizedBox(height: 4),
@@ -230,7 +230,7 @@ class SermonTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 10.5, fontWeight: FontWeight.w700, color: BethelColors.gold, letterSpacing: 0.5)),
+                          fontSize: 10.5, fontWeight: FontWeight.w700, color: BethelColors.brassText, letterSpacing: 0.5)),
                 Text(sermon.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -342,7 +342,7 @@ class _SermonDetailScreenState extends State<SermonDetailScreen> {
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Padding(
-                  padding: EdgeInsets.only(top: 7), child: Icon(Icons.circle, size: 7, color: BethelColors.gold)),
+                  padding: EdgeInsets.only(top: 7), child: Icon(Icons.circle, size: 7, color: BethelColors.brass)),
               const SizedBox(width: 10),
               Expanded(child: Text(n, style: const TextStyle(height: 1.5))),
             ]),

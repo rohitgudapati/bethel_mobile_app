@@ -63,7 +63,7 @@ class DateBlock extends StatelessWidget {
         width: 52,
         padding: const EdgeInsets.symmetric(vertical: 7),
         decoration: BoxDecoration(
-          color: light ? Colors.white : BethelColors.goldSoft,
+          color: light ? Colors.white : BethelColors.brassSoft,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(children: [
@@ -172,7 +172,7 @@ class EventDetailScreen extends StatelessWidget {
           expandedHeight: 280,
           pinned: true,
           foregroundColor: Colors.white,
-          backgroundColor: BethelColors.navyDeep,
+          backgroundColor: BethelColors.forestDeep,
           flexibleSpace: FlexibleSpaceBar(background: BethelImage(event.image)),
         ),
         SliverToBoxAdapter(

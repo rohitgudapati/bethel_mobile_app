@@ -73,6 +73,25 @@ class MockRepository implements BethelRepository {
   Future<UserProfile> signUp(String name, String email, String password) =>
       _delay(UserProfile(name: name.trim(), email: email.trim()));
 
+  String? _pendingPhone;
+
+  /// Demo: no text is sent; any 6-digit code works.
+  @override
+  Future<void> sendPhoneCode(String phone) {
+    if (phone.replaceAll(RegExp(r'\D'), '').length < 10) {
+      return Future.error('Please enter a valid phone number.');
+    }
+    _pendingPhone = phone;
+    return _delay(null);
+  }
+
+  @override
+  Future<UserProfile> verifyPhoneCode(String code, {String name = ''}) {
+    if (_pendingPhone == null) return Future.error('Please request a code first.');
+    if (!RegExp(r'^\d{6}$').hasMatch(code.trim())) return Future.error('Enter the 6-digit code we texted you.');
+    return _delay(UserProfile(name: name.trim().isEmpty ? 'Friend' : name.trim(), email: '', phone: _pendingPhone!));
+  }
+
   @override
   Future<DailyVerse> todayVerse() {
     // A different verse every day (see daily_verses.dart), with sample counts.

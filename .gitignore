@@ -44,3 +44,8 @@ app.*.map.json
 
 # Song book lyrics (may be copyrighted; repo is public)
 assets/songs/*.json
+
+# Switzer font files: the ITF Free Font License doesn't allow sharing them in a public repository.
+# Download them as described in assets/fonts/Switzer/README.md.
+assets/fonts/Switzer/*.ttf
+assets/fonts/Switzer/LICENSE.txt

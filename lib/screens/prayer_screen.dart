@@ -39,7 +39,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _newRequest,
-        backgroundColor: BethelColors.navy,
+        backgroundColor: BethelColors.forest,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.edit_rounded),
         label: const Text('Request prayer', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -59,7 +59,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: BethelColors.navy,
+                  color: BethelColors.forest,
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: Row(children: [
@@ -70,7 +70,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
                               TextStyle(color: Colors.white, fontSize: 15, height: 1.5, fontStyle: FontStyle.italic)),
                       SizedBox(height: 8),
                       Text('Philippians 4:6',
-                          style: TextStyle(color: BethelColors.goldSoft, fontWeight: FontWeight.w600)),
+                          style: TextStyle(color: BethelColors.brassSoft, fontWeight: FontWeight.w600)),
                     ]),
                   ),
                   const SizedBox(width: 10),

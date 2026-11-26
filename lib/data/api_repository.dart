@@ -95,6 +95,14 @@ class ApiRepository implements BethelRepository {
     return signIn(email, password);
   }
 
+  // The .NET API has no phone sign-in.
+  @override
+  Future<void> sendPhoneCode(String phone) => Future.error('Phone sign-in isn\'t available yet. Please use email.');
+
+  @override
+  Future<UserProfile> verifyPhoneCode(String code, {String name = ''}) =>
+      Future.error('Phone sign-in isn\'t available yet. Please use email.');
+
   // ---------------------------------------------------------------- content
 
   @override

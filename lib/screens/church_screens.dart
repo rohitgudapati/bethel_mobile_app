@@ -36,7 +36,7 @@ class ServiceChipCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: t.brightness == Brightness.dark ? t.colorScheme.surfaceContainer : BethelColors.goldSoft,
+                  color: t.brightness == Brightness.dark ? t.colorScheme.surfaceContainer : BethelColors.brassSoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(serviceIcon(service.icon), size: 20, color: t.colorScheme.primary),
@@ -89,7 +89,7 @@ class ServicesScreen extends StatelessWidget {
                         if (s.schedule.isNotEmpty)
                           Text(s.schedule,
                               style: const TextStyle(
-                                  fontSize: 12.5, fontWeight: FontWeight.w600, color: BethelColors.gold)),
+                                  fontSize: 12.5, fontWeight: FontWeight.w600, color: BethelColors.brassText)),
                         Text(s.description,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -120,7 +120,7 @@ class ServiceDetailScreen extends StatelessWidget {
           expandedHeight: 240,
           pinned: true,
           foregroundColor: Colors.white,
-          backgroundColor: BethelColors.navyDeep,
+          backgroundColor: BethelColors.forestDeep,
           flexibleSpace: FlexibleSpaceBar(background: BethelImage(service.image)),
         ),
         SliverToBoxAdapter(
@@ -289,7 +289,7 @@ class ChurchAddressCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(22),
       child: Material(
-        color: BethelColors.navy,
+        color: BethelColors.forest,
         child: InkWell(
           onTap: () => openLink(context, _mapUrl),
           child: Stack(children: [
@@ -306,7 +306,7 @@ class ChurchAddressCard extends StatelessWidget {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const Text('Visit us',
-                        style: TextStyle(color: BethelColors.goldSoft, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        style: TextStyle(color: BethelColors.brassSoft, fontSize: 12.5, fontWeight: FontWeight.w600)),
                     Text(info.address,
                         style: const TextStyle(
                             color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, height: 1.3)),
@@ -340,7 +340,7 @@ class MinistryDetailScreen extends StatelessWidget {
           expandedHeight: 260,
           pinned: true,
           foregroundColor: Colors.white,
-          backgroundColor: BethelColors.navyDeep,
+          backgroundColor: BethelColors.forestDeep,
           flexibleSpace: FlexibleSpaceBar(background: BethelImage(ministry.image)),
         ),
         SliverToBoxAdapter(
@@ -404,7 +404,7 @@ class EldersRow extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: t.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                       Text(e.role,
-                          style: const TextStyle(fontSize: 12, color: BethelColors.gold, fontWeight: FontWeight.w600)),
+                          style: const TextStyle(fontSize: 12, color: BethelColors.brassText, fontWeight: FontWeight.w600)),
                     ]),
                   ),
                 ]),
@@ -445,7 +445,7 @@ class EldersScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(e.name, style: t.textTheme.titleLarge),
-                      Text(e.role, style: const TextStyle(color: BethelColors.gold, fontWeight: FontWeight.w600)),
+                      Text(e.role, style: const TextStyle(color: BethelColors.brassText, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       Text(e.bio, style: const TextStyle(height: 1.6)),
                     ]),
@@ -475,7 +475,7 @@ class ElderScreen extends StatelessWidget {
           expandedHeight: 340,
           pinned: true,
           foregroundColor: Colors.white,
-          backgroundColor: BethelColors.navyDeep,
+          backgroundColor: BethelColors.forestDeep,
           flexibleSpace: FlexibleSpaceBar(background: BethelImage(elder.image)),
         ),
         SliverToBoxAdapter(

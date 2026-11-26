@@ -322,7 +322,13 @@ class UserProfile {
   final String name;
   final String email;
   final String? token;
-  const UserProfile({required this.name, required this.email, this.token});
+
+  /// Set when the person signed in with their phone number.
+  final String phone;
+  const UserProfile({required this.name, required this.email, this.token, this.phone = ''});
+
+  /// Email, or phone number for phone sign-ins.
+  String get contact => email.isNotEmpty ? email : phone;
 
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();

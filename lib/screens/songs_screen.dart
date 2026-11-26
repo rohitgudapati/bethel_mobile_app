@@ -190,9 +190,9 @@ class _SongsScreenState extends State<SongsScreen> {
                   width: 210,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: selected ? BethelColors.navy : t.colorScheme.surfaceContainerLow,
+                    color: selected ? BethelColors.forest : t.colorScheme.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: selected ? BethelColors.navy : t.colorScheme.outlineVariant),
+                    border: Border.all(color: selected ? BethelColors.forest : t.colorScheme.outlineVariant),
                   ),
                   child: Row(children: [
                     BethelImage(b.image, width: 56, height: 56, radius: 12),
@@ -488,7 +488,7 @@ class SongRow extends StatelessWidget {
               height: 46,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: t.brightness == Brightness.dark ? t.colorScheme.surfaceContainer : BethelColors.goldSoft,
+                color: t.brightness == Brightness.dark ? t.colorScheme.surfaceContainer : BethelColors.brassSoft,
                 borderRadius: BorderRadius.circular(14),
               ),
               padding: const EdgeInsets.all(4),
@@ -513,7 +513,7 @@ class SongRow extends StatelessWidget {
           tooltip: saved ? 'Saved' : 'Save',
           onPressed: () => state.toggleSavedSong(song.id),
           icon: Icon(saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-              color: saved ? BethelColors.gold : null),
+              color: saved ? BethelColors.brass : null),
         ),
         PopupMenuButton<String>(
           tooltip: 'More',
@@ -564,7 +564,7 @@ class AlbumScreen extends StatelessWidget {
           expandedHeight: 260,
           pinned: true,
           foregroundColor: Colors.white,
-          backgroundColor: BethelColors.navyDeep,
+          backgroundColor: BethelColors.forestDeep,
           flexibleSpace: FlexibleSpaceBar(
             title: Text(album.title, style: const TextStyle(fontWeight: FontWeight.w700)),
             background: Stack(fit: StackFit.expand, children: [
@@ -645,13 +645,13 @@ class _SongScreenState extends State<SongScreen> {
                   height: 64,
                   alignment: Alignment.center,
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(color: BethelColors.navy, borderRadius: BorderRadius.circular(18)),
+                  decoration: BoxDecoration(color: BethelColors.forest, borderRadius: BorderRadius.circular(18)),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       const Text('NO.',
                           style: TextStyle(
-                              color: BethelColors.goldSoft,
+                              color: BethelColors.brassSoft,
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 1)),
@@ -675,7 +675,7 @@ class _SongScreenState extends State<SongScreen> {
                       child: Text(song.reference,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: BethelColors.gold, fontWeight: FontWeight.w600, fontSize: 13)),
+                          style: const TextStyle(color: BethelColors.brassText, fontWeight: FontWeight.w600, fontSize: 13)),
                     ),
                   if (song.lyricist.isNotEmpty)
                     Text('Lyricist: ${song.lyricist}', style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
@@ -793,7 +793,7 @@ class _SongAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    final color = onTap == null ? t.disabledColor : (active ? BethelColors.gold : t.colorScheme.primary);
+    final color = onTap == null ? t.disabledColor : (active ? BethelColors.brass : t.colorScheme.primary);
     return Expanded(
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -842,7 +842,7 @@ class _Lyrics extends StatelessWidget {
                   ? Container(
                       padding: const EdgeInsets.only(left: 12),
                       decoration: const BoxDecoration(
-                        border: Border(left: BorderSide(color: BethelColors.gold, width: 3)),
+                        border: Border(left: BorderSide(color: BethelColors.brass, width: 3)),
                       ),
                       child: Text(stanzas[i], style: style),
                     )
@@ -853,7 +853,7 @@ class _Lyrics extends StatelessWidget {
                     child: Padding(
                       padding: EdgeInsets.only(top: 4 * scale),
                       child: Text('${i + 1}',
-                          style: const TextStyle(color: BethelColors.gold, fontWeight: FontWeight.w700, fontSize: 13)),
+                          style: const TextStyle(color: BethelColors.brassText, fontWeight: FontWeight.w700, fontSize: 13)),
                     ),
                   ),
                   Expanded(child: Text(stanzas[i], style: style)),
@@ -888,7 +888,7 @@ class _PlayerBarState extends State<_PlayerBar> {
         ),
         child: Row(children: [
           IconButton.filled(
-            style: IconButton.styleFrom(backgroundColor: BethelColors.navy, foregroundColor: Colors.white),
+            style: IconButton.styleFrom(backgroundColor: BethelColors.forest, foregroundColor: Colors.white),
             onPressed: hasAudio
                 ? () => openLink(context, widget.song.audioUrl!)
                 : () => showToast(context, 'No recording has been uploaded for this song yet.'),
@@ -917,7 +917,7 @@ class PresentLoader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BethelColors.navyDeep,
+      backgroundColor: BethelColors.forestDeep,
       body: AsyncView<Song>(
         load: () => AppScope.read(context).repo.songDetail(song),
         builder: (context, full) => full.lyrics.isEmpty
@@ -984,7 +984,7 @@ class _PresentScreenState extends State<PresentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BethelColors.navyDeep,
+      backgroundColor: BethelColors.forestDeep,
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapUp: (d) {
@@ -1045,7 +1045,7 @@ class _PresentScreenState extends State<PresentScreen> {
                         width: i == _page ? 22 : 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: i == _page ? BethelColors.gold : const Color(0x55FFFFFF),
+                          color: i == _page ? BethelColors.brass : const Color(0x55FFFFFF),
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),

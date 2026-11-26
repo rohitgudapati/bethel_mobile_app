@@ -5,7 +5,7 @@ Everything the app needs runs on Firebase (Google Cloud):
 | Piece | What it does |
 |---|---|
 | **Firestore** | Church content: song books and songs, events, services, ministries, verses, prayer wall, sermon comments |
-| **Firebase Auth** | Email/password, Google and guest (anonymous) sign-in |
+| **Firebase Auth** | Email/password, phone (texted code), Google and guest (anonymous) sign-in |
 | **Cloud Functions** | `syncYouTube` every 10 minutes, `syncYouTubeSunday` every 2 minutes on Sunday afternoons, `syncYouTubeFull` nightly, `syncYouTubeNow` for admins, and counters for "I prayed" and verse likes |
 | **Secret Manager** | The YouTube Data API key |
 | **Storage** | Church images, song recordings and book PDFs (under `public/`) |
@@ -38,7 +38,7 @@ You need a Google account. Steps 1–3 happen in the browser.
    and Secret Manager need it. A church this size normally stays inside the free allowance;
    set a budget alert (e.g. $10/month) under *Usage and billing*.
 3. **Turn on what the app uses:**
-   - *Build → Authentication → Sign-in method*: enable **Email/Password**, **Google** and **Anonymous**.
+   - *Build → Authentication → Sign-in method*: enable **Email/Password**, **Phone**, **Google** and **Anonymous**. For Phone, add test numbers under *Phone numbers for testing* while developing; real texts are billed after the free tier.
    - *Build → Firestore Database*: create the database (production mode, region `us-central1`).
    - *Build → Storage*: get started (same region).
    - In the Google Cloud console for the same project, open

@@ -9,6 +9,12 @@ abstract class BethelRepository {
   Future<UserProfile> signIn(String email, String password);
   Future<UserProfile> signUp(String name, String email, String password);
 
+  /// Phone sign-in, step 1: text a 6-digit code to [phone] (E.164, e.g. +16305551234).
+  Future<void> sendPhoneCode(String phone);
+
+  /// Phone sign-in, step 2: check the code. [name] is saved for new accounts.
+  Future<UserProfile> verifyPhoneCode(String code, {String name = ''});
+
   Future<ChurchInfo> churchInfo();
 
   // Verse of the day

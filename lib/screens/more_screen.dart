@@ -32,7 +32,7 @@ class MoreScreen extends StatelessWidget {
             child: Row(children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: BethelColors.navy,
+                backgroundColor: BethelColors.forest,
                 child: Text(user?.initials ?? '?',
                     style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
               ),
@@ -40,7 +40,7 @@ class MoreScreen extends StatelessWidget {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(user?.name ?? 'Guest', style: t.textTheme.titleMedium),
-                  Text(user?.email ?? 'Sign in to save songs, notes and RSVPs',
+                  Text(user?.contact ?? 'Sign in to save songs, notes and RSVPs',
                       style: TextStyle(fontSize: 12.5, color: t.colorScheme.onSurfaceVariant)),
                 ]),
               ),
