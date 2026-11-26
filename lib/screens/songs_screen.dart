@@ -448,11 +448,13 @@ class _GoToNumberDialog extends StatefulWidget {
 
 class _GoToNumberDialogState extends State<_GoToNumberDialog> {
   final _ctrl = TextEditingController();
+  final _focus = FocusNode();
   String? _error;
 
   @override
   void dispose() {
     _ctrl.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -464,6 +466,9 @@ class _GoToNumberDialogState extends State<_GoToNumberDialog> {
       return;
     }
     final numbers = widget.songs.map((s) => s.number).where((x) => x > 0);
+    // Keep the keyboard up with the wrong number selected, so typing replaces it.
+    _focus.requestFocus();
+    _ctrl.selection = TextSelection(baseOffset: 0, extentOffset: _ctrl.text.length);
     setState(() => _error = numbers.isEmpty
         ? 'This book has no numbered songs'
         : '${widget.book.title} has songs ${numbers.reduce((a, b) => a < b ? a : b)} to ${numbers.reduce((a, b) => a > b ? a : b)}');
@@ -482,6 +487,7 @@ class _GoToNumberDialogState extends State<_GoToNumberDialog> {
           hint: 'Number',
           keyboardType: TextInputType.number,
           autofocus: true,
+          focusNode: _focus,
           errorText: _error,
           onChanged: (_) {
             if (_error != null) setState(() => _error = null);
