@@ -176,11 +176,13 @@ class PrayerCard extends StatelessWidget {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(prayed ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 16, color: color),
                 const SizedBox(width: 8),
-                Text(
+                Flexible(
+                  child: Text(
                   prayer.isMine
                       ? (count == 0 ? 'Shared on the prayer wall' : '$count praying')
                       : '${prayed ? 'You prayed' : 'I prayed'} · $count',
                   style: TextStyle(fontSize: BethelType.caption, fontWeight: FontWeight.w500, color: color),
+                  ),
                 ),
               ]),
             ),
