@@ -332,7 +332,8 @@ class TileField extends StatelessWidget {
       DecoratedBox(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), boxShadow: tk.tileShadow),
         child: Semantics(
-          label: label,
+          // The hint is read too, so skip a label that only repeats it ("Your name, Your name").
+          label: label == hint ? null : label,
           child: TextField(
           controller: controller,
           focusNode: focusNode,
