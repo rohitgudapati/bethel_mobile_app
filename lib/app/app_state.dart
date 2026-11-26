@@ -36,6 +36,19 @@ class AppState extends ChangeNotifier {
   /// Reading-plan passages marked as read (by reference), shared by Home and the Bible screen.
   final Set<String> readingDone = {};
 
+  /// Which notifications the member wants. Kept on this phone while the app runs.
+  final Map<String, bool> notificationPrefs = {
+    'Service reminders': true,
+    'New messages': true,
+    'Prayer updates': true,
+    'Events': false,
+  };
+
+  void setNotificationPref(String key, bool on) {
+    notificationPrefs[key] = on;
+    notifyListeners();
+  }
+
   /// Notes a member writes while watching a sermon, by sermon id.
   final Map<int, String> sermonNotes = {};
   final Set<int> readNotifications = {};
