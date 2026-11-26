@@ -63,46 +63,26 @@ class ServicesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
-    final t = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Services')),
       body: AsyncView<List<ChurchService>>(
         load: state.repo.services,
-        builder: (context, list) => ListView.separated(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-          itemCount: list.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (_, i) {
-            final s = list[i];
-            return Card(
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () =>
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceDetailScreen(service: s))),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(children: [
-                    BethelImage(s.image, width: 76, height: 76, radius: 14),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(s.name, style: t.textTheme.titleMedium),
-                        if (s.schedule.isNotEmpty)
-                          Text(s.schedule,
-                              style: const TextStyle(
-                                  fontSize: 12.5, fontWeight: FontWeight.w600, color: BethelColors.brassText)),
-                        Text(s.description,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 13, color: t.colorScheme.onSurfaceVariant)),
-                      ]),
-                    ),
-                  ]),
-                ),
+        builder: (context, list) => list.isEmpty
+            ? const BethelEmptyState(
+                icon: Icons.church_outlined, title: 'No services listed', message: 'Service times appear here once they’re added')
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                itemCount: list.length,
+                itemBuilder: (_, i) {
+                  final s = list[i];
+                  return HairlineRow(
+                    leading: const RowIcon(Icons.church_outlined),
+                    title: s.name,
+                    subtitle: s.schedule.isEmpty ? null : s.schedule,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceDetailScreen(service: s))),
+                  );
+                },
               ),
-            );
-          },
-        ),
       ),
     );
   }
@@ -116,36 +96,23 @@ class ServiceDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     return Scaffold(
-      body: CustomScrollView(slivers: [
-        SliverAppBar(
-          expandedHeight: 240,
-          pinned: true,
-          foregroundColor: Colors.white,
-          backgroundColor: BethelColors.forestDeep,
-          flexibleSpace: FlexibleSpaceBar(background: BethelImage(service.image)),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(service.name, style: t.textTheme.headlineSmall),
-              if (service.schedule.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Pill(service.schedule, icon: Icons.schedule_rounded),
-              ],
-              const SizedBox(height: 16),
-              Text(service.description, style: const TextStyle(fontSize: 15, height: 1.6)),
-              const SizedBox(height: 24),
-              Text('Request this service', style: t.textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Text('For a home visit, special prayer or a family occasion. The church office will contact you.',
-                  style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
-              const SizedBox(height: 14),
-              _BookServiceForm(service: service),
-            ]),
-          ),
-        ),
-      ]),
+      appBar: AppBar(title: Text(service.name)),
+      body: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+        children: [
+          if (service.schedule.isNotEmpty) Text(service.schedule, style: t.textTheme.bodySmall),
+          const SizedBox(height: 12),
+          Text(service.description, style: t.textTheme.bodyLarge?.copyWith(height: 1.6)),
+          const SizedBox(height: 32),
+          const BethelSectionTitle('Request this service'),
+          const SizedBox(height: 8),
+          Text('For a home visit, special prayer or a family occasion. The church office will call you.',
+              style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 20),
+          _BookServiceForm(service: service),
+        ],
+      ),
     );
   }
 }
@@ -160,15 +127,26 @@ class _BookServiceForm extends StatefulWidget {
 
 class _BookServiceFormState extends State<_BookServiceForm> {
   late final _name = TextEditingController(text: AppScope.read(context).user?.name ?? '');
-  final _phone = TextEditingController();
+  late final _phone = TextEditingController(text: AppScope.read(context).user?.phone ?? '');
   final _note = TextEditingController();
   bool _busy = false;
+  String? _nameError;
+  String? _phoneError;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    _note.dispose();
+    super.dispose();
+  }
 
   Future<void> _send() async {
-    if (_name.text.trim().isEmpty || _phone.text.trim().isEmpty) {
-      showToast(context, 'Please add your name and phone number.');
-      return;
-    }
+    setState(() {
+      _nameError = _name.text.trim().isEmpty ? 'Add your name' : null;
+      _phoneError = _phone.text.replaceAll(RegExp(r'\D'), '').length < 10 ? 'Add a phone number so the office can call you' : null;
+    });
+    if (_nameError != null || _phoneError != null) return;
     setState(() => _busy = true);
     try {
       await AppScope.read(context)
@@ -176,9 +154,10 @@ class _BookServiceFormState extends State<_BookServiceForm> {
           .bookService(widget.service.id, name: _name.text.trim(), phone: _phone.text.trim(), note: _note.text.trim());
       if (!mounted) return;
       _note.clear();
-      showToast(context, 'Request sent. The church office will be in touch.');
+      FocusScope.of(context).unfocus();
+      showBethelToast(context, 'Request sent. The church office will call you.', icon: Icons.check_rounded);
     } catch (e) {
-      if (mounted) showToast(context, '$e');
+      if (mounted) showBethelToast(context, 'Couldn’t send your request. Try again.', icon: Icons.error_outline_rounded);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -186,23 +165,41 @@ class _BookServiceFormState extends State<_BookServiceForm> {
 
   @override
   Widget build(BuildContext context) {
+    final t = Theme.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      TextField(controller: _name, decoration: const InputDecoration(labelText: 'Name')),
-      const SizedBox(height: 12),
-      TextField(
-          controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone')),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _note,
-        minLines: 2,
-        maxLines: 4,
-        decoration: const InputDecoration(labelText: 'Preferred date or details (optional)', alignLabelWithHint: true),
+      TileField(
+        controller: _name,
+        label: 'Your name',
+        hint: 'Full name',
+        errorText: _nameError,
+        textInputAction: TextInputAction.next,
+        onChanged: (_) {
+          if (_nameError != null) setState(() => _nameError = null);
+        },
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
+      TileField(
+        controller: _phone,
+        label: 'Phone',
+        hint: 'Phone number',
+        keyboardType: TextInputType.phone,
+        autofillHints: const [AutofillHints.telephoneNumber],
+        errorText: _phoneError,
+        textInputAction: TextInputAction.next,
+        onChanged: (_) {
+          if (_phoneError != null) setState(() => _phoneError = null);
+        },
+      ),
+      const SizedBox(height: 12),
+      TileField(controller: _note, label: 'Details', hint: 'Preferred date or details (optional)', minLines: 2, maxLines: 4),
+      const SizedBox(height: 20),
       FilledButton(
         onPressed: _busy ? null : _send,
         child: _busy
-            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4))
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: t.filledButtonTheme.style?.foregroundColor?.resolve({})))
             : const Text('Send request'),
       ),
     ]);
@@ -350,6 +347,60 @@ class ChurchAddressCard extends StatelessWidget {
 
 // ------------------------------------------------------------------ ministries
 
+/// Full-bleed photo with a round back button, for a ministry or an elder.
+class _PhotoPage extends StatelessWidget {
+  const _PhotoPage({required this.image, required this.height, required this.children});
+  final String image;
+  final double height;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: ListView(padding: EdgeInsets.zero, children: [
+        SizedBox(
+          height: height,
+          child: Stack(fit: StackFit.expand, children: [
+            BethelImage(image),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0, 0.3],
+                  colors: [Color(0x59000000), Color(0x00000000)],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 12,
+              top: MediaQuery.paddingOf(context).top + 8,
+              child: Semantics(
+                button: true,
+                label: 'Back',
+                child: Material(
+                  color: const Color(0xD9FFFFFF),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => Navigator.maybePop(context),
+                    child: const SizedBox(
+                        width: 44, height: 44, child: Icon(Icons.arrow_back_rounded, color: BethelColors.ink)),
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(20, 24, 20, 32 + MediaQuery.paddingOf(context).bottom),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+        ),
+      ]),
+    );
+  }
+}
+
 class MinistryDetailScreen extends StatelessWidget {
   const MinistryDetailScreen({super.key, required this.ministry});
   final Ministry ministry;
@@ -357,91 +408,61 @@ class MinistryDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return Scaffold(
-      body: CustomScrollView(slivers: [
-        SliverAppBar(
-          expandedHeight: 260,
-          pinned: true,
-          foregroundColor: Colors.white,
-          backgroundColor: BethelColors.forestDeep,
-          flexibleSpace: FlexibleSpaceBar(background: BethelImage(ministry.image)),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(ministry.name, style: t.textTheme.headlineSmall),
-              if (ministry.meets.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Pill(ministry.meets, icon: Icons.schedule_rounded),
-              ],
-              const SizedBox(height: 16),
-              Text(ministry.info, style: const TextStyle(fontSize: 15, height: 1.6)),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () => showToast(context, 'Thanks! A ministry leader will reach out.'),
-                icon: const Icon(Icons.waving_hand_rounded),
-                label: const Text('I\'d like to get involved'),
-              ),
-            ]),
-          ),
-        ),
-      ]),
-    );
+    final subject = Uri.encodeComponent('Interest in ${ministry.name}');
+    return _PhotoPage(image: ministry.image, height: 300, children: [
+      if (ministry.meets.isNotEmpty) Text(ministry.meets, style: t.textTheme.bodySmall),
+      const SizedBox(height: 4),
+      Text(ministry.name, style: t.textTheme.headlineMedium),
+      const SizedBox(height: 20),
+      Text(ministry.info, style: t.textTheme.bodyLarge?.copyWith(height: 1.6)),
+      const SizedBox(height: 24),
+      // Opens an email to the church office, so the interest actually reaches someone.
+      FilledButton(
+        onPressed: () => openLink(context, 'mailto:info@bethelph.com?subject=$subject'),
+        child: const Text('I’d like to get involved'),
+      ),
+    ]);
   }
 }
 
-// ------------------------------------------------------------------ elders
-
-/// Horizontal "Meet our elders" row for Home.
+/// The elders in a row: photo, name, role. Tapping one opens their page.
 class EldersRow extends StatelessWidget {
-  const EldersRow({super.key, required this.elders, this.padding = const EdgeInsets.symmetric(horizontal: 20)});
+  const EldersRow({super.key, required this.elders, this.padding = EdgeInsets.zero});
   final List<Elder> elders;
   final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return SizedBox(
-      height: 236,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: padding,
-        itemCount: elders.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 14),
-        itemBuilder: (_, i) {
-          final e = elders[i];
-          return SizedBox(
-            width: 172,
-            child: Card(
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ElderScreen(elder: e))),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  BethelImage(e.image, height: 160, width: double.infinity),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(e.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: t.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                      Text(e.role,
-                          style: const TextStyle(fontSize: 12, color: BethelColors.brassText, fontWeight: FontWeight.w600)),
-                    ]),
-                  ),
-                ]),
-              ),
+    return Padding(
+      padding: padding,
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (var i = 0; i < elders.length; i++) ...[
+          if (i > 0) const SizedBox(width: 12),
+          Expanded(
+            child: Pressable(
+              semanticLabel: '${elders[i].name}, ${elders[i].role}',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ElderScreen(elder: elders[i]))),
+              child: Row(children: [
+                ClipOval(child: BethelImage(elders[i].image, width: 48, height: 48)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(elders[i].name, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall?.copyWith(height: 1.3)),
+                    Text(elders[i].role, style: t.textTheme.bodySmall),
+                  ]),
+                ),
+              ]),
             ),
-          );
-        },
-      ),
+          ),
+        ],
+      ]),
     );
   }
 }
 
 class EldersScreen extends StatelessWidget {
-  const EldersScreen({super.key, this.intro = ''});
+  const EldersScreen({super.key, required this.intro});
   final String intro;
 
   @override
@@ -453,31 +474,15 @@ class EldersScreen extends StatelessWidget {
       body: AsyncView<List<Elder>>(
         load: state.repo.elders,
         builder: (context, list) => ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
-          if (intro.isNotEmpty) ...[
-            Text(intro, style: TextStyle(color: t.colorScheme.onSurfaceVariant, height: 1.6)),
-            const SizedBox(height: 18),
-          ],
-          for (final e in list) ...[
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ElderScreen(elder: e))),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  AspectRatio(aspectRatio: 4 / 3, child: BethelImage(e.image)),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(e.name, style: t.textTheme.titleLarge),
-                      Text(e.role, style: const TextStyle(color: BethelColors.brassText, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      Text(e.bio, style: const TextStyle(height: 1.6)),
-                    ]),
-                  ),
-                ]),
-              ),
+          Text(intro, style: t.textTheme.bodyLarge?.copyWith(height: 1.6)),
+          const SizedBox(height: 12),
+          for (final e in list)
+            HairlineRow(
+              leading: ClipOval(child: BethelImage(e.image, width: 44, height: 44)),
+              title: e.name,
+              subtitle: e.role,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ElderScreen(elder: e))),
             ),
-            const SizedBox(height: 16),
-          ],
         ]),
       ),
     );
@@ -492,36 +497,32 @@ class ElderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final tel = elder.phone.replaceAll(RegExp(r'[^0-9+]'), '');
-    return Scaffold(
-      body: CustomScrollView(slivers: [
-        SliverAppBar(
-          expandedHeight: 340,
-          pinned: true,
-          foregroundColor: Colors.white,
-          backgroundColor: BethelColors.forestDeep,
-          flexibleSpace: FlexibleSpaceBar(background: BethelImage(elder.image)),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Pill(elder.role),
-              const SizedBox(height: 10),
-              Text(elder.name, style: t.textTheme.headlineSmall),
-              const SizedBox(height: 14),
-              Text(elder.bio, style: const TextStyle(fontSize: 15, height: 1.7)),
-              if (elder.phone.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: () => openLink(context, 'tel:$tel'),
-                  icon: const Icon(Icons.call_rounded),
-                  label: Text('Call ${elder.phone}'),
-                ),
-              ],
-            ]),
+    return _PhotoPage(image: elder.image, height: 340, children: [
+      Text(elder.role, style: t.textTheme.bodySmall),
+      const SizedBox(height: 4),
+      Text(elder.name, style: t.textTheme.headlineMedium),
+      const SizedBox(height: 20),
+      Text(elder.bio, style: t.textTheme.bodyLarge?.copyWith(height: 1.6)),
+      const SizedBox(height: 24),
+      Row(children: [
+        if (tel.isNotEmpty) ...[
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: () => openLink(context, 'tel:$tel'),
+              icon: const Icon(Icons.call_outlined, size: 18),
+              label: const Text('Call'),
+            ),
+          ),
+          const SizedBox(width: 12),
+        ],
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => openLink(context, 'mailto:info@bethelph.com?subject=${Uri.encodeComponent('For ${elder.name}')}'),
+            icon: const Icon(Icons.mail_outline_rounded, size: 18),
+            label: const Text('Email'),
           ),
         ),
       ]),
-    );
+    ]);
   }
 }

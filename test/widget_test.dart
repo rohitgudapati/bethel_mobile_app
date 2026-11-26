@@ -37,9 +37,9 @@ void main() {
       await tester.tap(find.text(tab).last);
       await tester.pumpAndSettle();
     }
-    // More: Meet our elders
+    // More: Our elders
     await tester.scrollUntilVisible(find.text('Bro. Moses Polugari'), 300, scrollable: find.byType(Scrollable).last);
-    expect(find.text('Meet our elders'), findsOneWidget);
+    expect(find.text('Our elders'), findsOneWidget);
     expect(find.text('Bro. Vinod Somepalli'), findsOneWidget);
     await tester.tap(find.text('Home').last);
     await tester.pumpAndSettle();
