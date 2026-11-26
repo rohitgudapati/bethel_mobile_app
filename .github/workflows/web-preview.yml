@@ -47,7 +47,9 @@ jobs:
           cat test.txt
 
       - name: Build web
-        run: flutter build web --release --no-tree-shake-icons 2>&1 | tee build.txt
+        run: |
+          set -o pipefail
+          flutter build web --release --no-tree-shake-icons --no-web-resources-cdn 2>&1 | tee build.txt
 
       - name: Publish build to web/<branch>
         if: always()

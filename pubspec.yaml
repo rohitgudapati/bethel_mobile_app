@@ -69,15 +69,6 @@ flutter:
         - asset: assets/fonts/DisplaySerif/PlayfairDisplay-500-Italic.ttf
           weight: 500
           style: italic
-    # Welcome screen. Git-ignored (licence); see assets/fonts/Switzer/README.md to download.
-    - family: Switzer
-      fonts:
-        - asset: assets/fonts/Switzer/Switzer-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/Switzer/Switzer-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Switzer/Switzer-Semibold.ttf
-          weight: 600
     - family: Quintessential
       fonts:
         - asset: assets/fonts/Quintessential/Quintessential-Regular.ttf
