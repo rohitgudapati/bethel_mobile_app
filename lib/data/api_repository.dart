@@ -133,6 +133,16 @@ class ApiRepository implements BethelRepository {
   Future<void> likeVerse(int id, bool liked) =>
       _postForm('DailyVerseAPI/LikeDailyVerse', const {}, {'id': id, 'isLiked': liked});
 
+  // The church server has no playlist data; Watch shows the demo shelves until Firebase is on.
+  @override
+  Future<List<VideoPlaylist>> playlists() => _fallback.playlists();
+
+  @override
+  Future<List<ChannelVideo>> playlistVideos(String playlistId, {int limit = 50}) => _fallback.playlistVideos(playlistId, limit: limit);
+
+  @override
+  Future<ChannelVideo?> latestService() => _fallback.latestService();
+
   @override
   Future<List<Sermon>> sermons() async {
     final json = await _get('SermonApi/GetAllSermons', {'page': 1, 'pageSize': 20});

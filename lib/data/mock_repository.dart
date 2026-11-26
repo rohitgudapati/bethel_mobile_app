@@ -255,6 +255,47 @@ class MockRepository implements BethelRepository {
   Future<void> bookService(int serviceId, {required String name, required String phone, required String note}) =>
       _delay(null);
 
+  static final _playlists = <VideoPlaylist>[
+    const VideoPlaylist(id: 'PLsun', title: 'Sunday Services', thumbnail: 'assets/live_event.jpeg', count: 84),
+    const VideoPlaylist(id: 'PLtel', title: 'Telugu Messages', thumbnail: 'assets/sermon-hero.png', count: 42),
+    const VideoPlaylist(id: 'PLsp26', title: 'Special Meetings 2026', thumbnail: 'assets/church.jpg', count: 9),
+    const VideoPlaylist(id: 'PLtest', title: 'Testimonies', thumbnail: 'assets/picture3.png', count: 27, kind: 'testimony'),
+    const VideoPlaylist(id: 'PLkids', title: 'Kids and Youth', thumbnail: 'assets/ministriesimage.png', count: 18),
+  ];
+
+  static final _playlistVideos = <String, List<ChannelVideo>>{
+    'PLsun': [
+      ChannelVideo(id: 'svc1122', title: 'Sunday Worship Service', thumbnail: 'assets/live_event.jpeg', published: DateTime(2026, 11, 22, 15), duration: '2:14:05', preacher: 'Bro. Moses Polugari'),
+      ChannelVideo(id: 'svc1115', title: 'Walking in the light', thumbnail: 'assets/sermon-hero.png', published: DateTime(2026, 11, 15, 15), duration: '1:58:40', preacher: 'Bro. Vinod Somepalli'),
+      ChannelVideo(id: 'svc1108', title: 'Peace that guards your heart', thumbnail: 'assets/church.jpg', published: DateTime(2026, 11, 8, 15), duration: '2:02:11', preacher: 'Bro. Moses Polugari'),
+      ChannelVideo(id: 'svc1101', title: 'Thanksgiving service', thumbnail: 'assets/picture3.png', published: DateTime(2026, 11, 1, 15), duration: '2:20:30'),
+      ChannelVideo(id: 'svc1025', title: 'Communion Sunday', thumbnail: 'assets/ministriesimage.png', published: DateTime(2025, 10, 25, 15), duration: '2:05:10'),
+    ],
+    'PLtel': [
+      ChannelVideo(id: 'tel1030', title: 'దేవుని ప్రేమ', thumbnail: 'assets/sermon-hero.png', published: DateTime(2026, 10, 30), duration: '48:12'),
+      ChannelVideo(id: 'tel1012', title: 'విశ్వాసము', thumbnail: 'assets/church.jpg', published: DateTime(2026, 10, 12), duration: '51:03'),
+    ],
+    'PLsp26': [
+      ChannelVideo(id: 'sp1', title: 'Special Meetings · Night 1', thumbnail: 'assets/church.jpg', published: DateTime(2026, 3, 6, 19), duration: '1:45:00'),
+    ],
+    'PLtest': [
+      ChannelVideo(id: 'tst1', title: 'How God carried our family through 2025', thumbnail: 'assets/picture3.png', published: DateTime(2026, 9, 14), duration: '6:40'),
+    ],
+    'PLkids': [
+      ChannelVideo(id: 'kid1', title: 'Christmas program 2025', thumbnail: 'assets/ministriesimage.png', published: DateTime(2025, 12, 21), duration: '38:20'),
+    ],
+  };
+
+  @override
+  Future<List<VideoPlaylist>> playlists() => _delay(_playlists);
+
+  @override
+  Future<List<ChannelVideo>> playlistVideos(String playlistId, {int limit = 50}) =>
+      _delay((_playlistVideos[playlistId] ?? const <ChannelVideo>[]).take(limit).toList());
+
+  @override
+  Future<ChannelVideo?> latestService() => _delay(_playlistVideos['PLsun']!.first);
+
   @override
   Future<List<Sermon>> sermons() => _delay([
         Sermon(

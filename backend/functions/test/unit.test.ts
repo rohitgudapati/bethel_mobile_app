@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
-import { classifyVideo, parseChannelRef, parseDuration, pickLive } from '../src/youtube';
+import { classifyVideo, parseChannelRef, parseDuration, pickLive, playlistDoc } from '../src/youtube';
 import { scenario } from './fakeYouTube';
 
 test('parseDuration handles hours, minutes, seconds and live placeholders', () => {
@@ -65,4 +65,18 @@ test('pickLive prefers a live stream, then the next scheduled one', () => {
   assert.equal(next.videoId, 'upcoming001');
 
   assert.equal(pickLive([], s.now).status, 'none');
+});
+
+test('playlistDoc keeps the channel order and labels testimony and interview playlists', () => {
+  const p = { id: 'PL1', title: 'Sunday Services', thumbnail: 'https://i.ytimg.com/x.jpg', itemCount: 84 };
+  assert.deepEqual(playlistDoc(p, 0), {
+    title: 'Sunday Services',
+    thumbnail: 'https://i.ytimg.com/x.jpg',
+    itemCount: 84,
+    position: 0,
+    kind: 'series',
+    removed: false,
+  });
+  assert.equal(playlistDoc({ ...p, title: 'Testimonies 2026' }, 3).kind, 'testimony');
+  assert.equal(playlistDoc({ ...p, title: 'Pastor Interviews' }, 4).kind, 'interview');
 });

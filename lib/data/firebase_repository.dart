@@ -326,6 +326,59 @@ class FirebaseRepository implements BethelRepository {
   }
 
   @override
+  Future<List<VideoPlaylist>> playlists() async {
+    final q = await _db.collection('playlists').where('removed', isEqualTo: false).orderBy('position').get();
+    return [
+      for (final d in q.docs)
+        if (d.data()['hidden'] != true && ((d.data()['itemCount'] as num?) ?? 0) > 0)
+          VideoPlaylist(
+            id: d.id,
+            title: _s(d.data(), 'title', 'Playlist'),
+            thumbnail: _s(d.data(), 'thumbnail'),
+            count: ((d.data()['itemCount'] as num?) ?? 0).toInt(),
+            kind: _s(d.data(), 'kind', 'series'),
+          ),
+    ];
+  }
+
+  ChannelVideo _video(QueryDocumentSnapshot<Map<String, dynamic>> d) {
+    final m = d.data();
+    return ChannelVideo(
+      id: d.id,
+      title: _s(m, 'title'),
+      thumbnail: _s(m, 'thumbnail'),
+      published: _date(m['publishedAt']),
+      duration: _duration((m['durationSec'] as num?)?.toInt() ?? 0),
+      description: _s(m, 'description'),
+      preacher: _s(m, 'preacher'),
+      embeddable: m['embeddable'] != false,
+    );
+  }
+
+  @override
+  Future<List<ChannelVideo>> playlistVideos(String playlistId, {int limit = 50}) async {
+    final q = await _db
+        .collection('videos')
+        .where('playlistIds', arrayContains: playlistId)
+        .orderBy('publishedAt', descending: true)
+        .limit(limit)
+        .get();
+    return [for (final d in q.docs) if (d.data()['hidden'] != true && d.data()['removed'] != true) _video(d)];
+  }
+
+  @override
+  Future<ChannelVideo?> latestService() async {
+    final q = await _db
+        .collection('videos')
+        .where('isStreamRecording', isEqualTo: true)
+        .orderBy('publishedAt', descending: true)
+        .limit(5)
+        .get();
+    final docs = q.docs.where((d) => d.data()['hidden'] != true && d.data()['removed'] != true);
+    return docs.isEmpty ? null : _video(docs.first);
+  }
+
+  @override
   Future<List<Sermon>> sermons() async => (await _videos('sermon')).map((d) {
         final m = d.data();
         return Sermon(

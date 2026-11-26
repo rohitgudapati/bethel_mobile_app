@@ -30,6 +30,12 @@ service cloud.firestore {
 
     // YouTube videos are written by the sync function. Admins may hide a video,
     // change its type or name the preacher (these fields survive future syncs).
+    // Playlists are written by the sync function; admins may hide one from Watch.
+    match /playlists/{id} {
+      allow read: if true;
+      allow update: if admin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hidden']);
+    }
+
     match /videos/{videoId} {
       allow read: if true;
       allow update: if admin()

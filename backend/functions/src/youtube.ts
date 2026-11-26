@@ -64,17 +64,24 @@ export class YouTubeClient {
     return ids;
   }
 
-  async playlists(channelId: string): Promise<{ id: string; title: string }[]> {
-    const out: { id: string; title: string }[] = [];
+  async playlists(channelId: string): Promise<ChannelPlaylist[]> {
+    const out: ChannelPlaylist[] = [];
     let pageToken: string | undefined;
     do {
       const data = await this.get('playlists', {
-        part: 'snippet',
+        part: 'snippet,contentDetails',
         channelId,
         maxResults: 50,
         ...(pageToken ? { pageToken } : {}),
       });
-      for (const p of data.items ?? []) out.push({ id: p.id, title: p.snippet?.title ?? '' });
+      for (const p of data.items ?? []) {
+        out.push({
+          id: p.id,
+          title: p.snippet?.title ?? '',
+          thumbnail: bestThumbnail(p),
+          itemCount: p.contentDetails?.itemCount ?? 0,
+        });
+      }
       pageToken = data.nextPageToken;
     } while (pageToken && out.length < 200);
     return out;
@@ -176,7 +183,21 @@ export function parseDuration(iso: string | undefined): number {
   return d * 86400 + h * 3600 + min * 60 + s;
 }
 
-export function bestThumbnail(v: RawVideo): string {
+/** A playlist on the channel, as the app shows it on Watch. */
+export interface ChannelPlaylist {
+  id: string;
+  title: string;
+  thumbnail: string;
+  itemCount: number;
+}
+
+/** What `playlists/{id}` holds. `position` keeps the channel's own order. */
+export function playlistDoc(p: ChannelPlaylist, position: number, rules: SyncRules = defaultRules) {
+  const kind = rules.testimonyPattern.test(p.title) ? 'testimony' : rules.interviewPattern.test(p.title) ? 'interview' : 'series';
+  return { title: p.title, thumbnail: p.thumbnail, itemCount: p.itemCount, position, kind, removed: false };
+}
+
+export function bestThumbnail(v: { snippet?: { thumbnails?: Record<string, { url: string }> } }): string {
   const t = v.snippet?.thumbnails ?? {};
   return (t.maxres ?? t.standard ?? t.high ?? t.medium ?? t.default)?.url ?? '';
 }

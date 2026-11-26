@@ -358,3 +358,39 @@ class UserProfile {
     return parts.take(2).map((p) => p[0].toUpperCase()).join();
   }
 }
+
+/// A playlist on the church's YouTube channel (Watch shows one shelf per playlist).
+class VideoPlaylist {
+  const VideoPlaylist({required this.id, required this.title, required this.thumbnail, required this.count, this.kind = 'series'});
+  final String id;
+  final String title;
+  final String thumbnail;
+  final int count;
+
+  /// series, testimony or interview.
+  final String kind;
+}
+
+/// A video from the church's YouTube channel.
+class ChannelVideo {
+  const ChannelVideo({
+    required this.id,
+    required this.title,
+    required this.thumbnail,
+    required this.published,
+    this.duration = '',
+    this.description = '',
+    this.preacher = '',
+    this.embeddable = true,
+  });
+
+  /// The YouTube video id.
+  final String id;
+  final String title;
+  final String thumbnail;
+  final DateTime published;
+  final String duration;
+  final String description;
+  final String preacher;
+  final bool embeddable;
+}
