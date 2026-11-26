@@ -62,7 +62,7 @@ void main() {
     expect(find.text(bibleRef(42, 4, telugu: true)), findsOneWidget);
 
     // Select verse 1 and highlight it.
-    await tester.tap(find.bySemanticsLabel('Verse 1'));
+    await tester.tap(find.bySemanticsLabel(RegExp(r'^Verse 1(\D|$)')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Highlight'));
     await tester.pumpAndSettle();
