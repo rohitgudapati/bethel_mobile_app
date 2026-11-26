@@ -26,9 +26,13 @@ typedef BibleData = List<List<List<String>>>;
 /// Loads and caches the bundled texts: books → chapters → verses.
 class BibleText {
   static final _cache = <BibleVersion, Future<BibleData>>{};
+  static final _ready = <BibleVersion, BibleData>{};
+
+  /// The text if it has already loaded, so screens can draw it straight away.
+  static BibleData? ready(BibleVersion v) => _ready[v];
 
   static Future<BibleData> load(BibleVersion v) {
-    return _cache[v] ??= _load(v).catchError((Object e) {
+    return _cache[v] ??= _load(v).then((d) => _ready[v] = d).catchError((Object e) {
       _cache.remove(v);
       throw e;
     });

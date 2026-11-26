@@ -151,60 +151,60 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
       ),
       body: Column(children: [
         Expanded(
-          child: FutureBuilder<List<List<String>>>(
-            key: ValueKey('${s.bibleBook}:${s.bibleChapter}:${s.bibleVersion}:${s.bibleParallel}'),
-            future: Future.wait([
-              BibleText.chapter(s.bibleVersion, s.bibleBook, s.bibleChapter),
-              if (s.bibleParallel)
-                BibleText.chapter(telugu ? BibleVersion.kjv : BibleVersion.te, s.bibleBook, s.bibleChapter),
-            ]),
-            builder: (context, snap) {
-              if (snap.hasError) {
-                return BethelEmptyState(
-                  icon: Icons.menu_book_outlined,
-                  title: 'Couldn’t open this chapter',
-                  message: 'Close the Bible and open it again',
-                  action: OutlinedButton(onPressed: () => setState(() {}), child: const Text('Try again')),
-                );
-              }
-              if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-              final verses = snap.data![0];
-              final other = s.bibleParallel ? snap.data![1] : null;
-              return ListView.builder(
-                padding: EdgeInsets.fromLTRB(24, 8, 24, _selected.isEmpty ? 24 : 120),
-                itemCount: verses.length + 1,
-                itemBuilder: (context, i) {
-                  if (i == 0) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: Column(children: [
-                        Text(telugu ? book.teName : book.name,
-                            textAlign: TextAlign.center,
-                            style: telugu
-                                ? const TextStyle(fontFamily: BethelFonts.telugu, fontSize: 24)
-                                : t.textTheme.headlineMedium),
-                        const SizedBox(height: 4),
-                        Text(telugu ? 'అధ్యాయము ${s.bibleChapter}' : 'Chapter ${s.bibleChapter}', style: t.textTheme.bodySmall),
-                        const SizedBox(height: 12),
-                        const BrassRule(width: 24),
-                      ]),
-                    );
-                  }
-                  final n = i;
-                  return _VerseBlock(
-                    number: n,
-                    text: verses[n - 1],
-                    telugu: telugu,
-                    second: other?[n - 1],
-                    scale: s.bibleScale,
-                    selected: _selected.contains(n),
-                    highlighted: s.highlights.contains(_key(s, n)),
-                    onTap: () => setState(() => _selected.contains(n) ? _selected.remove(n) : _selected.add(n)),
-                  );
-                },
+          child: Builder(builder: (context) {
+            final second = telugu ? BibleVersion.kjv : BibleVersion.te;
+            final main = BibleText.ready(s.bibleVersion);
+            final other = s.bibleParallel ? BibleText.ready(second) : null;
+            if (main == null || (s.bibleParallel && other == null)) {
+              return FutureBuilder<void>(
+                future: Future.wait([BibleText.load(s.bibleVersion), if (s.bibleParallel) BibleText.load(second)]).then((_) {
+                  if (mounted) setState(() {});
+                }),
+                builder: (context, snap) => snap.hasError
+                    ? BethelEmptyState(
+                        icon: Icons.menu_book_outlined,
+                        title: 'Couldn’t open the Bible',
+                        message: 'Close it and open it again',
+                        action: OutlinedButton(onPressed: () => setState(() {}), child: const Text('Try again')),
+                      )
+                    : const Center(child: CircularProgressIndicator()),
               );
-            },
-          ),
+            }
+            final verses = main[s.bibleBook][s.bibleChapter - 1];
+            final others = other?[s.bibleBook][s.bibleChapter - 1];
+            return ListView.builder(
+              key: PageStorageKey('${s.bibleBook}:${s.bibleChapter}'),
+              padding: EdgeInsets.fromLTRB(24, 8, 24, _selected.isEmpty ? 24 : 120),
+              itemCount: verses.length + 1,
+              itemBuilder: (context, i) {
+                if (i == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Column(children: [
+                      Text(telugu ? book.teName : book.name,
+                          textAlign: TextAlign.center,
+                          style: telugu ? const TextStyle(fontFamily: BethelFonts.telugu, fontSize: 24) : t.textTheme.headlineMedium),
+                      const SizedBox(height: 4),
+                      Text(telugu ? 'అధ్యాయము ${s.bibleChapter}' : 'Chapter ${s.bibleChapter}', style: t.textTheme.bodySmall),
+                      const SizedBox(height: 12),
+                      const BrassRule(width: 24),
+                    ]),
+                  );
+                }
+                final n = i;
+                return _VerseBlock(
+                  number: n,
+                  text: verses[n - 1],
+                  telugu: telugu,
+                  second: others?[n - 1],
+                  scale: s.bibleScale,
+                  selected: _selected.contains(n),
+                  highlighted: s.highlights.contains(_key(s, n)),
+                  onTap: () => setState(() => _selected.contains(n) ? _selected.remove(n) : _selected.add(n)),
+                );
+              },
+            );
+          }),
         ),
         if (_selected.isEmpty)
           Container(

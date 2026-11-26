@@ -88,8 +88,9 @@ void main() {
     await tester.scrollUntilVisible(find.text('Psalms'), 300, scrollable: find.byType(Scrollable).last);
     await tester.tap(find.text('Psalms'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('23'), 200, scrollable: find.byType(Scrollable).last);
-    await tester.tap(find.text('23'));
+    final ch23 = find.widgetWithText(InkWell, '23');
+    await tester.scrollUntilVisible(ch23, 200, scrollable: find.byType(Scrollable).last);
+    await tester.tap(ch23);
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pumpAndSettle();
     expect(state.bibleBook, 18);
