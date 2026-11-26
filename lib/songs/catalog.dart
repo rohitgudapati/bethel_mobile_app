@@ -1,9 +1,6 @@
-import 'dart:convert';
-
-import 'package:flutter/services.dart';
-
 import '../data/models.dart';
 import '../data/repository.dart';
+import 'topics.dart';
 
 /// A section of a song book, by number range (as the printed book is organised).
 class SongTopic {
@@ -75,15 +72,5 @@ class SongCatalog {
     return SongCatalog(books: books, albums: albums, albumSongs: albumSongs);
   }
 
-  static Future<Map<String, List<SongTopic>>> _topics() async {
-    try {
-      final j = jsonDecode(await rootBundle.loadString('assets/songs/topics.json')) as Map<String, dynamic>;
-      return {
-        for (final e in j.entries)
-          if (e.value is List) e.key: (e.value as List).map(SongTopic.fromJson).whereType<SongTopic>().toList()
-      };
-    } catch (_) {
-      return const {};
-    }
-  }
+  static Future<Map<String, List<SongTopic>>> _topics() async => draftTopics;
 }
