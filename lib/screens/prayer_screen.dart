@@ -162,7 +162,7 @@ class PrayerCard extends StatelessWidget {
         Semantics(
           button: onTap != null,
           label: prayer.isMine
-              ? '$count praying for your request'
+              ? (count == 0 ? 'Your request is on the prayer wall' : '$count praying for your request')
               : prayed
                   ? 'You prayed. $count praying'
                   : 'I prayed for ${prayer.name}. $count praying',
@@ -177,7 +177,9 @@ class PrayerCard extends StatelessWidget {
                 Icon(prayed ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 16, color: color),
                 const SizedBox(width: 8),
                 Text(
-                  prayer.isMine ? '$count praying' : '${prayed ? 'You prayed' : 'I prayed'} · $count',
+                  prayer.isMine
+                      ? (count == 0 ? 'Shared on the prayer wall' : '$count praying')
+                      : '${prayed ? 'You prayed' : 'I prayed'} · $count',
                   style: TextStyle(fontSize: BethelType.caption, fontWeight: FontWeight.w500, color: color),
                 ),
               ]),
