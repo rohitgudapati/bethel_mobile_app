@@ -1,0 +1,18 @@
+
+::group::✅ Passing tests
+✅ guest can reach every tab
+✅ submitting a prayer request adds it to the wall
+✅ song book: search by number, open lyrics, save
+::endgroup::
+::group::⏭️ Skipped tests
+⏭️ Songs of Zion: find song 500 by number and read it in Telugu and English (skipped)
+::endgroup::
+::group::✅ Passing tests
+✅ sign up with a phone number and a texted code
+✅ the built-in verse changes every day and repeats the same verse for everyone
+✅ next Sunday service is the coming Sunday at 3:00 PM
+✅ banner says LIVE only while streaming
+::endgroup::
+
+🎉 7 tests passed, 1 skipped.
+exit code: 0
