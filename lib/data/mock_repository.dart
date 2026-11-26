@@ -408,8 +408,16 @@ class MockRepository implements BethelRepository {
             language: 'English',
             songCount: 20,
             isSongBook: true),
-        Album(id: 1, title: 'Sunday Praise', image: 'assets/live_event.jpeg', artist: 'Bethel Worship'),
-        Album(id: 2, title: 'Kids Worship', image: 'assets/ministriesimage.png', artist: 'Children\'s Ministry'),
+        Album(
+            id: 3,
+            title: 'Special Meetings 2026',
+            image: '',
+            artist: 'Bethel Prayer House',
+            dates: 'Dec 4–6, 2026',
+            isNew: true,
+            addedOn: DateTime(2026, 11, 20)),
+        Album(id: 1, title: 'Sunday Praise', image: 'assets/live_event.jpeg', artist: 'Bethel Worship', addedOn: DateTime(2026, 6, 1)),
+        Album(id: 2, title: 'Kids Worship', image: 'assets/ministriesimage.png', artist: 'Children\'s Ministry', addedOn: DateTime(2026, 3, 1)),
       ]);
 
   static const _zion = 10;
@@ -802,6 +810,11 @@ class MockRepository implements BethelRepository {
   @override
   Future<List<Song>> songsForAlbum(int albumId) async {
     if (albumId == _zion) return _delay(await _zionSongs());
+    if (albumId == 3) {
+      // Special meetings: songs from both books, in the order they'll be sung.
+      final zion = await _zionSongs();
+      return _delay([...zion.take(2), ..._songs.where((s) => s.albumId == _hymns).take(3)]);
+    }
     final list = _songs.where((s) => s.albumId == albumId).toList();
     // Albums that aren't song books reuse a few hymns in the demo.
     return _delay(list.isEmpty ? _songs.where((s) => s.albumId == _hymns).take(3).toList() : list);

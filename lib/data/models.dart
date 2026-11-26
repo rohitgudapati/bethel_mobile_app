@@ -114,6 +114,13 @@ class Album {
   final String language;
   final int songCount;
   final bool isSongBook;
+
+  /// Shown first on Songs with a New label, e.g. songs for this year's special meetings.
+  final bool isNew;
+
+  /// When the album is for, e.g. "Dec 4–6, 2026".
+  final String dates;
+  final DateTime? addedOn;
   const Album({
     required this.id,
     required this.title,
@@ -122,6 +129,9 @@ class Album {
     this.language = '',
     this.songCount = 0,
     this.isSongBook = false,
+    this.isNew = false,
+    this.dates = '',
+    this.addedOn,
   });
 }
 

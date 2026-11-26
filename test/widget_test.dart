@@ -86,16 +86,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Songs of Zion'), findsWidgets);
-    // Song 1 of Songs of Zion: the real book when assets/songs/songs_of_zion.json is present, else the sample.
-    expect(
-      find.textContaining('Dustula allochana choppuna').evaluate().isNotEmpty ||
-          find.textContaining('Aadhaaram Naaku Aadhaaram').evaluate().isNotEmpty,
-      isTrue,
-    );
+    expect(find.text('Special Meetings 2026'), findsWidgets, reason: 'the newest album leads');
 
-    // Switch to the hymn book and search by number.
-    await tester.tap(find.text('Hymns of Faith').first);
-    await tester.pumpAndSettle();
+    // Search by number: song 3 is in Hymns of Faith.
     await tester.enterText(find.byType(TextField).first, '3');
     await tester.pumpAndSettle();
     expect(find.text('Blessed Assurance'), findsOneWidget);
@@ -125,7 +118,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Songs').last);
       await tester.pumpAndSettle();
-      expect(find.text('866 songs'), findsOneWidget);
+      expect(find.textContaining('866 songs'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField).first, '500');
       await tester.pumpAndSettle();
@@ -235,5 +228,47 @@ void main() {
       LiveStream(id: 1, title: 'Sunday Worship Service', description: '', image: '', youtubeUrl: '', isLive: true),
     ]);
     expect(find.text('Live now'), findsOneWidget);
+  });
+
+  testWidgets('song book topics, A–Z, and an album with Present all', (tester) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final state = AppState(repository: MockRepository())..continueAsGuest();
+    await tester.pumpWidget(BethelApp(state: state));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Songs').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Songs of Zion').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Worship'), findsOneWidget);
+    expect(find.text('76–201'), findsOneWidget);
+    await tester.tap(find.text('Psalms'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('songs 1–75'), findsOneWidget);
+    expect(find.textContaining('Aadhaaram Naaku Aadhaaram').evaluate().isNotEmpty || find.textContaining('Dustula').evaluate().isNotEmpty, isTrue);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('A–Z'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sorted by English spelling'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Special Meetings 2026').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Album · Dec 4–6, 2026'), findsOneWidget);
+    expect(find.text('Present all'), findsOneWidget);
+    expect(find.text('5 songs'), findsOneWidget);
+
+    // A number that isn't in any book says so.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '9999');
+    await tester.pumpAndSettle();
+    expect(find.text('No song number 9999'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
