@@ -46,12 +46,9 @@ class _SongsScreenState extends State<SongsScreen> {
   }
 
   void _toggleNumbers() {
+    // The focused field updates its keyboard in place when the type changes.
     setState(() => _numbers = !_numbers);
-    // Reopen the keyboard as the number pad (or letters).
-    _focus.unfocus();
-    Future.delayed(const Duration(milliseconds: 60), () {
-      if (mounted) _focus.requestFocus();
-    });
+    if (!_focus.hasFocus) _focus.requestFocus();
   }
 
   void _cancelSearch() {
