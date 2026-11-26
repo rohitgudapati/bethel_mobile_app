@@ -6,6 +6,10 @@ import '../data/mock_repository.dart';
 import '../data/models.dart';
 import '../data/repository.dart';
 import '../bible/bible_text.dart';
+import '../notifications/notification_service.dart';
+import '../plan/plan_messages.dart';
+import '../plan/reading_plan.dart';
+import '../plan/reminder_planner.dart';
 import 'config.dart';
 import 'launch.dart';
 import 'local_store.dart';
@@ -13,8 +17,9 @@ import 'local_store.dart';
 /// Small app-wide state: data source, signed-in user, theme and a few
 /// personal toggles. Exposed to widgets through [AppScope].
 class AppState extends ChangeNotifier {
-  AppState({BethelRepository? repository})
-      : repo = repository ??
+  AppState({BethelRepository? repository, NotificationService? notifications})
+      : notifications = notifications ?? RecordingNotificationService(),
+        repo = repository ??
             (AppConfig.isFirebase
                 ? FirebaseRepository()
                 : AppConfig.isDemo
@@ -22,6 +27,9 @@ class AppState extends ChangeNotifier {
                     : ApiRepository());
 
   final BethelRepository repo;
+
+  /// Reminders and, later, push messages. See docs/firebase-setup.md.
+  final NotificationService notifications;
 
   LocalStore _store = LocalStore.memory();
 
@@ -38,6 +46,10 @@ class AppState extends ChangeNotifier {
     }
     final h = _store.read('highlights');
     if (h is List) highlights.addAll(h.whereType<String>());
+    plan = ReadingPlan.fromJson(_store.read('plan'));
+    planProgress = PlanProgress.fromJson(_store.read('planProgress'));
+    reminderPrefs = ReminderPrefs.fromJson(_store.read('reminders'));
+    await rescheduleReminders();
     notifyListeners();
   }
 
@@ -104,8 +116,87 @@ class AppState extends ChangeNotifier {
   final Set<int> prayedFor = {};
   final Set<int> rsvps = {};
 
-  /// Reading-plan passages marked as read (by reference), shared by Home and the Bible screen.
-  final Set<String> readingDone = {};
+  // ------------------------------------------------------------ Reading plan
+  ReadingPlan? plan;
+  PlanProgress planProgress = PlanProgress();
+  ReminderPrefs reminderPrefs = const ReminderPrefs();
+
+  void _savePlan() {
+    _store.write('plan', plan?.toJson());
+    _store.write('planProgress', planProgress.toJson());
+    _store.write('reminders', reminderPrefs.toJson());
+  }
+
+  Future<void> startPlan(ReadingPlan p, ReminderPrefs prefs) async {
+    plan = p;
+    planProgress = PlanProgress();
+    reminderPrefs = prefs;
+    _savePlan();
+    notifyListeners();
+    if (prefs.morning || prefs.partway || prefs.streak) await notifications.requestPermission();
+    await rescheduleReminders();
+  }
+
+  void endPlan() {
+    plan = null;
+    planProgress = PlanProgress();
+    _savePlan();
+    notifyListeners();
+    rescheduleReminders();
+  }
+
+  void setReminderPrefs(ReminderPrefs prefs) {
+    reminderPrefs = prefs;
+    _savePlan();
+    notifyListeners();
+    rescheduleReminders();
+  }
+
+  /// Ticks or unticks one reading. Returns the celebration when this finishes the day.
+  PlanMessage? setReading(int day, int index, bool done, {DateTime? now}) {
+    final p = plan;
+    if (p == null) return null;
+    final at = now ?? DateTime.now();
+    final wasComplete = planProgress.dayComplete(p, day);
+    done ? planProgress.done.add(PlanProgress.key(day, index)) : planProgress.done.remove(PlanProgress.key(day, index));
+    final isComplete = planProgress.dayComplete(p, day);
+    PlanMessage? message;
+    if (isComplete && !wasComplete) {
+      planProgress.completedOn[day] = dateKey(at);
+      message = celebration(plan: p, progress: planProgress, day: day, now: at, name: user?.name ?? '');
+      planProgress.lastMessage = message.id;
+    } else if (!isComplete && wasComplete) {
+      planProgress.completedOn.remove(day);
+    }
+    _savePlan();
+    notifyListeners();
+    rescheduleReminders(now: at);
+    return message;
+  }
+
+  /// Ticks every reading of a day.
+  PlanMessage? markDay(int day, {DateTime? now}) {
+    final p = plan;
+    if (p == null) return null;
+    final n = p.readingsFor(day).length;
+    PlanMessage? message;
+    for (var i = 0; i < n; i++) {
+      if (!planProgress.isDone(day, i)) message = setReading(day, i, true, now: now) ?? message;
+    }
+    return message;
+  }
+
+  Future<void> rescheduleReminders({DateTime? now}) async {
+    final p = plan;
+    final items = p == null
+        ? const <PlannedNotification>[]
+        : planReminders(plan: p, progress: planProgress, prefs: reminderPrefs, now: now ?? DateTime.now(), name: user?.name ?? '');
+    try {
+      await notifications.replaceGroup('plan', items);
+    } catch (_) {
+      // A reminder that can't be scheduled must never break reading.
+    }
+  }
 
   /// Which notifications the member wants. Kept on this phone while the app runs.
   final Map<String, bool> notificationPrefs = {
@@ -198,11 +289,6 @@ class AppState extends ChangeNotifier {
       sermonNotes[sermonId] = note;
     }
     // No notifyListeners: the note field owns its text, and rebuilding while typing would move the caret.
-  }
-
-  void markPassageRead(String reference) {
-    readingDone.add(reference);
-    notifyListeners();
   }
 
   void markNotificationsRead(Iterable<int> ids) {

@@ -8,7 +8,7 @@ import '../data/models.dart';
 import '../widgets/common.dart';
 import '../bible/bible_text.dart';
 import 'bible_reader_screen.dart';
-import 'bible_screen.dart';
+import 'reading_plan_screen.dart';
 import 'church_screens.dart';
 import 'events_screen.dart';
 
@@ -154,7 +154,7 @@ class _MoreScreenState extends State<MoreScreen> {
           HairlineRow(
               leading: const RowIcon(Icons.event_note_outlined),
               title: 'Reading plan',
-              onTap: () => _push(context, const BibleScreen())),
+              onTap: () => _push(context, const ReadingPlanScreen())),
           HairlineRow(leading: const RowIcon(Icons.photo_library_outlined), title: 'Gallery', onTap: () => _push(context, const GalleryScreen())),
           HairlineRow(leading: const RowIcon(Icons.auto_stories_outlined), title: 'Books', onTap: () => _push(context, const BooksScreen())),
           HairlineRow(leading: const RowIcon(Icons.map_outlined), title: 'Directions', subtitle: AppConfig.churchAddress, onTap: () => _directions(context)),

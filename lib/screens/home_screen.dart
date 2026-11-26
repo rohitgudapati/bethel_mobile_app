@@ -5,7 +5,7 @@ import '../app/app_state.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
-import 'bible_screen.dart';
+import 'reading_plan_screen.dart';
 import 'church_screens.dart';
 import 'events_screen.dart';
 import 'notifications_screen.dart';
@@ -92,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'prayer':
         AppShell.goToTab(context, AppShell.prayer);
       case 'reading':
-        _push(const BibleScreen());
+        _push(const ReadingPlanScreen());
       default:
         _push(const EventsScreen());
     }
@@ -165,15 +165,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Widget> _keepGoing(AppState state, _HomeData data) {
     final rows = <Widget>[];
-    if (data.plan.isNotEmpty) {
-      final i = data.plan.indexWhere((p) => !state.readingDone.contains(p.reference));
-      rows.add(HairlineRow(
-        leading: const RowIcon(Icons.menu_book_outlined),
-        title: i < 0 ? 'Reading plan complete' : 'Reading plan · Day ${i + 1}',
-        subtitle: i < 0 ? '${data.plan.length} of ${data.plan.length} days' : '${data.plan[i].reference} · ${data.plan[i].title}',
-        onTap: () => _push(const BibleScreen()),
-      ));
-    }
+    final plan = state.plan;
+    final day = plan?.dayFor(DateTime.now()) ?? 0;
+    rows.add(HairlineRow(
+      leading: const RowIcon(Icons.menu_book_outlined),
+      title: plan == null
+          ? 'Start a reading plan'
+          : day < 1
+              ? 'Reading plan starts ${fmtShort(plan.start)}'
+              : day > plan.days
+                  ? 'Reading plan finished'
+                  : 'Reading plan · Day $day of ${plan.days}',
+      subtitle: plan == null
+          ? 'Read the whole Bible in 1, 3, 6 months or a year'
+          : day >= 1 && day <= plan.days
+              ? plan.readingsFor(day).map((r) => r.label).join(', ')
+              : plan.scope.label,
+      onTap: () => _push(const ReadingPlanScreen()),
+    ));
     if (data.sermons.isNotEmpty) {
       final s = data.sermons.first;
       rows.add(HairlineRow(
