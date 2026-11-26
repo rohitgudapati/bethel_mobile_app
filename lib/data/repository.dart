@@ -15,6 +15,15 @@ abstract class BethelRepository {
   /// Phone sign-in, step 2: check the code. [name] is saved for new accounts.
   Future<UserProfile> verifyPhoneCode(String code, {String name = ''});
 
+  /// Sign in with Apple or Google. [provider] is `'apple'` or `'google'`.
+  Future<UserProfile> signInWithProvider(String provider);
+
+  /// Emails a password-reset link.
+  Future<void> sendPasswordReset(String email);
+
+  /// Saves the name a new member types after verifying (phone, Apple or Google).
+  Future<UserProfile> updateName(String name);
+
   Future<ChurchInfo> churchInfo();
 
   // Verse of the day

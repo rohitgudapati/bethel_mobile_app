@@ -92,6 +92,31 @@ class MockRepository implements BethelRepository {
     return _delay(UserProfile(name: name.trim().isEmpty ? 'Friend' : name.trim(), email: '', phone: _pendingPhone!));
   }
 
+  UserProfile? _current;
+
+  final Set<String> _providersUsed = {};
+
+  /// Demo: Apple and Google always succeed. The first time each is used after launch it acts as a
+  /// new member (no name yet, so the card asks for one); after that, as a returning member.
+  @override
+  Future<UserProfile> signInWithProvider(String provider) {
+    final email = provider == 'apple' ? 'samuel@icloud.com' : 'samuel@gmail.com';
+    final isNew = _providersUsed.add(provider);
+    return _delay(_current = UserProfile(name: isNew ? '' : 'Samuel Raju', email: email));
+  }
+
+  @override
+  Future<void> sendPasswordReset(String email) {
+    if (!email.contains('@')) return Future.error('Enter your email first.');
+    return _delay(null);
+  }
+
+  @override
+  Future<UserProfile> updateName(String name) {
+    final u = _current;
+    return _delay(UserProfile(name: name.trim(), email: u?.email ?? '', phone: u?.phone ?? _pendingPhone ?? ''));
+  }
+
   @override
   Future<DailyVerse> todayVerse() {
     // A different verse every day (see daily_verses.dart), with sample counts.

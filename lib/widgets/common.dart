@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app/theme.dart';
+import 'bethel_ui.dart';
+
+export 'bethel_ui.dart';
 
 /// Shows an asset (`assets/...`) or a network image with a soft placeholder.
 class BethelImage extends StatelessWidget {
@@ -44,6 +47,7 @@ class BethelImage extends StatelessWidget {
   }
 }
 
+/// Section title in the redesign style (brass rule + serif title). Kept as a wrapper so existing screens pick it up.
 class SectionHeader extends StatelessWidget {
   const SectionHeader(this.title, {super.key, this.action, this.onAction, this.padding});
 
@@ -53,23 +57,12 @@ class SectionHeader extends StatelessWidget {
   final EdgeInsets? padding;
 
   @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    return Padding(
-      padding: padding ?? const EdgeInsets.fromLTRB(20, 28, 12, 12),
-      child: Row(
-        children: [
-          Expanded(child: Text(title, style: t.textTheme.titleLarge)),
-          if (action != null)
-            TextButton(
-              onPressed: onAction,
-              style: TextButton.styleFrom(foregroundColor: t.colorScheme.primary),
-              child: Text(action!, style: const TextStyle(fontWeight: FontWeight.w600)),
-            ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => BethelSectionTitle(
+        title,
+        action: action,
+        onAction: onAction,
+        padding: padding ?? const EdgeInsets.fromLTRB(20, 24, 12, 8),
+      );
 }
 
 /// Rounded label used for categories, "LIVE", dates etc.
@@ -89,7 +82,7 @@ class Pill extends StatelessWidget {
       decoration: BoxDecoration(color: color ?? BethelColors.brassSoft, borderRadius: BorderRadius.circular(40)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         if (icon != null) ...[Icon(icon, size: 13, color: fg), const SizedBox(width: 4)],
-        Text(label, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: fg, letterSpacing: 0.2)),
+        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: fg)),
       ]),
     );
   }
@@ -99,7 +92,7 @@ class LivePill extends StatelessWidget {
   const LivePill({super.key});
   @override
   Widget build(BuildContext context) =>
-      const Pill('LIVE', color: BethelColors.rose, textColor: Colors.white, icon: Icons.circle);
+      const Pill('Live', color: BethelColors.rose, textColor: Colors.white, icon: Icons.circle);
 }
 
 /// Loads a future once and shows a spinner / error / data.
@@ -154,18 +147,14 @@ Future<void> openLink(BuildContext context, String url) async {
   }
 }
 
-void showToast(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
-}
+void showToast(BuildContext context, String message) => showBethelToast(context, message);
 
 const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 String fmtDate(DateTime d) => '${_months[d.month - 1]} ${d.day}, ${d.year}';
 String fmtShort(DateTime d) => '${_weekdays[d.weekday - 1]}, ${_months[d.month - 1]} ${d.day}';
-String fmtMonth(DateTime d) => _months[d.month - 1].toUpperCase();
+String fmtMonth(DateTime d) => _months[d.month - 1];
 
 String compactCount(int n) {
   if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';

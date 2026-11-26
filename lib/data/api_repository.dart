@@ -103,6 +103,18 @@ class ApiRepository implements BethelRepository {
   Future<UserProfile> verifyPhoneCode(String code, {String name = ''}) =>
       Future.error('Phone sign-in isn\'t available yet. Please use email.');
 
+  // The .NET API has no Apple/Google sign-in or password reset.
+  @override
+  Future<UserProfile> signInWithProvider(String provider) =>
+      Future.error('This sign-in option isn\'t available yet. Please use email.');
+
+  @override
+  Future<void> sendPasswordReset(String email) =>
+      Future.error('Password reset isn\'t available yet. Please contact the church office.');
+
+  @override
+  Future<UserProfile> updateName(String name) async => UserProfile(name: name.trim(), email: '', token: _token);
+
   // ---------------------------------------------------------------- content
 
   @override
