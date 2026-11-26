@@ -64,3 +64,40 @@ String bibleRef(int book, int chapter, {List<int> verses = const [], bool telugu
   final range = v.length == 1 ? '${v.first}' : (contiguous ? '${v.first}–${v.last}' : v.join(', '));
   return '$name $chapter:$range';
 }
+
+/// A parsed reference such as "Proverbs 3:5-6" or "1 John 4:8".
+class BibleRef {
+  const BibleRef(this.book, this.chapter, this.from, this.to);
+  final int book;
+  final int chapter;
+  final int from;
+  final int to;
+}
+
+final _refPattern = RegExp(r'^\s*((?:[1-3]\s*)?[A-Za-z][A-Za-z .]*?)\s*(\d+)\s*[:.]\s*(\d+)(?:\s*[-–—]\s*(\d+))?\s*$');
+
+/// Understands English book names as the church writes them ("Psalm 23:1", "Song of Songs 2:4",
+/// "1 John 4:8", "Proverbs 3:5–6"). Returns null when it can't.
+BibleRef? parseBibleRef(String? text) {
+  if (text == null) return null;
+  final m = _refPattern.firstMatch(text.replaceAll(RegExp(r'\s*\(.*\)$'), ''));
+  if (m == null) return null;
+  String norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  var name = norm(m.group(1)!);
+  const aliases = {'psalm': 'psalms', 'songofsongs': 'songofsolomon', 'song': 'songofsolomon', 'revelations': 'revelation'};
+  name = aliases[name] ?? name;
+  final book = bibleBooks.indexWhere((b) => norm(b.name) == name);
+  if (book < 0) return null;
+  final chapter = int.parse(m.group(2)!);
+  final from = int.parse(m.group(3)!);
+  final to = int.tryParse(m.group(4) ?? '') ?? from;
+  if (chapter < 1 || chapter > bibleBooks[book].chapters || to < from) return null;
+  return BibleRef(book, chapter, from, to);
+}
+
+/// The text of a reference in a version, or null if it's out of range.
+Future<String?> biblePassage(BibleVersion v, BibleRef r) async {
+  final verses = await BibleText.chapter(v, r.book, r.chapter);
+  if (r.from < 1 || r.to > verses.length) return null;
+  return verses.sublist(r.from - 1, r.to).join(' ');
+}

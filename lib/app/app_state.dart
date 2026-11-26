@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/api_repository.dart';
+import '../data/bible_facts.dart';
 import '../data/firebase_repository.dart';
 import '../data/mock_repository.dart';
 import '../data/models.dart';
@@ -49,6 +50,17 @@ class AppState extends ChangeNotifier {
     plan = ReadingPlan.fromJson(_store.read('plan'));
     planProgress = PlanProgress.fromJson(_store.read('planProgress'));
     reminderPrefs = ReminderPrefs.fromJson(_store.read('reminders'));
+    final f = _store.read('facts');
+    if (f is Map) {
+      factIndex = ((f['index'] as num?) ?? factIndex).toInt();
+      factChoice = (f['choice'] as num?)?.toInt();
+      factHistory.addAll(((f['history'] as List?) ?? const []).whereType<bool>());
+      if (f['date'] != dateKey(DateTime.now()) && factChoice != null) {
+        // A new day brings a new question.
+        factIndex = (factIndex + 1) % bibleFacts.length;
+        factChoice = null;
+      }
+    }
     await rescheduleReminders();
     notifyListeners();
   }
@@ -115,6 +127,39 @@ class AppState extends ChangeNotifier {
   double lyricsScale = 1;
   final Set<int> prayedFor = {};
   final Set<int> rsvps = {};
+
+  // ------------------------------------------------------------ Did you know?
+  int factIndex = DateTime.now().difference(DateTime(DateTime.now().year)).inDays % bibleFacts.length;
+
+  /// The answer picked for the current question, or null if not answered yet.
+  int? factChoice;
+
+  /// Right or wrong for recent answers, newest last.
+  final List<bool> factHistory = [];
+
+  BibleFact get fact => bibleFacts[factIndex % bibleFacts.length];
+
+  void _saveFacts() => _store.write('facts', {
+        'index': factIndex,
+        'choice': factChoice,
+        'history': factHistory.length > 20 ? factHistory.sublist(factHistory.length - 20) : factHistory,
+        'date': dateKey(DateTime.now()),
+      });
+
+  void answerFact(int choice) {
+    if (factChoice != null) return;
+    factChoice = choice;
+    factHistory.add(choice == fact.answer);
+    _saveFacts();
+    notifyListeners();
+  }
+
+  void nextFact() {
+    factIndex = (factIndex + 1) % bibleFacts.length;
+    factChoice = null;
+    _saveFacts();
+    notifyListeners();
+  }
 
   // ------------------------------------------------------------ Reading plan
   ReadingPlan? plan;

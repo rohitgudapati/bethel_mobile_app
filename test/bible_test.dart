@@ -26,6 +26,16 @@ void main() {
     expect(kjv[42][2][15], startsWith('For God so loved the world'));
     expect(te[19][2][4], contains('యెహోవాయందు'));
     expect(bibleRef(42, 3, verses: [16, 17]), 'John 3:16–17');
+
+    // References as the church writes them.
+    final r = parseBibleRef('Proverbs 3:5-6')!;
+    expect([r.book, r.chapter, r.from, r.to], [19, 3, 5, 6]);
+    expect(parseBibleRef('Psalm 23:1')!.book, 18);
+    expect(parseBibleRef('1 John 4:8')!.book, 61);
+    expect(parseBibleRef('Song of Songs 2:4')!.book, 21);
+    expect(parseBibleRef('John 3:16 (KJV)')!.from, 16);
+    expect(parseBibleRef('Nonsense 1:1'), isNull);
+    expect(await biblePassage(BibleVersion.te, r), contains('యెహోవాయందు'));
   });
 
   testWidgets('read John 3, go to the next chapter, switch to Telugu, highlight', (tester) async {
