@@ -19,7 +19,10 @@ class PrayerScreen extends StatefulWidget {
 class _PrayerScreenState extends State<PrayerScreen> {
   late Future<List<PrayerRequest>> _wall = AppScope.read(context).repo.prayerWall();
 
-  void _reload() => setState(() => _wall = AppScope.read(context).repo.prayerWall());
+  void _reload() {
+    final wall = AppScope.read(context).repo.prayerWall();
+    setState(() => _wall = wall);
+  }
 
   Future<void> _newRequest() async {
     final sent = await showModalBottomSheet<bool>(
@@ -131,6 +134,7 @@ class PrayerCard extends StatelessWidget {
     final prayed = state.prayedFor.contains(prayer.id);
     final count = prayer.prayedCount + (prayed ? 1 : 0);
     final color = prayed ? tk.brassText : t.colorScheme.primary;
+    final onTap = prayed || prayer.isMine ? null : () => _pray(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tk.hairline))),
@@ -148,12 +152,18 @@ class PrayerCard extends StatelessWidget {
         const SizedBox(height: 8),
         Text(prayer.request, style: t.textTheme.bodyMedium?.copyWith(height: 1.5)),
         const SizedBox(height: 4),
+        // The label replaces the button's own semantics, so the tap action is given here too.
         Semantics(
-          button: !prayed,
-          label: prayed ? 'You prayed. $count praying' : 'I prayed for ${prayer.name}. $count praying',
+          button: onTap != null,
+          label: prayer.isMine
+              ? '$count praying for your request'
+              : prayed
+                  ? 'You prayed. $count praying'
+                  : 'I prayed for ${prayer.name}. $count praying',
+          onTap: onTap,
           excludeSemantics: true,
           child: InkWell(
-            onTap: prayed || prayer.isMine ? null : () => _pray(context),
+            onTap: onTap,
             borderRadius: BorderRadius.circular(8),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 44),
@@ -304,6 +314,7 @@ class _PrayerRequestSheetState extends State<PrayerRequestSheet> {
         decoration: InputDecoration(
           hintText: 'Your prayer request',
           errorText: _requestError,
+          errorMaxLines: 2,
           enabledBorder: _requestError == null
               ? null
               : OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: tk.error, width: 2)),
