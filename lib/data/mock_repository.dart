@@ -421,6 +421,7 @@ class MockRepository implements BethelRepository {
       id: 101,
       number: 1,
       title: 'Aadhaaram Naaku Aadhaaram',
+      altTitle: 'ఆధారం నాకు ఆధారం',
       artist: 'Bethel Worship',
       lyricist: 'Bonigala Babu Rao',
       image: 'assets/church.jpg',
