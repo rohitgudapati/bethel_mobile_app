@@ -22,13 +22,19 @@ class _SongsScreenState extends State<SongsScreen> {
   final _search = TextEditingController();
   final _focus = FocusNode();
   bool _numbers = false;
+
+  /// Search results replace the library while this is on. Focusing the field turns it on;
+  /// only Cancel (or clearing an unfocused field) turns it off.
+  bool _searchMode = false;
   late Future<SongCatalog> _catalog = SongCatalog.load(AppScope.read(context).repo);
   bool _openedLaunchBook = false;
 
   @override
   void initState() {
     super.initState();
-    _focus.addListener(() => setState(() {}));
+    _focus.addListener(() => setState(() {
+          if (_focus.hasFocus) _searchMode = true;
+        }));
   }
 
   @override
@@ -47,14 +53,20 @@ class _SongsScreenState extends State<SongsScreen> {
 
   void _toggleNumbers() {
     // The focused field updates its keyboard in place when the type changes.
-    setState(() => _numbers = !_numbers);
+    setState(() {
+      _numbers = !_numbers;
+      _searchMode = true;
+    });
     if (!_focus.hasFocus) _focus.requestFocus();
   }
 
   void _cancelSearch() {
     _search.clear();
     _focus.unfocus();
-    setState(() => _numbers = false);
+    setState(() {
+      _numbers = false;
+      _searchMode = false;
+    });
   }
 
   void _openFirst(SongCatalog c) {
@@ -78,7 +90,7 @@ class _SongsScreenState extends State<SongsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    final searching = _focus.hasFocus || _search.text.isNotEmpty;
+    final searching = _searchMode || _search.text.isNotEmpty;
     return SafeArea(
       bottom: false,
       child: FutureBuilder<SongCatalog>(
