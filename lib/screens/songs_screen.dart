@@ -112,7 +112,8 @@ class _SongsScreenState extends State<SongsScreen> {
                     ),
                   ),
                 if (!searching) const SizedBox(height: 16),
-                Row(children: [
+                // Keyed so the field (and the keyboard) survives the title disappearing above it.
+                Row(key: const ValueKey('song-search'), children: [
                   Expanded(
                     child: _SearchField(
                       controller: _search,
