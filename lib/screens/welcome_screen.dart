@@ -265,7 +265,12 @@ class _AuthButton extends StatelessWidget {
               : Row(mainAxisSize: MainAxisSize.min, children: [
                   icon,
                   const SizedBox(width: 10),
-                  Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: fg)),
+                  Flexible(
+                    child: Text(label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: fg)),
+                  ),
                 ]),
         ),
         if (badge != null)
@@ -638,7 +643,7 @@ class _AuthFlowState extends State<_AuthFlow> {
             child: TileField(
               controller: _phone,
               label: 'Phone number',
-              hint: '+1 (630) 555-0123',
+              hint: 'Phone number',
               keyboardType: TextInputType.phone,
               autofillHints: const [AutofillHints.telephoneNumber],
               inputFormatters: [_UsPhoneFormatter()],
@@ -919,11 +924,9 @@ class _OtpFieldState extends State<_OtpField> {
         ]),
         // The real input sits on top, invisible, so taps focus it and autofill can fill it.
         Positioned.fill(
-          child: Opacity(
-            opacity: 0,
-            child: Semantics(
-              label: '6-digit code',
-              child: TextField(
+          child: Semantics(
+            label: '6-digit code',
+            child: TextField(
               controller: widget.controller,
               focusNode: _focus,
               enabled: widget.enabled,
@@ -932,9 +935,17 @@ class _OtpFieldState extends State<_OtpField> {
               inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
               showCursor: false,
               enableInteractiveSelection: false,
-              decoration: const InputDecoration(filled: false, border: InputBorder.none, counterText: ''),
+              style: const TextStyle(color: Colors.transparent, fontSize: 1),
+              cursorColor: Colors.transparent,
+              decoration: const InputDecoration(
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                counterText: '',
+              ),
               onTap: () => setState(() {}),
-            ),
             ),
           ),
         ),
