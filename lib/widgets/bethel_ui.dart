@@ -298,6 +298,7 @@ class TileField extends StatelessWidget {
     this.onSubmitted,
     this.textInputAction,
     this.maxLines = 1,
+    this.minLines,
     this.onChanged,
     this.focusNode,
     this.inputFormatters,
@@ -317,6 +318,9 @@ class TileField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final TextInputAction? textInputAction;
   final int maxLines;
+
+  /// Lines shown when empty; the field grows up to [maxLines]. Null means it is always [maxLines] tall.
+  final int? minLines;
   final ValueChanged<String>? onChanged;
   final FocusNode? focusNode;
   final List<TextInputFormatter>? inputFormatters;
@@ -339,6 +343,7 @@ class TileField extends StatelessWidget {
           obscureText: obscureText,
           autofocus: autofocus,
           maxLines: obscureText ? 1 : maxLines,
+          minLines: obscureText ? null : minLines,
           onSubmitted: onSubmitted,
           onChanged: onChanged,
           textInputAction: textInputAction,

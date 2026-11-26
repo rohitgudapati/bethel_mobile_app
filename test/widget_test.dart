@@ -207,8 +207,8 @@ void main() {
         tester.pumpWidget(MaterialApp(home: Scaffold(body: LiveBanner(streams: s))));
 
     await show(const []);
-    expect(find.text('Live'), findsNothing);
-    expect(find.text('NEXT SERVICE'), findsOneWidget);
+    expect(find.text('Live now'), findsNothing);
+    expect(find.text('Sunday Worship Service'), findsOneWidget);
     expect(find.textContaining('3:00 PM CT'), findsOneWidget);
 
     await show([
@@ -221,13 +221,14 @@ void main() {
         scheduledStart: DateTime(2027, 3, 26, 11),
       ),
     ]);
-    expect(find.text('Live'), findsNothing);
-    expect(find.text('UPCOMING'), findsOneWidget, reason: 'special events scheduled on YouTube');
+    expect(find.text('Live now'), findsNothing);
+    expect(find.text('Good Friday Service'), findsOneWidget, reason: 'special events scheduled on YouTube');
+    expect(find.textContaining('Next stream'), findsOneWidget);
     expect(find.textContaining('11:00 AM'), findsOneWidget);
 
     await show(const [
       LiveStream(id: 1, title: 'Sunday Worship Service', description: '', image: '', youtubeUrl: '', isLive: true),
     ]);
-    expect(find.text('Live'), findsOneWidget);
+    expect(find.text('Live now'), findsOneWidget);
   });
 }

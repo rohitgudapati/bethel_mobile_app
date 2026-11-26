@@ -66,12 +66,12 @@ class MockRepository implements BethelRepository {
     }
     final local = email.split('@').first;
     final name = local.isEmpty ? 'Friend' : '${local[0].toUpperCase()}${local.substring(1)}';
-    return _delay(UserProfile(name: name, email: email.trim()));
+    return _delay(_current = UserProfile(name: name, email: email.trim()));
   }
 
   @override
   Future<UserProfile> signUp(String name, String email, String password) =>
-      _delay(UserProfile(name: name.trim(), email: email.trim()));
+      _delay(_current = UserProfile(name: name.trim(), email: email.trim()));
 
   String? _pendingPhone;
 
@@ -89,7 +89,7 @@ class MockRepository implements BethelRepository {
   Future<UserProfile> verifyPhoneCode(String code, {String name = ''}) {
     if (_pendingPhone == null) return Future.error('Please request a code first.');
     if (!RegExp(r'^\d{6}$').hasMatch(code.trim())) return Future.error('Enter the 6-digit code we texted you.');
-    return _delay(UserProfile(name: name.trim().isEmpty ? 'Friend' : name.trim(), email: '', phone: _pendingPhone!));
+    return _delay(_current = UserProfile(name: name.trim().isEmpty ? 'Friend' : name.trim(), email: '', phone: _pendingPhone!));
   }
 
   UserProfile? _current;
@@ -114,7 +114,7 @@ class MockRepository implements BethelRepository {
   @override
   Future<UserProfile> updateName(String name) {
     final u = _current;
-    return _delay(UserProfile(name: name.trim(), email: u?.email ?? '', phone: u?.phone ?? _pendingPhone ?? ''));
+    return _delay(_current = UserProfile(name: name.trim(), email: u?.email ?? '', phone: u?.phone ?? _pendingPhone ?? ''));
   }
 
   @override
@@ -199,7 +199,7 @@ class MockRepository implements BethelRepository {
 
   @override
   Future<void> addSermonComment(int sermonId, String text) async {
-    (_comments[sermonId] ??= []).add(SermonComment(name: 'You', text: text, at: DateTime.now()));
+    (_comments[sermonId] ??= []).insert(0, SermonComment(name: _current?.name ?? 'You', text: text, at: DateTime.now()));
   }
 
   @override

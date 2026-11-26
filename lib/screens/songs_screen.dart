@@ -6,6 +6,7 @@ import '../app/launch.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
+import '../widgets/sign_in_prompt.dart';
 
 /// Songs tab: one underline tab per song book (Songs of Zion, Hymns of Faith), then Albums and Saved.
 /// Search covers every book by number, title, lyricist or a line of the lyrics.
@@ -572,38 +573,7 @@ class _SongScreenState extends State<SongScreen> {
         icon: saving ? Icons.favorite_rounded : Icons.favorite_border_rounded);
   }
 
-  void _signInPrompt() {
-    final t = Theme.of(context);
-    final tk = BethelTokens.of(context);
-    showBethelSheet<void>(
-      context,
-      builder: (ctx) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Center(
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(color: tk.raised, shape: BoxShape.circle),
-            child: Icon(Icons.favorite_border_rounded, color: t.colorScheme.primary),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text('Sign in to save songs', textAlign: TextAlign.center, style: t.textTheme.headlineSmall),
-        const SizedBox(height: 8),
-        Text('Saved songs, notes and comments need an account. Phone, Apple, Google or email all work.',
-            textAlign: TextAlign.center, style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 20),
-        FilledButton(
-          onPressed: () {
-            Navigator.pop(ctx);
-            Navigator.of(context).popUntil((r) => r.isFirst);
-            AppScope.read(context).signOut();
-          },
-          child: const Text('Continue'),
-        ),
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Not now')),
-      ]),
-    );
-  }
+  void _signInPrompt() => showSignInPrompt(context, title: 'Sign in to save songs', icon: Icons.favorite_border_rounded);
 
   void _textSize(Song song) {
     showBethelSheet<void>(context, builder: (ctx) => _TextSizeSheet(song: song));

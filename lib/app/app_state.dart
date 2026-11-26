@@ -35,6 +35,9 @@ class AppState extends ChangeNotifier {
 
   /// Reading-plan passages marked as read (by reference), shared by Home and the Bible screen.
   final Set<String> readingDone = {};
+
+  /// Notes a member writes while watching a sermon, by sermon id.
+  final Map<int, String> sermonNotes = {};
   final Set<int> readNotifications = {};
 
   bool get signedIn => user != null || guest;
@@ -102,6 +105,15 @@ class AppState extends ChangeNotifier {
     prayedFor.add(id);
     notifyListeners();
     await repo.prayFor(id);
+  }
+
+  void setSermonNote(int sermonId, String note) {
+    if (note.trim().isEmpty) {
+      sermonNotes.remove(sermonId);
+    } else {
+      sermonNotes[sermonId] = note;
+    }
+    // No notifyListeners: the note field owns its text, and rebuilding while typing would move the caret.
   }
 
   void markPassageRead(String reference) {
