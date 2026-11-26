@@ -242,11 +242,6 @@ class BethelTheme {
       extensions: [tokens],
       splashFactory: NoSplash.splashFactory, // presses use a surface step, not ripples
       highlightColor: text.withValues(alpha: 0.05),
-      pageTransitionsTheme: const PageTransitionsTheme(builders: {
-        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-      }),
       appBarTheme: AppBarTheme(
         backgroundColor: scheme.surface,
         surfaceTintColor: Colors.transparent,
