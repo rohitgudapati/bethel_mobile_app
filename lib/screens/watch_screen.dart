@@ -81,7 +81,7 @@ class _WatchScreenState extends State<WatchScreen> {
                 ),
               ),
               const SizedBox(height: 4),
-              UnderlineTabs(labels: _tabs, selected: _tab, onSelected: (i) => setState(() { _tab = i); }),
+              UnderlineTabs(labels: _tabs, selected: _tab, onSelected: (i) => setState(() => _tab = i)),
             ]),
           ),
           FutureBuilder<List<Object>>(
@@ -99,7 +99,9 @@ class _WatchScreenState extends State<WatchScreen> {
                     title: 'Couldn’t load ${_tab == 0 ? 'messages' : _tabs[_tab].toLowerCase()}',
                     message: 'Check your connection and try again. Past services are also on YouTube.',
                     action: FilledButton.icon(
-                      onPressed: () => setState(() { _loads.remove(_tab); }),
+                      onPressed: () => setState(() {
+                        _loads.remove(_tab);
+                      }),
                       icon: const Icon(Icons.refresh_rounded),
                       label: const Text('Try again'),
                     ),
@@ -312,7 +314,7 @@ class _SermonDetailScreenState extends State<SermonDetailScreen> {
       showSignInPrompt(context, title: 'Sign in to comment', icon: Icons.chat_bubble_outline_rounded);
       return;
     }
-    setState(() { _posting = true; });
+    setState(() => _posting = true);
     try {
       await state.repo.addSermonComment(widget.sermon.id, text);
       _comment.clear();
@@ -322,7 +324,7 @@ class _SermonDetailScreenState extends State<SermonDetailScreen> {
     } catch (e) {
       if (mounted) showBethelToast(context, 'Couldn’t post your comment. Try again.', icon: Icons.error_outline_rounded);
     } finally {
-      if (mounted) setState(() { _posting = false; });
+      if (mounted) setState(() => _posting = false);
     }
   }
 
@@ -416,7 +418,9 @@ class _SermonDetailScreenState extends State<SermonDetailScreen> {
                       child: Row(children: [
                         Expanded(child: Text('Couldn’t load comments', style: t.textTheme.bodyMedium)),
                         TextButton(
-                          onPressed: () => setState(() { _comments = state.repo.sermonComments(s.id); }),
+                          onPressed: () => setState(() {
+                            _comments = state.repo.sermonComments(s.id);
+                          }),
                           child: const Text('Try again'),
                         ),
                       ]),
