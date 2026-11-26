@@ -124,7 +124,8 @@ void main() {
 
       await tester.enterText(find.byType(TextField).first, '500');
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Ne Yesuni velugulo nadichedanu'));
+      // Rows show the Telugu title with the transliteration underneath.
+      await tester.tap(find.textContaining('Ne Yesuni velugulo nadichedanu').first);
       await tester.pumpAndSettle();
 
       expect(find.text('నే యేసుని వెలుగులో నడిచెదను'), findsOneWidget, reason: 'Telugu title');
