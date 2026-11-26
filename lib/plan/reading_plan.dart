@@ -103,15 +103,24 @@ List<List<Reading>> buildSchedule(PlanScope scope, int days) {
     }
   }
   final total = chapters.fold<int>(0, (n, c) => n + c.$3);
-  final perDay = total / days;
   final byDay = List.generate(days, (_) => <(int, int, int)>[]);
-  var before = 0;
-  for (final c in chapters) {
-    // A chapter goes to the day its middle falls in.
-    final day = ((before + c.$3 / 2) / perDay).floor().clamp(0, days - 1);
-    byDay[day].add(c);
-    before += c.$3;
+  // Each day takes chapters while that brings the running total closer to where the day
+  // should end, always at least one, and always leaving at least one for each day after it.
+  var i = 0, sum = 0;
+  for (var d = 0; d < days && i < chapters.length; d++) {
+    final target = total * (d + 1) / days;
+    final maxTake = chapters.length - i - (days - d - 1);
+    var take = 0;
+    while (take < maxTake) {
+      final next = chapters[i + take].$3;
+      if (take > 0 && (sum + next - target).abs() >= (sum - target).abs()) break;
+      sum += next;
+      take++;
+    }
+    byDay[d].addAll(chapters.sublist(i, i + take));
+    i += take;
   }
+  if (i < chapters.length) byDay.last.addAll(chapters.sublist(i));
   return [
     for (final day in byDay) _group(day),
   ];
