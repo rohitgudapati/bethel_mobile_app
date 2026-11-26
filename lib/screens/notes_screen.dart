@@ -546,6 +546,7 @@ class _SpeakerSheetState extends State<_SpeakerSheet> {
             controller: _ctrl,
             label: 'Speaker name',
             hint: 'Name',
+            autofocus: true,
             textInputAction: TextInputAction.done,
             onSubmitted: (v) => Navigator.pop(context, v.trim()),
           ),
@@ -611,6 +612,7 @@ class _PassageSheetState extends State<_PassageSheet> {
         controller: _ctrl,
         label: 'Bible reference',
         hint: 'John 3:16',
+        autofocus: true,
         errorText: _error,
         textInputAction: TextInputAction.done,
         onChanged: (_) {
