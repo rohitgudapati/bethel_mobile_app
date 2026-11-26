@@ -7,6 +7,7 @@ import '../data/mock_repository.dart';
 import '../data/models.dart';
 import '../data/repository.dart';
 import '../bible/bible_text.dart';
+import '../notes/note.dart';
 import '../notifications/notification_service.dart';
 import '../plan/plan_messages.dart';
 import '../plan/reading_plan.dart';
@@ -50,6 +51,8 @@ class AppState extends ChangeNotifier {
     plan = ReadingPlan.fromJson(_store.read('plan'));
     planProgress = PlanProgress.fromJson(_store.read('planProgress'));
     reminderPrefs = ReminderPrefs.fromJson(_store.read('reminders'));
+    final n = _store.read('notes');
+    if (n is List) notes.addAll(n.map(Note.fromJson).whereType<Note>());
     final f = _store.read('facts');
     if (f is Map) {
       factIndex = ((f['index'] as num?) ?? factIndex).toInt();
@@ -256,8 +259,39 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Notes a member writes while watching a sermon, by sermon id.
-  final Map<int, String> sermonNotes = {};
+  // ------------------------------------------------------------ Notes
+  /// Saved on the phone; they'll sync to the member's account once Firebase is set up.
+  final List<Note> notes = [];
+
+  void _saveNotes() => _store.write('notes', [for (final n in notes) n.toJson()]);
+
+  /// Adds or replaces a note. Empty notes are removed.
+  void saveNote(Note note) {
+    notes.removeWhere((n) => n.id == note.id);
+    if (!note.isEmpty) notes.add(note.copyWith(updated: DateTime.now()));
+    _saveNotes();
+    notifyListeners();
+  }
+
+  void deleteNote(String id) {
+    notes.removeWhere((n) => n.id == id);
+    _saveNotes();
+    notifyListeners();
+  }
+
+  Note? noteForSermon(int sermonId) => notes.where((n) => n.sermonId == sermonId).firstOrNull;
+
+  /// Speakers used in notes, most used first.
+  List<String> get noteSpeakers {
+    final counts = <String, int>{};
+    for (final n in notes) {
+      if (n.speaker.trim().isNotEmpty) counts[n.speaker] = (counts[n.speaker] ?? 0) + 1;
+    }
+    return counts.keys.toList()..sort((a, b) => counts[b]!.compareTo(counts[a]!));
+  }
+
+  static String newNoteId() => '${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}${notesSeq++}';
+  static int notesSeq = 0;
   final Set<int> readNotifications = {};
 
   bool get signedIn => user != null || guest;
@@ -327,12 +361,16 @@ class AppState extends ChangeNotifier {
     await repo.prayFor(id);
   }
 
-  void setSermonNote(int sermonId, String note) {
-    if (note.trim().isEmpty) {
-      sermonNotes.remove(sermonId);
-    } else {
-      sermonNotes[sermonId] = note;
-    }
+  /// The sermon page's inline note, kept as a Note with the sermon's speaker and date so it
+  /// shows up and filters in Notes.
+  void setSermonNote({required int sermonId, required String title, required String speaker, required DateTime date, required String body}) {
+    final existing = noteForSermon(sermonId);
+    final note = (existing ??
+            Note(id: newNoteId(), title: title, body: '', date: date, speaker: speaker, sermonId: sermonId, updated: DateTime.now()))
+        .copyWith(body: body);
+    notes.removeWhere((n) => n.id == note.id);
+    if (body.trim().isNotEmpty) notes.add(note.copyWith(updated: DateTime.now()));
+    _saveNotes();
     // No notifyListeners: the note field owns its text, and rebuilding while typing would move the caret.
   }
 

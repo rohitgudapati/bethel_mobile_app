@@ -7,6 +7,7 @@ import '../app/theme.dart';
 import '../bible/bible_text.dart';
 import '../bible/books.dart';
 import '../widgets/common.dart';
+import 'notes_screen.dart';
 
 /// The Bible: one chapter at a time, KJV or Telugu, optionally both verse by verse.
 /// Tap verses to highlight, copy, share or compare them.
@@ -237,6 +238,11 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
               s.toggleHighlights(_selected.map((n) => _key(s, n)));
               setState(_selected.clear);
             },
+            onNote: () {
+              final nums = _selected.toList()..sort();
+              setState(_selected.clear);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditScreen(passage: bibleRef(s.bibleBook, s.bibleChapter, verses: nums))));
+            },
             onCopy: () => _copy(s),
             onShare: () => _share(s),
             onCompare: () => _compare(s),
@@ -328,13 +334,14 @@ class _ActionBar extends StatelessWidget {
   const _ActionBar({
     required this.count,
     required this.onHighlight,
+    required this.onNote,
     required this.onCopy,
     required this.onShare,
     required this.onCompare,
     required this.onClear,
   });
   final int count;
-  final VoidCallback onHighlight, onCopy, onShare, onCompare, onClear;
+  final VoidCallback onHighlight, onNote, onCopy, onShare, onCompare, onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -360,10 +367,11 @@ class _ActionBar extends StatelessWidget {
         decoration: BoxDecoration(color: BethelColors.ink, borderRadius: BorderRadius.circular(16)),
         child: Row(children: [
           action(Icons.border_color_outlined, 'Highlight', onHighlight),
+          action(Icons.edit_note_rounded, 'Note', onNote),
           action(Icons.copy_rounded, 'Copy', onCopy),
           action(Icons.ios_share_rounded, 'Share', onShare),
           action(Icons.compare_arrows_rounded, 'Compare', onCompare),
-          action(Icons.close_rounded, count == 1 ? 'Clear' : 'Clear $count', onClear),
+          action(Icons.close_rounded, 'Clear', onClear),
         ]),
       ),
     );

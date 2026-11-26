@@ -8,6 +8,7 @@ import '../data/models.dart';
 import '../widgets/common.dart';
 import '../widgets/sign_in_prompt.dart';
 import 'live_banner.dart';
+import 'notes_screen.dart';
 import 'video_screen.dart';
 
 /// Watch tab (the original app's "Resources"): the live or next stream, then sermons,
@@ -259,7 +260,7 @@ class SermonDetailScreen extends StatefulWidget {
 }
 
 class _SermonDetailScreenState extends State<SermonDetailScreen> {
-  late final _note = TextEditingController(text: AppScope.read(context).sermonNotes[widget.sermon.id] ?? '');
+  late final _note = TextEditingController(text: AppScope.read(context).noteForSermon(widget.sermon.id)?.body ?? '');
   final _comment = TextEditingController();
   late Future<List<SermonComment>> _comments = AppScope.read(context).repo.sermonComments(widget.sermon.id);
 
@@ -401,7 +402,16 @@ class _SermonDetailScreenState extends State<SermonDetailScreen> {
                   minLines: 2,
                   maxLines: 8,
                   textInputAction: TextInputAction.newline,
-                  onChanged: (v) => state.setSermonNote(s.id, v),
+                  onChanged: (v) => state.setSermonNote(sermonId: s.id, title: s.title, speaker: s.preacher, date: s.date, body: v),
+                ),
+              if (state.user != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 44)),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotesScreen())),
+                    child: Text('Saved in Notes with ${s.preacher.isEmpty ? 'the date' : '${s.preacher} and the date'}'),
+                  ),
                 ),
               const SizedBox(height: 32),
               const BethelSectionTitle('Comments'),
