@@ -220,7 +220,7 @@ class VerseArchiveScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Verse of the day')),
       body: AsyncView<List<DailyVerse>>(
-        load: state.repo.verseArchive,
+        load: () => _loadVerses(state),
         builder: (context, verses) => verses.isEmpty
             ? const BethelEmptyState(
                 icon: Icons.menu_book_outlined,
@@ -230,10 +230,26 @@ class VerseArchiveScreen extends StatelessWidget {
             : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                 itemCount: verses.length,
-                itemBuilder: (_, i) => _VerseRow(verse: verses[i], today: i == 0),
+                itemBuilder: (_, i) => _VerseRow(verse: verses[i], today: DateUtils.isSameDay(verses[i].date, DateTime.now())),
               ),
       ),
     );
+  }
+
+  /// Today's verse first (the one on Home), then past days. Either source failing still shows the other.
+  static Future<List<DailyVerse>> _loadVerses(AppState state) async {
+    DailyVerse? today;
+    var past = <DailyVerse>[];
+    try {
+      today = await state.repo.todayVerse();
+    } catch (_) {}
+    try {
+      past = await state.repo.verseArchive();
+    } catch (_) {
+      if (today == null) rethrow;
+    }
+    final hasToday = today != null && past.any((v) => DateUtils.isSameDay(v.date, today!.date));
+    return [if (today != null && !hasToday) today, ...past];
   }
 }
 
@@ -253,7 +269,15 @@ class _VerseRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tk.hairline))),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        BethelImage(verse.image ?? '', width: 88, height: 88, radius: 12),
+        if ((verse.image ?? '').isNotEmpty)
+          BethelImage(verse.image!, width: 88, height: 88, radius: 12)
+        else
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(color: BethelColors.forest, borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.format_quote_rounded, color: BethelColors.brassLight, size: 32),
+          ),
         const SizedBox(width: 16),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
