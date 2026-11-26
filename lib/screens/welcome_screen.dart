@@ -913,15 +913,19 @@ class _OtpFieldState extends State<_OtpField> {
     final tk = BethelTokens.of(context);
     final code = widget.controller.text;
     return Stack(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          for (var i = 0; i < 6; i++)
-            _Tile(
-              digit: i < code.length ? code[i] : null,
-              active: widget.enabled && i == code.length && _focus.hasFocus,
-              error: widget.error,
-              ringColor: widget.error ? tk.error : t.colorScheme.primary,
-            ),
-        ]),
+        // The tiles are drawing only. If their digits were in the accessibility tree, the tree would
+        // change shape while typing and the browser would recreate the text box mid-code, losing focus.
+        ExcludeSemantics(
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            for (var i = 0; i < 6; i++)
+              _Tile(
+                digit: i < code.length ? code[i] : null,
+                active: widget.enabled && i == code.length && _focus.hasFocus,
+                error: widget.error,
+                ringColor: widget.error ? tk.error : t.colorScheme.primary,
+              ),
+          ]),
+        ),
         // The real input sits on top, invisible, so taps focus it and autofill can fill it.
         Positioned.fill(
           child: Semantics(

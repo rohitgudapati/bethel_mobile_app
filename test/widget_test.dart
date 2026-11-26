@@ -171,7 +171,7 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 1000));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Your name'), findsOneWidget, reason: 'new members give a name');
+    expect(find.text('Shown on the prayer wall'), findsOneWidget, reason: 'new members give a name');
     await tester.enterText(find.byType(TextField), 'Grace Paul');
     await tester.tap(find.text('Continue'));
     await tester.pump(const Duration(milliseconds: 500));
