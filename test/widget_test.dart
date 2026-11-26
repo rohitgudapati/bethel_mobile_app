@@ -73,7 +73,8 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
-    final state = AppState(repository: MockRepository())..continueAsGuest();
+    // Saving needs an account (guests get a sign-in prompt).
+    final state = AppState(repository: MockRepository())..signInAs(const UserProfile(name: 'Sam Lee', email: 'sam@example.com'));
     await tester.pumpWidget(BethelApp(state: state));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Songs').last);
@@ -82,8 +83,8 @@ void main() {
     expect(find.text('Songs of Zion'), findsWidgets);
     // Song 1 of Songs of Zion: the real book when assets/songs/songs_of_zion.json is present, else the sample.
     expect(
-      find.text('Dustula allochana choppuna').evaluate().isNotEmpty ||
-          find.text('Aadhaaram Naaku Aadhaaram').evaluate().isNotEmpty,
+      find.textContaining('Dustula allochana choppuna').evaluate().isNotEmpty ||
+          find.textContaining('Aadhaaram Naaku Aadhaaram').evaluate().isNotEmpty,
       isTrue,
     );
 
@@ -99,9 +100,10 @@ void main() {
     expect(find.textContaining('Fanny Crosby'), findsOneWidget);
     expect(find.textContaining('Blessed assurance, Jesus is mine!'), findsOneWidget);
 
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.byTooltip('Save'));
     await tester.pumpAndSettle();
     expect(state.savedSongs, contains(3));
+    expect(find.text('Saved to your songs'), findsOneWidget);
     expect(state.recentSongs.first.id, 3);
     expect(tester.takeException(), isNull);
   });
