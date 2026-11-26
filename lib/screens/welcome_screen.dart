@@ -861,7 +861,13 @@ class _AuthFlowState extends State<_AuthFlow> {
   Widget _primary(String label, Future<void> Function() onTap) => FilledButton(
         onPressed: _busy ? null : onTap,
         child: _busy
-            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: BethelColors.ivory))
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Theme.of(context).brightness == Brightness.dark ? BethelColors.ink : BethelColors.ivory,
+                ))
             : Text(label),
       );
 }
