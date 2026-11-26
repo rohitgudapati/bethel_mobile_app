@@ -300,6 +300,7 @@ class TileField extends StatelessWidget {
     this.maxLines = 1,
     this.onChanged,
     this.focusNode,
+    this.inputFormatters,
   });
 
   final TextEditingController? controller;
@@ -318,6 +319,7 @@ class TileField extends StatelessWidget {
   final int maxLines;
   final ValueChanged<String>? onChanged;
   final FocusNode? focusNode;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -327,10 +329,10 @@ class TileField extends StatelessWidget {
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), boxShadow: tk.tileShadow),
         child: Semantics(
           label: label,
-          textField: true,
           child: TextField(
           controller: controller,
           focusNode: focusNode,
+          inputFormatters: inputFormatters,
           keyboardType: keyboardType,
           autofillHints: autofillHints,
           obscureText: obscureText,

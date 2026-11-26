@@ -193,7 +193,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                             const SizedBox(height: 12),
                             _AuthButton(
-                              icon: SvgPicture.asset('assets/google.svg', width: 18, height: 18),
+                              icon: SvgPicture.asset('assets/google_g.svg', width: 18, height: 18),
                               label: 'Continue with Google',
                               badge: badge('google'),
                               busy: _busyProvider == 'google',
@@ -641,6 +641,7 @@ class _AuthFlowState extends State<_AuthFlow> {
               hint: '+1 (630) 555-0123',
               keyboardType: TextInputType.phone,
               autofillHints: const [AutofillHints.telephoneNumber],
+              inputFormatters: [_UsPhoneFormatter()],
               autofocus: true,
               errorText: _error,
               textInputAction: TextInputAction.done,
@@ -906,10 +907,7 @@ class _OtpFieldState extends State<_OtpField> {
     final t = Theme.of(context);
     final tk = BethelTokens.of(context);
     final code = widget.controller.text;
-    return Semantics(
-      label: '6-digit code',
-      textField: true,
-      child: Stack(children: [
+    return Stack(children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           for (var i = 0; i < 6; i++)
             _Tile(
@@ -923,7 +921,9 @@ class _OtpFieldState extends State<_OtpField> {
         Positioned.fill(
           child: Opacity(
             opacity: 0,
-            child: TextField(
+            child: Semantics(
+              label: '6-digit code',
+              child: TextField(
               controller: widget.controller,
               focusNode: _focus,
               enabled: widget.enabled,
@@ -935,10 +935,10 @@ class _OtpFieldState extends State<_OtpField> {
               decoration: const InputDecoration(filled: false, border: InputBorder.none, counterText: ''),
               onTap: () => setState(() {}),
             ),
+            ),
           ),
         ),
-      ]),
-    );
+      ]);
   }
 }
 
@@ -1085,4 +1085,28 @@ class _CheckPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CheckPainter old) => old.progress != progress || old.color != color;
+}
+
+/// Formats US numbers as "+1 (630) 555-0123" while typing. Numbers starting with another country code
+/// (+44 …) are left as typed. Backspace over punctuation removes the digit before it.
+class _UsPhoneFormatter extends TextInputFormatter {
+  static String _digits(String s) => s.replaceAll(RegExp(r'\D'), '');
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final raw = newValue.text.trim();
+    if (raw.startsWith('+') && !raw.startsWith('+1')) return newValue;
+    var d = _digits(raw);
+    if (d.startsWith('1')) d = d.substring(1);
+    final deleting = newValue.text.length < oldValue.text.length;
+    if (deleting && _digits(newValue.text) == _digits(oldValue.text) && d.isNotEmpty) d = d.substring(0, d.length - 1);
+    if (d.length > 10) d = d.substring(0, 10);
+    final b = StringBuffer('+1 ');
+    if (d.isNotEmpty) b.write('(${d.substring(0, d.length < 3 ? d.length : 3)}');
+    if (d.length >= 3) b.write(') ');
+    if (d.length > 3) b.write(d.substring(3, d.length < 6 ? d.length : 6));
+    if (d.length > 6) b.write('-${d.substring(6)}');
+    final text = b.toString();
+    return TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length));
+  }
 }
