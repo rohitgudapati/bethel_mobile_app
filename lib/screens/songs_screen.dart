@@ -23,8 +23,8 @@ class _SongsScreenState extends State<SongsScreen> {
   final _focus = FocusNode();
   bool _numbers = false;
 
-  /// Search results replace the library while this is on. Focusing the field turns it on;
-  /// only Cancel (or clearing an unfocused field) turns it off.
+  /// Search results replace the library while this is on. Tapping the field or typing
+  /// turns it on; Cancel turns it off.
   bool _searchMode = false;
   late Future<SongCatalog> _catalog = SongCatalog.load(AppScope.read(context).repo);
   bool _openedLaunchBook = false;
@@ -32,9 +32,7 @@ class _SongsScreenState extends State<SongsScreen> {
   @override
   void initState() {
     super.initState();
-    _focus.addListener(() => setState(() {
-          if (_focus.hasFocus) _searchMode = true;
-        }));
+    // Tapping the field or typing enters search; focus alone doesn't (it can come back on its own).
   }
 
   @override
@@ -120,7 +118,8 @@ class _SongsScreenState extends State<SongsScreen> {
                       controller: _search,
                       focus: _focus,
                       numbers: _numbers,
-                      onChanged: () => setState(() {}),
+                      onChanged: () => setState(() => _searchMode = true),
+                      onTap: () => setState(() => _searchMode = true),
                       onToggleNumbers: _toggleNumbers,
                       onSubmitted: c == null ? null : () => _openFirst(c),
                     ),
@@ -466,7 +465,9 @@ class _SearchField extends StatelessWidget {
     required this.onChanged,
     required this.onToggleNumbers,
     required this.onSubmitted,
+    required this.onTap,
   });
+  final VoidCallback onTap;
   final TextEditingController controller;
   final FocusNode focus;
   final bool numbers;
@@ -482,6 +483,7 @@ class _SearchField extends StatelessWidget {
       controller: controller,
       focusNode: focus,
       onChanged: (_) => onChanged(),
+      onTap: onTap,
       onSubmitted: (_) => onSubmitted?.call(),
       keyboardType: numbers ? TextInputType.number : TextInputType.text,
       inputFormatters: numbers ? [FilteringTextInputFormatter.digitsOnly] : null,
