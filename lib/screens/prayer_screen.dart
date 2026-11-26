@@ -21,7 +21,9 @@ class _PrayerScreenState extends State<PrayerScreen> {
 
   void _reload() {
     final wall = AppScope.read(context).repo.prayerWall();
-    setState(() { _wall = wall; });
+    setState(() {
+      _wall = wall;
+    });
   }
 
   Future<void> _newRequest() async {
@@ -226,7 +228,7 @@ class _PrayerRequestSheetState extends State<PrayerRequestSheet> {
       _error = null;
     });
     if (_requestError != null || _nameError != null) return;
-    setState(() { _busy = true; });
+    setState(() => _busy = true);
     try {
       final contact = _contact.text.trim();
       await AppScope.read(context).repo.submitPrayer(
@@ -237,11 +239,11 @@ class _PrayerRequestSheetState extends State<PrayerRequestSheet> {
             category: _category,
             shareOnWall: _share,
           );
-      if (mounted) setState(() { _sent = true; });
+      if (mounted) setState(() => _sent = true);
     } catch (e) {
       if (mounted) setState(() => _error = 'Couldn’t send your request. Check your connection and try again.');
     } finally {
-      if (mounted) setState(() { _busy = false; });
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -300,7 +302,7 @@ class _PrayerRequestSheetState extends State<PrayerRequestSheet> {
               label: Text(c),
               selected: _category == c,
               showCheckmark: false,
-              onSelected: _busy ? null : (_) => setState(() { _category = c; }),
+              onSelected: _busy ? null : (_) => setState(() => _category = c),
             ),
         ]),
       ),
@@ -313,7 +315,7 @@ class _PrayerRequestSheetState extends State<PrayerRequestSheet> {
         textCapitalization: TextCapitalization.sentences,
         style: const TextStyle(fontSize: BethelType.lead, height: 1.45),
         onChanged: (_) {
-          if (_requestError != null) setState(() { _requestError = null; });
+          if (_requestError != null) setState(() => _requestError = null);
         },
         decoration: InputDecoration(
           hintText: 'Your prayer request',
@@ -332,7 +334,7 @@ class _PrayerRequestSheetState extends State<PrayerRequestSheet> {
           hint: 'Your name',
           errorText: _nameError,
           onChanged: (_) {
-            if (_nameError != null) setState(() { _nameError = null; });
+            if (_nameError != null) setState(() => _nameError = null);
           },
         ),
         const SizedBox(height: 12),
@@ -353,7 +355,7 @@ class _PrayerRequestSheetState extends State<PrayerRequestSheet> {
           ]),
         ),
         const SizedBox(width: 16),
-        Switch(value: _share, onChanged: _busy ? null : (v) => setState(() { _share = v); }),
+        Switch(value: _share, onChanged: _busy ? null : (v) => setState(() => _share = v)),
       ]),
       if (_error != null) ...[
         const SizedBox(height: 12),
