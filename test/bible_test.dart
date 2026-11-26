@@ -3,7 +3,9 @@ import 'package:bethelprayerhouse/app/theme.dart';
 import 'package:bethelprayerhouse/bible/bible_text.dart';
 import 'package:bethelprayerhouse/bible/books.dart';
 import 'package:bethelprayerhouse/data/mock_repository.dart';
+import 'package:bethelprayerhouse/data/models.dart';
 import 'package:bethelprayerhouse/screens/bible_reader_screen.dart';
+import 'package:bethelprayerhouse/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -108,5 +110,30 @@ void main() {
     expect(state.bibleBook, 18);
     expect(state.bibleChapter, 23);
     expect(find.textContaining('The LORD is my shepherd', findRichText: true), findsOneWidget);
+  });
+
+  testWidgets('verse of the day: English first, swipe or tap for Telugu', (tester) async {
+    await tester.runAsync(() async {
+      await BibleText.load(BibleVersion.kjv);
+      await BibleText.load(BibleVersion.te);
+    });
+    final state = AppState(repository: MockRepository());
+    final verse = DailyVerse(id: 1, date: DateTime(2026, 11, 26), reference: 'Proverbs 3:5');
+    await tester.pumpWidget(AppScope(
+      state: state,
+      child: MaterialApp(theme: BethelTheme.light(), home: Scaffold(body: ListView(children: [VerseCard(verse: verse)]))),
+    ));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Trust in the LORD'), findsOneWidget, reason: 'English from the bundled KJV');
+    expect(find.text('Proverbs 3:5 · KJV'), findsOneWidget);
+
+    await tester.fling(find.textContaining('Trust in the LORD'), const Offset(-300, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('యెహోవాయందు'), findsOneWidget);
+
+    await tester.tap(find.text('English'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Trust in the LORD'), findsOneWidget);
   });
 }
