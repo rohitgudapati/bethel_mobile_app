@@ -149,8 +149,9 @@ class _SongsScreenState extends State<SongsScreen> {
     final tk = BethelTokens.of(context);
     final newest = c.newest;
     final recent = state.recentSongs.take(8).toList();
-    Widget shelf(List<Widget> items) => SizedBox(
-          height: 186,
+    // Heights fit the cover plus two lines of text, with room for larger text sizes.
+    Widget shelf(List<Widget> items, {required double height}) => SizedBox(
+          height: height,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -214,7 +215,7 @@ class _SongsScreenState extends State<SongsScreen> {
                   ]),
                 ),
               ),
-          ]),
+          ], height: 148 + 8 + 64),
         ),
       ],
       if (c.albums.isNotEmpty) ...[
@@ -243,7 +244,7 @@ class _SongsScreenState extends State<SongsScreen> {
                   ]),
                 ),
               ),
-          ]),
+          ], height: 120 + 8 + 52),
         ),
       ],
       if (recent.isNotEmpty) ...[
