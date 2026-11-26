@@ -123,7 +123,7 @@ class _AsyncViewState<T> extends State<AsyncView<T>> {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('Couldn\'t load this right now.\n${snap.error}', textAlign: TextAlign.center),
               const SizedBox(height: 8),
-              TextButton(onPressed: () => setState(() => _future = widget.load()), child: const Text('Try again')),
+              TextButton(onPressed: () => setState(() { _future = widget.load(); }), child: const Text('Try again')),
             ]),
           );
         } else {
