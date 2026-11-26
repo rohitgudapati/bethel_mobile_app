@@ -1,0 +1,21 @@
+
+::group::✅ Passing tests
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/bible_test.dart: bundled texts line up: 66 books, same chapters and verses
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: guest can reach every tab
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: submitting a prayer request adds it to the wall
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/bible_test.dart: read John 3, go to the next chapter, switch to Telugu, highlight
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: song book: search by number, open lyrics, save
+::endgroup::
+::group::⏭️ Skipped tests
+⏭️ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: Songs of Zion: find song 500 by number and read it in Telugu and English (skipped)
+::endgroup::
+::group::✅ Passing tests
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/bible_test.dart: pick Psalms 23 from the book list
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: sign up with a phone number and a texted code
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: the built-in verse changes every day and repeats the same verse for everyone
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: next Sunday service is the coming Sunday at 3:00 PM
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: banner says LIVE only while streaming
+::endgroup::
+
+🎉 10 tests passed, 1 skipped.
+exit code: 0
