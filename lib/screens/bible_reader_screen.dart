@@ -141,7 +141,8 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(s.bibleParallel ? 'KJV + తెలుగు' : s.bibleVersion.short, style: const TextStyle(fontSize: BethelType.caption)),
+                Text(s.bibleParallel ? 'KJV + తెలుగు' : s.bibleVersion.short,
+                    style: const TextStyle(fontSize: BethelType.caption, fontFamilyFallback: [BethelFonts.telugu])),
                 const Icon(Icons.expand_more_rounded, size: 16),
               ]),
             ),
