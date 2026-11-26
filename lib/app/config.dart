@@ -36,6 +36,10 @@ class AppConfig {
   static String get mapsUrl =>
       'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent('$churchName, $churchAddress')}';
 
+  /// Privacy policy and terms pages linked from the welcome screen. Empty shows "Link not available yet".
+  static const String privacyUrl = String.fromEnvironment('PRIVACY_URL', defaultValue: '');
+  static const String termsUrl = String.fromEnvironment('TERMS_URL', defaultValue: '');
+
   static bool get isFirebase => backend == 'firebase';
   static bool get isDemo => !isFirebase && apiBaseUrl.isEmpty;
 }

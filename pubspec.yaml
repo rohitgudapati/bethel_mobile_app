@@ -18,6 +18,7 @@ dependencies:
   youtube_player_iframe: ^6.0.4
   smart_auth: ^4.0.0
   flutter_svg: ^2.5.1
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   flutter_test:

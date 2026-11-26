@@ -1,140 +1,229 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_auth/smart_auth.dart';
 
 import '../app/app_state.dart';
+import '../app/config.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
 
-/// First screen: "Sacred Simplicity, Modern Elegance".
-/// Sanctuary photo, the church logo and name at the top, a short promise in the middle,
-/// one clear action at the bottom.
-class WelcomeScreen extends StatelessWidget {
+/// Very dark forest used to shade the sanctuary photo.
+const _shade = Color(0xFF0F1B19);
+
+/// Curve for the card entrance (fast out, gentle settle).
+const _rise = Cubic(0.2, 0.8, 0.2, 1);
+
+/// Which sign-in method this phone used last; shown as "Last used" on the welcome screen.
+class _LastMethod {
+  static const _key = 'last_sign_in_method';
+  static Future<String?> load() async => (await SharedPreferences.getInstance()).getString(_key);
+  static Future<void> save(String method) async => (await SharedPreferences.getInstance()).setString(_key, method);
+}
+
+/// Welcome: sanctuary photo, logo and name, the promise, then one button per sign-in method.
+/// Phone and email open a floating card over the blurred photo; Apple and Google use their own sheets.
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
-  /// Very dark forest, used for the photo's shading.
-  static const _shade = Color(0xFF0F1B19);
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  String? _last;
+  String? _busyProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _LastMethod.load().then((m) {
+      if (mounted) setState(() => _last = m);
+    });
+  }
+
+  void _open(_Step start, {required String method, UserProfile? pendingUser}) {
+    final still = reduceMotion(context);
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Close',
+      barrierColor: Colors.transparent,
+      transitionDuration: still ? Duration.zero : const Duration(milliseconds: 360),
+      pageBuilder: (_, __, ___) => _AuthFlow(start: start, method: method, pendingUser: pendingUser),
+      transitionBuilder: (context, anim, _, child) {
+        final curved = CurvedAnimation(parent: anim, curve: _rise);
+        return Stack(fit: StackFit.expand, children: [
+          // Blur and darken the welcome screen behind the card.
+          AnimatedBuilder(
+            animation: anim,
+            builder: (_, __) => BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18 * anim.value, sigmaY: 18 * anim.value),
+              child: ColoredBox(color: Colors.black.withValues(alpha: 0.35 * anim.value)),
+            ),
+          ),
+          FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween(begin: const Offset(0, 0.03), end: Offset.zero).animate(curved),
+              child: ScaleTransition(scale: Tween(begin: 0.97, end: 1.0).animate(curved), child: child),
+            ),
+          ),
+        ]);
+      },
+    );
+  }
+
+  Future<void> _provider(String provider) async {
+    if (_busyProvider != null) return;
+    setState(() => _busyProvider = provider);
+    final state = AppScope.read(context);
+    try {
+      final user = await state.repo.signInWithProvider(provider);
+      if (!mounted) return;
+      if (_needsName(user)) {
+        _open(_Step.name, method: provider, pendingUser: user);
+      } else {
+        await _LastMethod.save(provider);
+        state.signInAs(user);
+      }
+    } catch (e) {
+      if (mounted) showBethelToast(context, '$e', icon: Icons.error_outline_rounded);
+    } finally {
+      if (mounted) setState(() => _busyProvider = null);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = AppScope.read(context);
-    final ivory = BethelColors.ivory;
-    return Scaffold(
-      backgroundColor: _shade,
-      body: Stack(fit: StackFit.expand, children: [
-        // Keep the lit window on the right in view on wide and narrow screens.
-        const BethelImage('assets/church/sanctuary.jpg', fit: BoxFit.cover, alignment: Alignment(0.45, 0)),
-        // Shade the top (logo) and bottom (actions); leave the light rays in the middle.
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                _shade.withValues(alpha: 0.85),
-                _shade.withValues(alpha: 0.35),
-                _shade.withValues(alpha: 0.25),
-                _shade.withValues(alpha: 0.88),
-                _shade,
-              ],
-              stops: const [0, 0.32, 0.55, 0.8, 1],
+    String? badge(String m) => _last == m ? 'Last used' : null;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: _shade,
+        body: Stack(fit: StackFit.expand, children: [
+          // Keep the lit window on the right in view on wide and narrow screens.
+          const BethelImage('assets/church/sanctuary.jpg', fit: BoxFit.cover, alignment: Alignment(0.45, 0)),
+          // Shade the top (logo) and bottom (buttons); leave the light rays in the middle.
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  _shade.withValues(alpha: 0.86),
+                  _shade.withValues(alpha: 0.3),
+                  _shade.withValues(alpha: 0.3),
+                  _shade.withValues(alpha: 0.92),
+                  _shade,
+                ],
+                stops: const [0, 0.3, 0.44, 0.66, 1],
+              ),
             ),
           ),
-        ),
-        SafeArea(
-          child: LayoutBuilder(
-            // Scrolls on very short screens; otherwise the spacers spread the three blocks out.
-            builder: (context, box) => SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: box.maxHeight),
-                child: IntrinsicHeight(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 440),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(28, 28, 28, 16),
-                        child: Column(children: [
-                          // ---- Logo and name
-                          Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: BethelColors.brass.withValues(alpha: 0.7), width: 1.2),
-                              boxShadow: [BoxShadow(color: BethelColors.brass.withValues(alpha: 0.22), blurRadius: 30)],
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, box) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: box.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 440),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
+                          child: Column(children: [
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: BethelColors.brass)),
+                              child: const ClipOval(child: BethelImage('assets/church/logo.png', width: 64, height: 64)),
                             ),
-                            child: const ClipOval(child: BethelImage('assets/church/logo.png', width: 76, height: 76)),
-                          ),
-                          const SizedBox(height: 18),
-                          Text('BETHEL\nPRAYER HOUSE',
-                              textAlign: TextAlign.center,
-                              style: _serif(25, ivory).copyWith(letterSpacing: 5, height: 1.3)),
-                          const SizedBox(height: 10),
-                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            _rule(),
-                            const SizedBox(width: 12),
-                            Flexible(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text('Naperville, Illinois',
-                                    style: _serif(15.5, ivory.withValues(alpha: 0.88), italic: true)),
-                              ),
+                            const SizedBox(height: 16),
+                            const Text('BETHEL\nPRAYER HOUSE',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: BethelFonts.display,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 5,
+                                  height: 1.35,
+                                  color: BethelColors.ivory,
+                                )),
+                            const SizedBox(height: 8),
+                            const Text('Naperville, Illinois',
+                                style: TextStyle(
+                                  fontFamily: BethelFonts.display,
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: BethelType.body,
+                                  color: BethelColors.stone,
+                                )),
+                            const Spacer(),
+                            const SizedBox(height: 32),
+                            const Text('Rooted in faith.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontFamily: BethelFonts.display, fontSize: 32, height: 1.15, color: BethelColors.ivory)),
+                            const Text('United in Christ.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: BethelFonts.display,
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 32,
+                                  height: 1.15,
+                                  color: BethelColors.brassLight,
+                                )),
+                            const SizedBox(height: 32),
+                            _AuthButton(
+                              icon: const Icon(Icons.phone_outlined, size: 18, color: BethelColors.ink),
+                              label: 'Continue with phone',
+                              badge: badge('phone'),
+                              onTap: () => _open(_Step.phone, method: 'phone'),
                             ),
-                            const SizedBox(width: 12),
-                            _rule(),
-                          ]),
-                          const Spacer(flex: 3),
-                          const SizedBox(height: 28),
-                          // ---- Promise
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Column(children: [
-                              Text('Rooted in faith.', style: _serif(40, ivory).copyWith(height: 1.15, shadows: _glow)),
-                              Text('United in Christ.',
-                                  style: _serif(40, const Color(0xFFD6BF97), italic: true)
-                                      .copyWith(height: 1.15, shadows: _glow)),
+                            const SizedBox(height: 12),
+                            _AuthButton(
+                              icon: const Icon(Icons.apple, size: 20, color: BethelColors.ink),
+                              label: 'Continue with Apple',
+                              badge: badge('apple'),
+                              busy: _busyProvider == 'apple',
+                              onTap: () => _provider('apple'),
+                            ),
+                            const SizedBox(height: 12),
+                            _AuthButton(
+                              icon: SvgPicture.asset('assets/google.svg', width: 18, height: 18),
+                              label: 'Continue with Google',
+                              badge: badge('google'),
+                              busy: _busyProvider == 'google',
+                              onTap: () => _provider('google'),
+                            ),
+                            const SizedBox(height: 12),
+                            _AuthButton(
+                              icon: const Icon(Icons.mail_outline_rounded, size: 18, color: BethelColors.ivory),
+                              label: 'Continue with email',
+                              badge: badge('email'),
+                              dark: true,
+                              onTap: () => _open(_Step.email, method: 'email'),
+                            ),
+                            const SizedBox(height: 4),
+                            TextButton(
+                              onPressed: state.continueAsGuest,
+                              style: TextButton.styleFrom(foregroundColor: BethelColors.ivory, minimumSize: const Size(0, 48)),
+                              child: const Text('Continue as guest'),
+                            ),
+                            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              _FooterLink('Privacy', onTap: () => openLink(context, AppConfig.privacyUrl)),
+                              const SizedBox(width: 24),
+                              _FooterLink('Terms', onTap: () => openLink(context, AppConfig.termsUrl)),
                             ]),
-                          ),
-                          const SizedBox(height: 18),
-                          Text('Your church family,\nwherever life takes you.',
-                              textAlign: TextAlign.center,
-                              style: _sw(17, FontWeight.w400, ivory.withValues(alpha: 0.86))
-                                  .copyWith(height: 1.45, shadows: _glow)),
-                          const Spacer(flex: 4),
-                          const SizedBox(height: 28),
-                          // ---- Actions
-                          _BrassButton(label: 'Get started', onTap: () => _openAuth(context, signUp: true)),
-                          const SizedBox(height: 14),
-                          Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
-                            Text('Already a member? ', style: _sw(16, FontWeight.w400, ivory)),
-                            InkWell(
-                              borderRadius: BorderRadius.circular(6),
-                              onTap: () => _openAuth(context, signUp: false),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-                                child: Text('Sign in',
-                                    style: _sw(16, FontWeight.w600, BethelColors.brassLight).copyWith(
-                                      decoration: TextDecoration.underline,
-                                      decorationColor: BethelColors.brass,
-                                      decorationThickness: 1.6,
-                                    )),
-                              ),
-                            ),
                           ]),
-                          TextButton(
-                            onPressed: state.continueAsGuest,
-                            style: TextButton.styleFrom(
-                              foregroundColor: ivory.withValues(alpha: 0.8),
-                              textStyle: _sw(15.5, FontWeight.w500),
-                            ),
-                            child: const Text('Continue as guest'),
-                          ),
-                        ]),
+                        ),
                       ),
                     ),
                   ),
@@ -142,150 +231,167 @@ class WelcomeScreen extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ]),
-    );
-  }
-
-  /// Soft dark halo so text stays readable over the bright light rays.
-  static const _glow = [Shadow(color: Color(0xB3000000), blurRadius: 20)];
-
-  static Widget _rule() => Container(width: 34, height: 1, color: BethelColors.brass.withValues(alpha: 0.8));
-
-  static TextStyle _serif(double size, Color color, {bool italic = false}) => TextStyle(
-        fontFamily: BethelFonts.display,
-        fontSize: size,
-        fontWeight: FontWeight.w500,
-        fontStyle: italic ? FontStyle.italic : FontStyle.normal,
-        color: color,
-      );
-
-  static TextStyle _sw(double size, FontWeight weight, [Color? color]) =>
-      TextStyle(fontFamily: BethelFonts.welcome, fontSize: size, fontWeight: weight, color: color);
-
-  /// Sign in / sign up as a floating card in the middle of the screen.
-  void _openAuth(BuildContext context, {required bool signUp}) {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Close',
-      barrierColor: const Color(0x8C0B1626),
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (_, __, ___) => AuthCard(signUp: signUp),
-      transitionBuilder: (_, anim, __, child) {
-        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8 * anim.value, sigmaY: 8 * anim.value),
-          child: FadeTransition(
-            opacity: curved,
-            child: ScaleTransition(scale: Tween(begin: 0.94, end: 1.0).animate(curved), child: child),
-          ),
-        );
-      },
+        ]),
+      ),
     );
   }
 }
 
-/// The main call to action: a brass pill with dark text.
-class _BrassButton extends StatelessWidget {
-  const _BrassButton({required this.label, required this.onTap});
+bool _needsName(UserProfile u) => u.name.trim().isEmpty || u.name == 'Friend';
+
+/// Full-width sign-in button: Ivory with Ink text, or translucent for email. Optional "Last used" badge.
+class _AuthButton extends StatelessWidget {
+  const _AuthButton({required this.icon, required this.label, required this.onTap, this.dark = false, this.badge, this.busy = false});
+
+  final Widget icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool dark;
+  final String? badge;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = dark ? BethelColors.ivory : BethelColors.ink;
+    return Pressable(
+      onTap: busy ? null : onTap,
+      semanticLabel: label,
+      child: Stack(clipBehavior: Clip.none, children: [
+        Container(
+          height: 52,
+          decoration: BoxDecoration(
+            color: dark ? BethelColors.ivory.withValues(alpha: 0.14) : BethelColors.ivory,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          alignment: Alignment.center,
+          child: busy
+              ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: fg))
+              : Row(mainAxisSize: MainAxisSize.min, children: [
+                  icon,
+                  const SizedBox(width: 10),
+                  Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: fg)),
+                ]),
+        ),
+        if (badge != null)
+          Positioned(
+            right: 12,
+            top: -9,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+              decoration: BoxDecoration(color: BethelColors.brass, borderRadius: BorderRadius.circular(999)),
+              child: Text(badge!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: BethelColors.ink)),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+class _FooterLink extends StatelessWidget {
+  const _FooterLink(this.label, {required this.onTap});
   final String label;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [BethelColors.brassLight, BethelColors.brass],
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(label, style: const TextStyle(fontSize: BethelType.caption, color: BethelColors.stone)),
         ),
-        boxShadow: [
-          BoxShadow(color: BethelColors.brass.withValues(alpha: 0.28), blurRadius: 24, offset: const Offset(0, 8))
-        ],
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
-          child: SizedBox(
-            height: 58,
-            width: double.infinity,
-            child: Center(
-              child: Text(label,
-                  style: const TextStyle(
-                      fontFamily: BethelFonts.welcome,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: BethelColors.ink)),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+      );
 }
 
-enum _Method { email, phone }
+// ===================================================================== sign-in card
 
-class AuthCard extends StatefulWidget {
-  const AuthCard({super.key, required this.signUp});
-  final bool signUp;
+enum _Step { phone, code, verified, name, email, password, createPassword, forgot }
+
+/// The floating card. One step at a time; Back steps one card back (or closes from the first step).
+class _AuthFlow extends StatefulWidget {
+  const _AuthFlow({required this.start, required this.method, this.pendingUser});
+
+  final _Step start;
+
+  /// 'phone', 'email', 'apple' or 'google' – saved as the "Last used" method on success.
+  final String method;
+
+  /// Set when Apple/Google signed in a new member who still needs to give a name.
+  final UserProfile? pendingUser;
 
   @override
-  State<AuthCard> createState() => _AuthCardState();
+  State<_AuthFlow> createState() => _AuthFlowState();
 }
 
-class _AuthCardState extends State<AuthCard> {
-  late bool _signUp = widget.signUp;
-  _Method _method = _Method.email;
-  final _name = TextEditingController();
+enum _CodeState { typing, checking, error }
+
+class _AuthFlowState extends State<_AuthFlow> {
+  late _Step _step = widget.start;
+  final List<_Step> _history = [];
+
+  final _phone = TextEditingController(text: '+1 ');
+  final _code = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  final _phone = TextEditingController();
-  final _code = TextEditingController();
+  final _name = TextEditingController();
+
   bool _busy = false;
-  bool _hide = true;
-
-  /// True once a code has been texted: the card shows the "Verify your phone number" step.
-  bool _codeSent = false;
   String? _error;
+  int _shake = 0;
+  bool _hidePassword = true;
+  bool _pendingSignUp = false;
+  _CodeState _codeState = _CodeState.typing;
 
-  /// Seconds until "Resend" can be tapped again.
   int _resendIn = 0;
   Timer? _resendTimer;
 
-  /// Android only: reads the code from the incoming text after the person allows it.
   static bool get _canReadSms => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void dispose() {
     _resendTimer?.cancel();
     _stopSmsListener();
-    for (final c in [_name, _email, _password, _phone, _code]) {
+    for (final c in [_phone, _code, _email, _password, _name]) {
       c.dispose();
     }
     super.dispose();
   }
 
-  /// "(630) 555-0123" → "+16305550123". Numbers typed with a leading + are kept as they are.
-  String get _e164 {
-    final raw = _phone.text.trim();
-    final digits = raw.replaceAll(RegExp(r'\D'), '');
-    if (raw.startsWith('+')) return '+$digits';
-    return digits.length == 11 && digits.startsWith('1') ? '+$digits' : '+1$digits';
+  // ---------------------------------------------------------------- navigation
+
+  void _go(_Step s) => setState(() {
+        // The Verified moment isn't a step you can go back to.
+        if (_step != _Step.verified) _history.add(_step);
+        _step = s;
+        _error = null;
+      });
+
+  void _back() {
+    if (_history.isEmpty) {
+      Navigator.of(context).pop();
+      return;
+    }
+    if (_step == _Step.code) _stopCode();
+    setState(() {
+      _step = _history.removeLast();
+      _error = null;
+    });
   }
 
-  /// "+16305550123" → "+1 (630) 555-0123", with non-breaking spaces so it never splits across lines.
-  String get _prettyPhone {
-    final p = _e164;
-    if (p.length == 12 && p.startsWith('+1')) {
-      return '+1 (${p.substring(2, 5)}) ${p.substring(5, 8)}‑${p.substring(8)}';
+  Future<void> _finish(UserProfile user) async {
+    await _LastMethod.save(widget.method);
+    if (!mounted) return;
+    final state = AppScope.read(context);
+    Navigator.of(context).pop();
+    state.signInAs(user);
+  }
+
+  /// Phone, Apple and Google land here: new members give their name first.
+  void _afterVerify(UserProfile user) {
+    if (_needsName(user)) {
+      _go(_Step.name);
+    } else {
+      _finish(user);
     }
-    return p;
   }
 
   Future<void> _run(Future<void> Function() action) async {
@@ -296,40 +402,43 @@ class _AuthCardState extends State<AuthCard> {
     try {
       await action();
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) {
+        setState(() {
+          _error = '$e';
+          _shake++;
+        });
+        HapticFeedback.mediumImpact();
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  void _done(UserProfile user) {
-    if (!mounted) return;
-    final state = AppScope.read(context);
-    Navigator.of(context).pop();
-    state.signInAs(user);
+  // ---------------------------------------------------------------- phone
+
+  /// "(630) 555-0123" → "+16305550123". Numbers typed with a country code are kept as they are.
+  String get _e164 {
+    final raw = _phone.text.trim();
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (raw.startsWith('+') && !(digits.length == 11 && digits.startsWith('1')) && digits.length > 10) return '+$digits';
+    if (digits.length == 11 && digits.startsWith('1')) return '+$digits';
+    return '+1$digits';
   }
 
-  void _checkName() {
-    if (_signUp && _name.text.trim().isEmpty) throw 'Please tell us your name.';
+  /// "+16305550123" → "+1 (630) 555‑0123" (non-breaking hyphen so it never splits).
+  String get _prettyPhone {
+    final p = _e164;
+    if (p.length == 12 && p.startsWith('+1')) return '+1 (${p.substring(2, 5)}) ${p.substring(5, 8)}‑${p.substring(8)}';
+    return p;
   }
-
-  Future<void> _submitEmail() => _run(() async {
-        _checkName();
-        final repo = AppScope.read(context).repo;
-        _done(_signUp
-            ? await repo.signUp(_name.text, _email.text, _password.text)
-            : await repo.signIn(_email.text, _password.text));
-      });
 
   Future<void> _sendCode() => _run(() async {
-        _checkName();
-        if (_phone.text.replaceAll(RegExp(r'\D'), '').length < 10) throw 'Please enter your phone number.';
+        if (_e164.replaceAll(RegExp(r'\D'), '').length < 11) throw 'Enter your phone number';
         await AppScope.read(context).repo.sendPhoneCode(_e164);
         if (!mounted) return;
-        setState(() {
-          _codeSent = true;
-          _code.clear();
-        });
+        _code.clear();
+        _codeState = _CodeState.typing;
+        _go(_Step.code);
         _startResendTimer();
         _listenForSms();
       });
@@ -339,24 +448,43 @@ class _AuthCardState extends State<AuthCard> {
       await AppScope.read(context).repo.sendPhoneCode(_e164);
       if (!mounted) return;
       _code.clear();
-      showToast(context, 'We sent a new code to $_prettyPhone.');
+      setState(() => _codeState = _CodeState.typing);
+      showBethelToast(context, 'New code sent to $_prettyPhone');
       _startResendTimer();
       _listenForSms();
     });
   }
 
-  Future<void> _verifyCode() async {
-    if (_busy) return;
-    await _run(() async {
-      _done(await AppScope.read(context).repo.verifyPhoneCode(_code.text, name: _name.text));
-    });
-    // A wrong code: empty the boxes so it can be typed again (the message stays until then).
-    if (mounted && _error != null) _code.clear();
+  /// Six digits typed or filled from Messages: check right away.
+  Future<void> _verifyCode(String code) async {
+    if (_codeState == _CodeState.checking) return;
+    setState(() => _codeState = _CodeState.checking);
+    try {
+      final user = await AppScope.read(context).repo.verifyPhoneCode(code, name: _name.text);
+      if (!mounted) return;
+      _stopCode();
+      HapticFeedback.lightImpact();
+      _go(_Step.verified);
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (!mounted) return;
+      _afterVerify(user);
+    } catch (e) {
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      setState(() {
+        _codeState = _CodeState.error;
+        _shake++;
+      });
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (!mounted) return;
+      _code.clear();
+      setState(() => _codeState = _CodeState.typing);
+    }
   }
 
   void _startResendTimer() {
     _resendTimer?.cancel();
-    setState(() => _resendIn = 30);
+    setState(() => _resendIn = 42);
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return timer.cancel();
       setState(() => _resendIn--);
@@ -364,78 +492,124 @@ class _AuthCardState extends State<AuthCard> {
     });
   }
 
-  /// Android: wait for the text, ask the person to allow reading it, then fill in and verify the code.
-  /// (iPhone and the web offer the code above the keyboard through the one-time-code autofill hint.)
+  void _stopCode() {
+    _resendTimer?.cancel();
+    _stopSmsListener();
+  }
+
+  /// Android: wait for the text, ask the person to allow reading it, then fill in the code.
+  /// iPhone offers the code above the keyboard through the one-time-code autofill hint.
   Future<void> _listenForSms() async {
     if (!_canReadSms) return;
     await _stopSmsListener();
     final result = await SmartAuth.instance.getSmsWithUserConsentApi();
     final code = result.data?.code;
-    if (!mounted || !_codeSent || code == null || code.length != _OtpBoxes.length) return;
+    if (!mounted || _step != _Step.code || code == null || code.length != 6) return;
     _code.text = code;
-    _verifyCode();
+    _verifyCode(code);
   }
 
   Future<void> _stopSmsListener() async {
     if (_canReadSms) await SmartAuth.instance.removeUserConsentApiListener();
   }
 
-  void _changeNumber() {
-    _stopSmsListener();
-    _resendTimer?.cancel();
-    setState(() {
-      _codeSent = false;
-      _resendIn = 0;
-      _code.clear();
-      _error = null;
-    });
+  // ---------------------------------------------------------------- email
+
+  void _emailContinue() {
+    if (!_email.text.contains('@')) {
+      setState(() {
+        _error = 'Enter your email';
+        _shake++;
+      });
+      return;
+    }
+    _go(_Step.password);
   }
 
-  void _setMethod(_Method m) => setState(() {
-        _method = m;
-        _error = null;
+  Future<void> _signIn() => _run(() async {
+        if (_password.text.isEmpty) throw 'Enter your password';
+        try {
+          final user = await AppScope.read(context).repo.signIn(_email.text, _password.text);
+          await _finish(user);
+        } catch (e) {
+          final m = '$e';
+          throw m.contains('match') || m.contains('password') ? 'Wrong password' : m;
+        }
       });
+
+  void _createPassword() {
+    if (_password.text.length < 8) {
+      setState(() {
+        _error = 'Use at least 8 characters';
+        _shake++;
+      });
+      return;
+    }
+    _pendingSignUp = true;
+    _go(_Step.name);
+  }
+
+  Future<void> _forgot() => _run(() async {
+        await AppScope.read(context).repo.sendPasswordReset(_email.text);
+        if (mounted) _go(_Step.forgot);
+      });
+
+  // ---------------------------------------------------------------- name
+
+  Future<void> _saveName() => _run(() async {
+        if (_name.text.trim().isEmpty) throw 'Enter your name';
+        final repo = AppScope.read(context).repo;
+        final user = _pendingSignUp
+            ? await repo.signUp(_name.text, _email.text, _password.text)
+            : await repo.updateName(_name.text);
+        await _finish(user);
+      });
+
+  // ---------------------------------------------------------------- UI
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
+    final tk = BethelTokens.of(context);
+    final dark = t.brightness == Brightness.dark;
     final insets = MediaQuery.viewInsetsOf(context).bottom;
-    final verifying = _method == _Method.phone && _codeSent;
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + insets),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x47000000), blurRadius: 48, spreadRadius: -6, offset: Offset(0, 22)),
-                  BoxShadow(color: Color(0x1F000000), blurRadius: 10, offset: Offset(0, 4)),
-                ],
-              ),
-              child: Material(
-                color: t.colorScheme.surface,
-                borderRadius: BorderRadius.circular(28),
-                clipBehavior: Clip.antiAlias,
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 240),
-                  curve: Curves.easeOutCubic,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(26, 18, 26, 22),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 220),
-                      transitionBuilder: (child, anim) => FadeTransition(
-                        opacity: anim,
-                        child: SlideTransition(
-                          position: Tween(begin: const Offset(0.04, 0), end: Offset.zero).animate(anim),
-                          child: child,
+    final still = reduceMotion(context);
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: SafeArea(
+        child: AnimatedAlign(
+          duration: still ? Duration.zero : const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          alignment: insets > 0 ? Alignment.bottomCenter : Alignment.center,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + insets),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: const [BoxShadow(color: Color(0x59000000), blurRadius: 60, offset: Offset(0, 24))],
+                ),
+                child: Material(
+                  color: dark ? tk.card : t.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(28),
+                  clipBehavior: Clip.antiAlias,
+                  child: AnimatedSize(
+                    duration: still ? Duration.zero : const Duration(milliseconds: 240),
+                    curve: Curves.easeOutCubic,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                      child: AnimatedSwitcher(
+                        duration: still ? Duration.zero : const Duration(milliseconds: 220),
+                        transitionBuilder: (child, anim) => FadeTransition(
+                          opacity: anim,
+                          child: SlideTransition(
+                            position: Tween(begin: const Offset(0.03, 0), end: Offset.zero).animate(anim),
+                            child: child,
+                          ),
                         ),
+                        child: KeyedSubtree(key: ValueKey(_step), child: _content(t, tk)),
                       ),
-                      child: verifying
-                          ? KeyedSubtree(key: const ValueKey('verify'), child: _verifyView(t))
-                          : KeyedSubtree(key: const ValueKey('form'), child: _formView(t)),
                     ),
                   ),
                 ),
@@ -447,404 +621,459 @@ class _AuthCardState extends State<AuthCard> {
     );
   }
 
-  Widget _closeButton(ThemeData t) => IconButton(
-        tooltip: 'Close',
-        onPressed: () => Navigator.of(context).pop(),
-        icon: Icon(Icons.close_rounded, color: t.colorScheme.onSurfaceVariant),
-      );
-
-  TextStyle _titleStyle(ThemeData t) => TextStyle(
-      fontFamily: BethelFonts.display,
-      fontSize: 32,
-      height: 1.1,
-      fontWeight: FontWeight.w600,
-      color: t.colorScheme.onSurface);
-
-  // ----------------------------------------------------------------- step 1: details
-
-  Widget _formView(ThemeData t) {
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      // Logo centred, close button in the top-right corner.
-      Stack(alignment: Alignment.center, children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 6),
-          child: ClipOval(child: BethelImage('assets/church/logo.png', width: 48, height: 48)),
-        ),
-        Align(alignment: Alignment.topRight, child: _closeButton(t)),
-      ]),
-      const SizedBox(height: 14),
-      Text(_signUp ? 'Join the family' : 'Welcome back', textAlign: TextAlign.center, style: _titleStyle(t)),
-      const SizedBox(height: 6),
-      Text(_signUp ? 'Create your Bethel account.' : 'Sign in to continue.',
-          textAlign: TextAlign.center, style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
-      const SizedBox(height: 20),
-      _MethodSwitch(value: _method, onChanged: _busy ? null : _setMethod),
-      const SizedBox(height: 16),
-      if (_signUp) ...[
-        TextField(
-          controller: _name,
-          textCapitalization: TextCapitalization.words,
-          autofillHints: const [AutofillHints.name],
-          decoration: const InputDecoration(labelText: 'Full name', prefixIcon: Icon(Icons.person_outline)),
-        ),
-        const SizedBox(height: 12),
-      ],
-      ...(_method == _Method.email ? _emailFields(t) : _phoneFields(t)),
-      if (_error != null) ...[
-        const SizedBox(height: 10),
-        Text(_error!, style: TextStyle(color: t.colorScheme.error)),
-      ],
-      const SizedBox(height: 16),
-      FilledButton(
-        onPressed: _busy ? null : (_method == _Method.email ? _submitEmail : _sendCode),
-        child: _busy
-            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4))
-            : Text(_method == _Method.phone ? 'Send code' : (_signUp ? 'Create account' : 'Sign in')),
-      ),
-      const SizedBox(height: 16),
-      Row(children: [
-        const Expanded(child: Divider()),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text('or', style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
-        ),
-        const Expanded(child: Divider()),
-      ]),
-      const SizedBox(height: 14),
-      Center(
-        child: _GoogleButton(
-            onTap: () => showToast(context, 'Google sign-in connects to the API\'s OAuthSignIn endpoint.')),
-      ),
-      const SizedBox(height: 10),
-      TextButton(
-        onPressed: () => setState(() {
-          _signUp = !_signUp;
-          _error = null;
-        }),
-        child: Text(_signUp ? 'Already have an account? Sign in' : 'New here? Create an account'),
-      ),
-    ]);
-  }
-
-  List<Widget> _emailFields(ThemeData t) => [
-        TextField(
-          controller: _email,
-          keyboardType: TextInputType.emailAddress,
-          autofillHints: const [AutofillHints.email],
-          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline)),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _password,
-          obscureText: _hide,
-          autofillHints: const [AutofillHints.password],
-          onSubmitted: (_) => _submitEmail(),
-          decoration: InputDecoration(
-            labelText: 'Password',
-            prefixIcon: const Icon(Icons.lock_outline),
-            suffixIcon: IconButton(
-              icon: Icon(_hide ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-              onPressed: () => setState(() => _hide = !_hide),
+  Widget _content(ThemeData t, BethelTokens tk) {
+    switch (_step) {
+      case _Step.phone:
+        return _card(t, title: 'Your phone number', children: [
+          _Shake(
+            trigger: _shake,
+            child: TileField(
+              controller: _phone,
+              label: 'Phone number',
+              hint: '+1 (630) 555-0123',
+              keyboardType: TextInputType.phone,
+              autofillHints: const [AutofillHints.telephoneNumber],
+              autofocus: true,
+              errorText: _error,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _sendCode(),
             ),
           ),
-        ),
-        if (!_signUp)
-          Align(
-            alignment: Alignment.centerRight,
+          _primary('Send code', _sendCode),
+          Text('SMS rates may apply', textAlign: TextAlign.center, style: t.textTheme.bodySmall),
+        ]);
+
+      case _Step.code:
+        return _card(t,
+            title: 'Enter the code',
+            sub: Wrap(alignment: WrapAlignment.center, children: [
+              Text('Sent to ', style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+              GestureDetector(
+                onTap: _back,
+                child: Text(_prettyPhone, style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.primary)),
+              ),
+            ]),
+            children: [
+              _Shake(
+                trigger: _shake,
+                child: _OtpField(
+                  controller: _code,
+                  error: _codeState == _CodeState.error,
+                  enabled: _codeState == _CodeState.typing,
+                  onCompleted: _verifyCode,
+                ),
+              ),
+              SizedBox(
+                height: 22,
+                child: Center(
+                  child: switch (_codeState) {
+                    _CodeState.checking => Row(mainAxisSize: MainAxisSize.min, children: [
+                        SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2.5, color: t.colorScheme.onSurfaceVariant)),
+                        const SizedBox(width: 8),
+                        Text('Checking', style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+                      ]),
+                    _CodeState.error => Text('Wrong code. Try again.', style: t.textTheme.bodyMedium?.copyWith(color: tk.error)),
+                    _CodeState.typing => _resendIn > 0
+                        ? Text('Resend in 0:${_resendIn.toString().padLeft(2, '0')}',
+                            style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant))
+                        : GestureDetector(
+                            onTap: _busy ? null : _resend,
+                            child: Text('Resend code', style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.primary)),
+                          ),
+                  },
+                ),
+              ),
+            ]);
+
+      case _Step.verified:
+        return _card(t, title: widget.method == 'phone' ? 'Enter the code' : 'Signed in', showBack: false, children: [
+          Column(children: [
+            _CheckMark(color: t.colorScheme.primary),
+            const SizedBox(height: 8),
+            Text('Verified', style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+          ]),
+        ]);
+
+      case _Step.name:
+        return _card(t, title: 'Your name', subText: 'Shown on the prayer wall', children: [
+          _Shake(
+            trigger: _shake,
+            child: TileField(
+              controller: _name,
+              label: 'Your name',
+              hint: 'Your name',
+              autofillHints: const [AutofillHints.name],
+              autofocus: true,
+              errorText: _error,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _saveName(),
+            ),
+          ),
+          _primary('Continue', _saveName),
+        ]);
+
+      case _Step.email:
+        return _card(t, title: 'Your email', children: [
+          _Shake(
+            trigger: _shake,
+            child: TileField(
+              controller: _email,
+              label: 'Email',
+              hint: 'name@example.com',
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              autofocus: true,
+              errorText: _error,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) => _emailContinue(),
+            ),
+          ),
+          _primary('Continue', () async => _emailContinue()),
+        ]);
+
+      case _Step.password:
+        return _card(t, title: 'Password', subText: _email.text.trim(), children: [
+          _Shake(
+            trigger: _shake,
+            child: TileField(
+              controller: _password,
+              label: 'Password',
+              hint: 'Password',
+              obscureText: _hidePassword,
+              autofillHints: const [AutofillHints.password],
+              autofocus: true,
+              errorText: _error,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _signIn(),
+              trailing: TextButton(onPressed: _busy ? null : _forgot, child: const Text('Forgot?')),
+            ),
+          ),
+          _primary('Continue', _signIn),
+          Center(
             child: TextButton(
-              onPressed: () => showToast(context, 'We\'ll email you a code to reset your password.'),
-              child: const Text('Forgot password?'),
+              onPressed: () {
+                _password.clear();
+                _go(_Step.createPassword);
+              },
+              child: const Text('New here? Create an account'),
             ),
           ),
-      ];
+        ]);
 
-  List<Widget> _phoneFields(ThemeData t) => [
-        TextField(
-          controller: _phone,
-          keyboardType: TextInputType.phone,
-          autofillHints: const [AutofillHints.telephoneNumber],
-          onSubmitted: (_) => _sendCode(),
-          decoration: const InputDecoration(
-            labelText: 'Phone number',
-            hintText: '(630) 555-0123',
-            prefixIcon: Icon(Icons.phone_iphone_rounded),
-            prefixText: '+1  ',
+      case _Step.createPassword:
+        return _card(t, title: 'Create a password', subText: _email.text.trim(), children: [
+          _Shake(
+            trigger: _shake,
+            child: TileField(
+              controller: _password,
+              label: 'New password',
+              hint: 'At least 8 characters',
+              obscureText: _hidePassword,
+              autofillHints: const [AutofillHints.newPassword],
+              autofocus: true,
+              errorText: _error,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _createPassword(),
+              trailing: IconButton(
+                tooltip: _hidePassword ? 'Show password' : 'Hide password',
+                onPressed: () => setState(() => _hidePassword = !_hidePassword),
+                icon: Icon(_hidePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    color: t.colorScheme.onSurfaceVariant),
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text('We\'ll text you a 6-digit code. Message and data rates may apply.',
-            style: TextStyle(fontSize: 12.5, color: t.colorScheme.onSurfaceVariant)),
-      ];
+          _primary('Continue', () async => _createPassword()),
+        ]);
 
-  // ----------------------------------------------------------------- step 2: verify phone
+      case _Step.forgot:
+        return _card(t, title: 'Check your email', subText: 'Reset link sent to ${_email.text.trim()}', children: [
+          Center(
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(color: tk.tile, shape: BoxShape.circle, boxShadow: tk.tileShadow),
+              child: Icon(Icons.mail_outline_rounded, size: 30, color: t.colorScheme.primary),
+            ),
+          ),
+          _primary('Done', () async => _back()),
+        ]);
+    }
+  }
 
-  Widget _verifyView(ThemeData t) {
-    final muted = TextStyle(color: t.colorScheme.onSurfaceVariant, fontSize: 14, height: 1.5);
+  /// Card layout: round Back button on the left, centred title and subtitle, then the step's body.
+  Widget _card(ThemeData t, {required String title, String? subText, Widget? sub, bool showBack = true, required List<Widget> children}) {
+    final tk = BethelTokens.of(context);
     return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Row(children: [
-        IconButton(
-          tooltip: 'Change number',
-          onPressed: _busy ? null : _changeNumber,
-          icon: Icon(Icons.arrow_back_rounded, color: t.colorScheme.onSurfaceVariant),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(
+          width: 40,
+          height: 40,
+          child: showBack
+              ? Pressable(
+                  onTap: _back,
+                  semanticLabel: 'Back',
+                  child: Container(
+                    decoration: BoxDecoration(color: tk.raised, shape: BoxShape.circle),
+                    child: Icon(Icons.chevron_left_rounded, size: 24, color: t.colorScheme.onSurface),
+                  ),
+                )
+              : null,
         ),
-        const Spacer(),
-        _closeButton(t),
-      ]),
-      const SizedBox(height: 4),
-      Center(
-        child: Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: t.brightness == Brightness.dark ? BethelColors.nightCard : BethelColors.brassSoft,
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(children: [
+              Text(title, textAlign: TextAlign.center, style: t.textTheme.headlineSmall),
+              if (subText != null && subText.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(subText,
+                    textAlign: TextAlign.center,
+                    style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+              ],
+              if (sub != null) ...[const SizedBox(height: 4), sub],
+            ]),
           ),
-          child: const Icon(Icons.sms_outlined, color: BethelColors.brass, size: 28),
         ),
-      ),
-      const SizedBox(height: 18),
-      Text('Verify your phone number', textAlign: TextAlign.center, style: _titleStyle(t).copyWith(fontSize: 28)),
-      const SizedBox(height: 10),
-      Text.rich(
-        TextSpan(style: muted, children: [
-          const TextSpan(text: 'Enter the 6-digit code we sent to '),
-          TextSpan(text: _prettyPhone, style: TextStyle(fontWeight: FontWeight.w600, color: t.colorScheme.onSurface)),
-          const TextSpan(text: '. It expires in 10 minutes.'),
-        ]),
-        textAlign: TextAlign.center,
-      ),
-      const SizedBox(height: 24),
-      _OtpBoxes(controller: _code, enabled: !_busy, onCompleted: _verifyCode),
-      // Status: checking the code, or what went wrong.
-      SizedBox(
-        height: 44,
-        child: Center(
-          child: _busy
-              ? Row(mainAxisSize: MainAxisSize.min, children: [
-                  const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                  const SizedBox(width: 10),
-                  Text('Verifying…', style: TextStyle(color: t.colorScheme.primary, fontWeight: FontWeight.w500)),
-                ])
-              : _error != null
-                  ? Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: t.colorScheme.error))
-                  : null,
-        ),
-      ),
-      // Wraps onto two lines on narrow phones instead of overflowing.
-      Wrap(alignment: WrapAlignment.center, crossAxisAlignment: WrapCrossAlignment.center, children: [
-        Text('Didn\'t get a code? ', style: muted),
-        if (_resendIn > 0)
-          Text('Resend in 0:${_resendIn.toString().padLeft(2, '0')}',
-              style: muted.copyWith(fontWeight: FontWeight.w700))
-        else
-          InkWell(
-            borderRadius: BorderRadius.circular(6),
-            onTap: _busy ? null : _resend,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-              child: Text('Resend',
-                  style: TextStyle(fontWeight: FontWeight.w700, color: t.colorScheme.primary, fontSize: 14)),
-            ),
-          ),
+        const SizedBox(width: 40),
       ]),
-      const SizedBox(height: 4),
+      for (final c in children) ...[const SizedBox(height: 20), c],
     ]);
   }
+
+  Widget _primary(String label, Future<void> Function() onTap) => FilledButton(
+        onPressed: _busy ? null : onTap,
+        child: _busy
+            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: BethelColors.ivory))
+            : Text(label),
+      );
 }
 
-/// Round "Sign in with Google" button showing only the Google logo.
-class _GoogleButton extends StatelessWidget {
-  const _GoogleButton({required this.onTap});
-  final VoidCallback onTap;
+// ===================================================================== code entry
 
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    return Tooltip(
-      message: 'Continue with Google',
-      child: Semantics(
-        button: true,
-        label: 'Continue with Google',
-        child: Material(
-          color: t.colorScheme.surfaceContainerLow,
-          shape: CircleBorder(side: BorderSide(color: t.colorScheme.outlineVariant)),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: SizedBox(
-              width: 56,
-              height: 56,
-              child: Center(child: SvgPicture.asset('assets/google_main.svg', width: 24, height: 24)),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+/// Six code tiles over a hidden text field. iPhone offers the texted code above the keyboard
+/// (one-time-code autofill); typing or filling six digits calls [onCompleted].
+class _OtpField extends StatefulWidget {
+  const _OtpField({required this.controller, required this.onCompleted, this.error = false, this.enabled = true});
 
-/// Six separate boxes for the texted code.
-///
-/// One invisible text field sits on top of the boxes and holds the whole code, so typing,
-/// backspace, pasting a full code and SMS autofill all work; the boxes just show its digits.
-class _OtpBoxes extends StatefulWidget {
-  const _OtpBoxes({required this.controller, required this.onCompleted, this.enabled = true});
   final TextEditingController controller;
-  final VoidCallback onCompleted;
+  final ValueChanged<String> onCompleted;
+  final bool error;
   final bool enabled;
 
-  static const length = 6;
-
   @override
-  State<_OtpBoxes> createState() => _OtpBoxesState();
+  State<_OtpField> createState() => _OtpFieldState();
 }
 
-class _OtpBoxesState extends State<_OtpBoxes> {
+class _OtpFieldState extends State<_OtpField> {
   final _focus = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _focus.addListener(_refresh);
-    // Repaint when the code is filled in or cleared from outside (SMS autofill, wrong code).
-    widget.controller.addListener(_refresh);
-  }
-
-  void _refresh() {
-    if (mounted) setState(() {});
+    widget.controller.addListener(_changed);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focus.requestFocus();
+    });
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_refresh);
+    widget.controller.removeListener(_changed);
     _focus.dispose();
     super.dispose();
+  }
+
+  void _changed() {
+    setState(() {});
+    final v = widget.controller.text;
+    if (v.length == 6 && widget.enabled) widget.onCompleted(v);
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
+    final tk = BethelTokens.of(context);
     final code = widget.controller.text;
-    return SizedBox(
-      height: 58,
+    return Semantics(
+      label: '6-digit code',
+      textField: true,
       child: Stack(children: [
-        Row(children: [
-          for (var i = 0; i < _OtpBoxes.length; i++) ...[
-            // 3 – 3, like the code is usually read out.
-            if (i == 3)
-              SizedBox(
-                width: 26,
-                child: Center(
-                  child: Container(
-                    width: 10,
-                    height: 2.2,
-                    decoration:
-                        BoxDecoration(color: t.colorScheme.onSurfaceVariant, borderRadius: BorderRadius.circular(2)),
-                  ),
-                ),
-              )
-            else if (i > 0)
-              const SizedBox(width: 8),
-            Expanded(child: _box(t, i, code)),
-          ],
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          for (var i = 0; i < 6; i++)
+            _Tile(
+              digit: i < code.length ? code[i] : null,
+              active: widget.enabled && i == code.length && _focus.hasFocus,
+              error: widget.error,
+              ringColor: widget.error ? tk.error : t.colorScheme.primary,
+            ),
         ]),
+        // The real input sits on top, invisible, so taps focus it and autofill can fill it.
         Positioned.fill(
           child: Opacity(
             opacity: 0,
             child: TextField(
               controller: widget.controller,
               focusNode: _focus,
-              autofocus: true,
               enabled: widget.enabled,
-              showCursor: false,
-              enableInteractiveSelection: false,
               keyboardType: TextInputType.number,
               autofillHints: const [AutofillHints.oneTimeCode],
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(_OtpBoxes.length),
-              ],
-              onChanged: (v) {
-                setState(() {});
-                if (v.length == _OtpBoxes.length) widget.onCompleted();
-              },
-              decoration: const InputDecoration(border: InputBorder.none, filled: false, counterText: ''),
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
+              showCursor: false,
+              enableInteractiveSelection: false,
+              decoration: const InputDecoration(filled: false, border: InputBorder.none, counterText: ''),
+              onTap: () => setState(() {}),
             ),
           ),
         ),
       ]),
     );
   }
+}
 
-  Widget _box(ThemeData t, int i, String code) {
-    final filled = i < code.length;
-    final active =
-        _focus.hasFocus && (i == code.length || (i == _OtpBoxes.length - 1 && code.length == _OtpBoxes.length));
+class _Tile extends StatelessWidget {
+  const _Tile({required this.digit, required this.active, required this.error, required this.ringColor});
+
+  final String? digit;
+  final bool active;
+  final bool error;
+  final Color ringColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final tk = BethelTokens.of(context);
+    final still = reduceMotion(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
-      alignment: Alignment.center,
+      width: 48,
+      height: 60,
       decoration: BoxDecoration(
-        color: t.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: active ? t.colorScheme.primary : (filled ? BethelColors.brass : t.colorScheme.outlineVariant),
-          width: active ? 1.8 : 1.2,
-        ),
+        color: tk.tile,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: tk.tileShadow,
+        border: Border.all(color: (active || error) ? ringColor : Colors.transparent, width: 2),
       ),
-      child: filled
-          ? Text(code[i], style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: t.colorScheme.onSurface))
+      alignment: Alignment.center,
+      child: digit != null
+          ? TweenAnimationBuilder<double>(
+              key: ValueKey(digit),
+              tween: Tween(begin: still ? 1 : 0.4, end: 1),
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutBack,
+              builder: (_, v, child) => Opacity(opacity: v.clamp(0.0, 1.0), child: Transform.scale(scale: v, child: child)),
+              child: Text(digit!,
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w500, color: error ? tk.error : t.colorScheme.onSurface)),
+            )
           : active
-              ? Container(width: 2, height: 22, color: t.colorScheme.primary) // caret
+              ? _Caret(color: ringColor)
               : null,
     );
   }
 }
 
-/// Two-option pill switch: Email | Phone.
-class _MethodSwitch extends StatelessWidget {
-  const _MethodSwitch({required this.value, required this.onChanged});
-  final _Method value;
-  final ValueChanged<_Method>? onChanged;
+/// Blinking cursor in the active code box.
+class _Caret extends StatefulWidget {
+  const _Caret({required this.color});
+  final Color color;
 
   @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    Widget option(_Method m, IconData icon, String label) {
-      final selected = m == value;
-      return Expanded(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onChanged == null ? null : () => onChanged!(m),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              color: selected ? t.colorScheme.surfaceContainerLow : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow:
-                  selected ? const [BoxShadow(color: Color(0x14000000), blurRadius: 6, offset: Offset(0, 2))] : null,
-            ),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(icon, size: 18, color: selected ? t.colorScheme.primary : t.colorScheme.onSurfaceVariant),
-              const SizedBox(width: 8),
-              Text(label,
-                  style: TextStyle(
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                      color: selected ? t.colorScheme.onSurface : t.colorScheme.onSurfaceVariant)),
-            ]),
-          ),
+  State<_Caret> createState() => _CaretState();
+}
+
+class _CaretState extends State<_Caret> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _c,
+        builder: (_, __) => Opacity(
+          opacity: reduceMotion(context) || _c.value < 0.5 ? 1 : 0,
+          child: Container(width: 2, height: 28, decoration: BoxDecoration(color: widget.color, borderRadius: BorderRadius.circular(1))),
         ),
       );
-    }
+}
 
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: t.colorScheme.surfaceContainer, borderRadius: BorderRadius.circular(16)),
-      child: Row(children: [
-        option(_Method.email, Icons.mail_outline_rounded, 'Email'),
-        option(_Method.phone, Icons.phone_iphone_rounded, 'Phone'),
-      ]),
-    );
+/// Shakes its child sideways whenever [trigger] changes (wrong code, wrong password).
+class _Shake extends StatefulWidget {
+  const _Shake({required this.trigger, required this.child});
+  final int trigger;
+  final Widget child;
+
+  @override
+  State<_Shake> createState() => _ShakeState();
+}
+
+class _ShakeState extends State<_Shake> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+
+  @override
+  void didUpdateWidget(covariant _Shake old) {
+    super.didUpdateWidget(old);
+    if (old.trigger != widget.trigger && !reduceMotion(context)) _c.forward(from: 0);
   }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _c,
+        child: widget.child,
+        builder: (_, child) => Transform.translate(
+          offset: Offset(math.sin(_c.value * math.pi * 4) * 8 * (1 - _c.value), 0),
+          child: child,
+        ),
+      );
+}
+
+/// The check that draws itself after a correct code.
+class _CheckMark extends StatelessWidget {
+  const _CheckMark({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: reduceMotion(context) ? 1 : 0, end: 1),
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOut,
+        builder: (_, v, __) => CustomPaint(size: const Size(88, 88), painter: _CheckPainter(v, color)),
+      );
+}
+
+class _CheckPainter extends CustomPainter {
+  _CheckPainter(this.progress, this.color);
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width / 24;
+    final path = Path()
+      ..moveTo(4 * s, 12.5 * s)
+      ..lineTo(9 * s, 17.5 * s)
+      ..lineTo(20 * s, 6 * s);
+    final metric = path.computeMetrics().first;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4 * s
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(metric.extractPath(0, metric.length * progress), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CheckPainter old) => old.progress != progress || old.color != color;
 }

@@ -156,6 +156,41 @@ class FirebaseRepository implements BethelRepository {
     }
   }
 
+  @override
+  Future<UserProfile> signInWithProvider(String provider) async {
+    // Firebase console: enable Apple and Google under Authentication > Sign-in method.
+    // iOS: add the "Sign in with Apple" capability in Xcode.
+    final AuthProvider p = provider == 'apple' ? AppleAuthProvider() : GoogleAuthProvider();
+    try {
+      final cred = kIsWeb ? await _auth.signInWithPopup(p) : await _auth.signInWithProvider(p);
+      final u = cred.user!;
+      await _db.doc('users/${u.uid}').set(
+          {'email': u.email ?? '', 'provider': provider, 'lastSignIn': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+      // New members have no display name yet; the sign-in card then asks for it.
+      return UserProfile(name: u.displayName ?? '', email: u.email ?? '');
+    } on FirebaseAuthException catch (e) {
+      throw _authMessage(e);
+    }
+  }
+
+  @override
+  Future<void> sendPasswordReset(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      throw _authMessage(e);
+    }
+  }
+
+  @override
+  Future<UserProfile> updateName(String name) async {
+    final u = _auth.currentUser;
+    if (u == null) throw 'Please sign in again.';
+    await u.updateDisplayName(name.trim());
+    await _db.doc('users/${u.uid}').set({'name': name.trim()}, SetOptions(merge: true));
+    return UserProfile(name: name.trim(), email: u.email ?? '', phone: u.phoneNumber ?? '');
+  }
+
   Future<UserProfile> _phoneProfile(User u, String name) async {
     final phone = u.phoneNumber ?? _pendingPhone;
     if (name.trim().isNotEmpty && (u.displayName ?? '').isEmpty) {
