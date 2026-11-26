@@ -635,7 +635,7 @@ class _SongBookScreenState extends State<SongBookScreen> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             sliver: SliverGrid.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, mainAxisExtent: 92),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, mainAxisExtent: 108),
               itemCount: b.topics.length,
               itemBuilder: (_, i) {
                 final tp = b.topics[i];
@@ -659,7 +659,7 @@ class _SongBookScreenState extends State<SongBookScreen> {
                           child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
                             if (tp.te.isNotEmpty)
                               Text(tp.te, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: BethelFonts.telugu, fontSize: 13, height: 1.3)),
-                            Text(tp.en, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall),
+                            Text(tp.en, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall?.copyWith(height: 1.25)),
                             Text(tp.range, style: t.textTheme.bodySmall?.copyWith(fontSize: 11)),
                           ]),
                         ),
