@@ -199,7 +199,7 @@ class MockRepository implements BethelRepository {
 
   @override
   Future<void> addSermonComment(int sermonId, String text) async {
-    (_comments[sermonId] ??= []).add(SermonComment(name: 'You', text: text, at: DateTime.now()));
+    (_comments[sermonId] ??= []).insert(0, SermonComment(name: _current?.name ?? 'You', text: text, at: DateTime.now()));
   }
 
   @override
