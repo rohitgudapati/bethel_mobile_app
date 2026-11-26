@@ -60,12 +60,17 @@ void main() {
     await tester.tap(find.text('Request prayer'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'Please pray for our exams this week.');
-    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Sam Lee');
+    // Guests add a name; members send under their account.
+    await tester.enterText(find.widgetWithText(TextField, 'Your name'), 'Sam Lee');
     await tester.tap(find.text('Send request'));
+    await tester.pumpAndSettle();
+    expect(find.text('Request sent'), findsOneWidget);
+    expect(find.textContaining('on the wall as Sam.'), findsOneWidget);
+    await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
     expect(find.text('Please pray for our exams this week.'), findsOneWidget);
-    expect(find.text('Sam (you)'), findsOneWidget);
+    expect(find.textContaining('Your request'), findsOneWidget);
   });
 
   testWidgets('song book: search by number, open lyrics, save', (tester) async {
