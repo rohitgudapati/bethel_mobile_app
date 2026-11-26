@@ -82,7 +82,7 @@ class _SongsScreenState extends State<SongsScreen> {
                 _SearchField(controller: _search, onChanged: () => setState(() {})),
                 if (query.isEmpty && tabs.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  UnderlineTabs(labels: tabs, selected: tab, gap: 16, onSelected: (i) => setState(() { _tab = i); }),
+                  UnderlineTabs(labels: tabs, selected: tab, gap: 16, onSelected: (i) => setState(() => _tab = i)),
                 ],
               ]),
             ),
@@ -94,7 +94,9 @@ class _SongsScreenState extends State<SongsScreen> {
                         title: 'Couldn’t load songs',
                         message: 'Check your connection and try again',
                         action: OutlinedButton(
-                            onPressed: () => setState(() { _library = _load(); }), child: const Text('Try again')),
+                            onPressed: () => setState(() {
+                              _library = _load();
+                            }), child: const Text('Try again')),
                       )
                     : const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator())),
               )
@@ -268,7 +270,7 @@ class _SongsScreenState extends State<SongsScreen> {
             icon: Icons.favorite_border_rounded,
             title: 'No saved songs yet',
             message: 'Tap the heart on any song to keep it here. Downloads work without internet.',
-            action: OutlinedButton(onPressed: () => setState(() { _tab = 0), child: const Text('Browse songs'); }),
+            action: OutlinedButton(onPressed: () => setState(() => _tab = 0), child: const Text('Browse songs')),
           ),
         ),
       ];
@@ -491,7 +493,7 @@ class _GoToNumberDialogState extends State<_GoToNumberDialog> {
           focusNode: _focus,
           errorText: _error,
           onChanged: (_) {
-            if (_error != null) setState(() { _error = null; });
+            if (_error != null) setState(() => _error = null);
           },
           onSubmitted: (_) => _open(),
         ),
@@ -651,12 +653,12 @@ class _SongScreenState extends State<SongScreen> {
               UnderlineTabs(
                 labels: [for (final l in langs) l == 'Telugu' ? 'తెలుగు' : l],
                 selected: langs.indexOf(lang!),
-                onSelected: (i) => setState(() { _lang = langs[i]),
+                onSelected: (i) => setState(() => _lang = langs[i]),
               ),
             ],
             const SizedBox(height: 24),
             if (snap.connectionState != ConnectionState.done)
-              const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator(); }))
+              const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
             else if (lyrics == null)
               BethelEmptyState(
                 icon: Icons.music_note_outlined,
@@ -857,7 +859,7 @@ class _PresentScreenState extends State<PresentScreen> {
               child: PageView.builder(
                 controller: _pages,
                 itemCount: _stanzas.length,
-                onPageChanged: (i) => setState(() { _page = i),
+                onPageChanged: (i) => setState(() => _page = i),
                 itemBuilder: (_, i) => Center(
                   child: SingleChildScrollView(
                     child: Text(_stanzas[i],
@@ -866,7 +868,7 @@ class _PresentScreenState extends State<PresentScreen> {
                           fontSize: telugu ? 28 : BethelType.display,
                           height: telugu ? 1.6 : 1.35,
                           color: BethelColors.ivory,
-                        ); }),
+                        )),
                   ),
                 ),
               ),
