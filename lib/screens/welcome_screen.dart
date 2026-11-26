@@ -88,12 +88,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     try {
       final user = await state.repo.signInWithProvider(provider);
       if (!mounted) return;
-      if (_needsName(user)) {
-        _open(_Step.name, method: provider, pendingUser: user);
-      } else {
-        await _LastMethod.save(provider);
-        state.signInAs(user);
-      }
+      // Same moment as the phone flow: Verified, then Your name for new members, else Home.
+      _open(_Step.verified, method: provider, pendingUser: user);
     } catch (e) {
       if (mounted) showBethelToast(context, '$e', icon: Icons.error_outline_rounded);
     } finally {
@@ -345,6 +341,18 @@ class _AuthFlowState extends State<_AuthFlow> {
   Timer? _resendTimer;
 
   static bool get _canReadSms => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  @override
+  void initState() {
+    super.initState();
+    // Apple or Google already signed in: show Verified briefly, then continue.
+    final pending = widget.pendingUser;
+    if (widget.start == _Step.verified && pending != null) {
+      Future.delayed(const Duration(milliseconds: 900), () {
+        if (mounted) _afterVerify(pending);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -689,7 +697,8 @@ class _AuthFlowState extends State<_AuthFlow> {
             ]);
 
       case _Step.verified:
-        return _card(t, title: widget.method == 'phone' ? 'Enter the code' : 'Signed in', showBack: false, children: [
+        final via = switch (widget.method) { 'apple' => 'Apple', 'google' => 'Google', _ => '' };
+        return _card(t, title: via.isEmpty ? 'Enter the code' : 'Signed in with $via', showBack: false, children: [
           Column(children: [
             _CheckMark(color: t.colorScheme.primary),
             const SizedBox(height: 8),
