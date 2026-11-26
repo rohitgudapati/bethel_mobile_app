@@ -408,6 +408,10 @@ class ApiRepository implements BethelRepository {
 
   @override
   Future<List<BiblePassage>> readingPlan() => _fallback.readingPlan();
+
+  // The .NET API has no notifications endpoint yet.
+  @override
+  Future<List<NotificationItem>> notifications() async => const [];
 }
 
 class ApiException implements Exception {

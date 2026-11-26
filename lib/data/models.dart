@@ -318,6 +318,18 @@ class BiblePassage {
   const BiblePassage({required this.reference, required this.title, required this.verses});
 }
 
+/// Something the church or the app wants the member to see (service reminders, new messages, prayer updates).
+class NotificationItem {
+  final int id;
+  final String title;
+  final String detail;
+  final DateTime at;
+
+  /// `event`, `sermon`, `prayer`, `reading` or `service`; picks the icon and where a tap goes.
+  final String kind;
+  const NotificationItem({required this.id, required this.title, required this.detail, required this.at, required this.kind});
+}
+
 class UserProfile {
   final String name;
   final String email;

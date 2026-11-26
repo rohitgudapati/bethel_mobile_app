@@ -23,7 +23,8 @@ class AppState extends ChangeNotifier {
 
   UserProfile? user;
   bool guest = LaunchOptions.skipWelcome;
-  ThemeMode themeMode = ThemeMode.light;
+  /// Follows the phone's light or dark setting until the member picks one in More.
+  ThemeMode themeMode = ThemeMode.system;
   final Set<int> likedVerses = {};
   final Set<int> savedSongs = {};
   final Set<int> downloadedSongs = {};
@@ -31,6 +32,10 @@ class AppState extends ChangeNotifier {
   double lyricsScale = 1;
   final Set<int> prayedFor = {};
   final Set<int> rsvps = {};
+
+  /// Reading-plan passages marked as read (by reference), shared by Home and the Bible screen.
+  final Set<String> readingDone = {};
+  final Set<int> readNotifications = {};
 
   bool get signedIn => user != null || guest;
 
@@ -97,6 +102,16 @@ class AppState extends ChangeNotifier {
     prayedFor.add(id);
     notifyListeners();
     await repo.prayFor(id);
+  }
+
+  void markPassageRead(String reference) {
+    readingDone.add(reference);
+    notifyListeners();
+  }
+
+  void markNotificationsRead(Iterable<int> ids) {
+    readNotifications.addAll(ids);
+    notifyListeners();
   }
 
   String get greetingName => user?.name.split(' ').first ?? 'friend';

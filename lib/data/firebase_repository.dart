@@ -653,4 +653,26 @@ class FirebaseRepository implements BethelRepository {
             ))
         .toList();
   }
+
+  /// Reads `notifications` (fields: title, detail, at, kind), newest first. Empty if the collection doesn't exist yet.
+  @override
+  Future<List<NotificationItem>> notifications() async {
+    try {
+      final snap = await _db.collection('notifications').orderBy('at', descending: true).limit(30).get();
+      var i = 0;
+      return snap.docs.map((d) {
+        final m = d.data();
+        final at = m['at'];
+        return NotificationItem(
+          id: i++,
+          title: '${m['title'] ?? ''}',
+          detail: '${m['detail'] ?? ''}',
+          at: at is Timestamp ? at.toDate() : DateTime.now(),
+          kind: '${m['kind'] ?? 'event'}',
+        );
+      }).toList();
+    } catch (_) {
+      return const [];
+    }
+  }
 }

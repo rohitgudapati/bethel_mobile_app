@@ -4,6 +4,7 @@ import '../app/app_state.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
+import 'home_screen.dart' show shareVerse;
 
 IconData serviceIcon(IconDataRef ref) => switch (ref) {
       IconDataRef.prayer => Icons.volunteer_activism_rounded,
@@ -219,56 +220,78 @@ class VerseArchiveScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Verse of the day')),
       body: AsyncView<List<DailyVerse>>(
-        load: state.repo.verseArchive,
-        builder: (context, verses) => ListView.separated(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-          itemCount: verses.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 18),
-          itemBuilder: (_, i) => _VerseImageCard(verse: verses[i]),
-        ),
+        load: () => _loadVerses(state),
+        builder: (context, verses) => verses.isEmpty
+            ? const BethelEmptyState(
+                icon: Icons.menu_book_outlined,
+                title: 'No past verses yet',
+                message: 'Each day’s verse is saved here after the day ends',
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                itemCount: verses.length,
+                itemBuilder: (_, i) => _VerseRow(verse: verses[i], today: DateUtils.isSameDay(verses[i].date, DateTime.now())),
+              ),
       ),
     );
   }
+
+  /// Today's verse first (the one on Home), then past days. Either source failing still shows the other.
+  static Future<List<DailyVerse>> _loadVerses(AppState state) async {
+    DailyVerse? today;
+    var past = <DailyVerse>[];
+    try {
+      today = await state.repo.todayVerse();
+    } catch (_) {}
+    try {
+      past = await state.repo.verseArchive();
+    } catch (_) {
+      if (today == null) rethrow;
+    }
+    final hasToday = today != null && past.any((v) => DateUtils.isSameDay(v.date, today!.date));
+    return [if (today != null && !hasToday) today, ...past];
+  }
 }
 
-class _VerseImageCard extends StatelessWidget {
-  const _VerseImageCard({required this.verse});
+/// One past verse: its picture, the day and reference, the words, and a share button.
+class _VerseRow extends StatelessWidget {
+  const _VerseRow({required this.verse, required this.today});
   final DailyVerse verse;
+  final bool today;
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
     final t = Theme.of(context);
-    final liked = state.isVerseLiked(verse.id);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        AspectRatio(aspectRatio: 1, child: BethelImage(verse.image ?? '')),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 4, 16, 6),
-          child: Row(children: [
-            IconButton(
-              onPressed: () => state.toggleVerseLike(verse.id),
-              icon: Icon(liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  color: liked ? BethelColors.rose : null),
-            ),
-            Text(compactCount(verse.likes + (liked ? 1 : 0))),
-            const SizedBox(width: 4),
-            IconButton(
-              onPressed: () {
-                state.repo.shareVerse(verse.id).ignore();
-                showToast(context, 'Verse image ready to share.');
-              },
-              icon: const Icon(Icons.ios_share_rounded),
-            ),
-            Text(compactCount(verse.shares)),
-            const SizedBox(width: 12),
-            Icon(Icons.visibility_outlined, size: 20, color: t.colorScheme.onSurfaceVariant),
-            const SizedBox(width: 6),
-            Text(compactCount(verse.views)),
-            const Spacer(),
-            Text(fmtShort(verse.date), style: TextStyle(fontSize: 12.5, color: t.colorScheme.onSurfaceVariant)),
+    final tk = BethelTokens.of(context);
+    final day = today ? 'Today' : fmtShort(verse.date);
+    final ref = verse.reference ?? '';
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tk.hairline))),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if ((verse.image ?? '').isNotEmpty)
+          BethelImage(verse.image!, width: 88, height: 88, radius: 12)
+        else
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(color: BethelColors.forest, borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.format_quote_rounded, color: BethelColors.brassLight, size: 32),
+          ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(ref.isEmpty ? day : '$day · $ref', style: t.textTheme.bodySmall),
+            if ((verse.text ?? '').trim().isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(verse.text!.trim(), maxLines: 4, overflow: TextOverflow.ellipsis, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400, height: 1.4)),
+            ],
           ]),
+        ),
+        IconButton(
+          tooltip: 'Share verse',
+          onPressed: () => shareVerse(context, verse),
+          icon: Icon(Icons.ios_share_rounded, size: 20, color: t.colorScheme.onSurfaceVariant),
         ),
       ]),
     );

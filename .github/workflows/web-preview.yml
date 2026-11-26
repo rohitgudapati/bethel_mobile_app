@@ -1,0 +1,67 @@
+# Builds and checks every redesign branch, then publishes the web build to `web/<branch>`
+# so it can be opened and tested in a browser.
+name: Web preview
+
+on:
+  push:
+    branches: ['redesign/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: web-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version | tee flutter-version.txt
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Analyze
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > analyze.txt 2>&1
+          echo "exit code: $?" >> analyze.txt
+          cat analyze.txt
+
+      - name: Test
+        run: |
+          set +e
+          flutter test > test.txt 2>&1
+          echo "exit code: $?" >> test.txt
+          cat test.txt
+
+      - name: Build web
+        run: |
+          set -o pipefail
+          flutter build web --release --no-tree-shake-icons --no-web-resources-cdn 2>&1 | tee build.txt
+
+      - name: Publish build to web/<branch>
+        if: always()
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p build/web
+          cp analyze.txt test.txt build.txt flutter-version.txt build/web/ 2>/dev/null || true
+          echo "${{ github.sha }}" > build/web/commit.txt
+          cd build/web
+          git init -q
+          git checkout -q -b publish
+          git -c user.name="web-preview" -c user.email="actions@github.com" add -A
+          git -c user.name="web-preview" -c user.email="actions@github.com" commit -q -m "Web build of ${{ github.ref_name }} @ ${{ github.sha }}"
+          git push -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" "publish:refs/heads/web/${{ github.ref_name }}"

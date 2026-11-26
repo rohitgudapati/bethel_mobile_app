@@ -1,6 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../app/app_state.dart';
 import '../app/launch.dart';
@@ -8,7 +7,8 @@ import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
 
-/// Songs tab: numbered song books (Songs of Zion, hymns), albums and saved songs.
+/// Songs tab: one underline tab per song book (Songs of Zion, Hymns of Faith), then Albums and Saved.
+/// Search covers every book by number, title, lyricist or a line of the lyrics.
 class SongsScreen extends StatefulWidget {
   const SongsScreen({super.key});
 
@@ -16,12 +16,11 @@ class SongsScreen extends StatefulWidget {
   State<SongsScreen> createState() => _SongsScreenState();
 }
 
-enum _View { book, albums, saved }
-
 class _SongsScreenState extends State<SongsScreen> {
   final _search = TextEditingController();
-  _View _view = _View.book;
-  int? _bookId;
+
+  /// Index into [_tabs]: song books first, then Albums, then Saved.
+  int? _tab;
   late Future<_Library> _library;
 
   @override
@@ -48,9 +47,15 @@ class _SongsScreenState extends State<SongsScreen> {
     super.dispose();
   }
 
+  int _initialTab(_Library lib) {
+    final wanted = LaunchOptions.book;
+    if (wanted == null) return 0;
+    final i = lib.books.indexWhere((b) => b.title.toLowerCase().contains(wanted));
+    return i < 0 ? 0 : i;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
     return SafeArea(
       bottom: false,
       child: FutureBuilder<_Library>(
@@ -58,66 +63,51 @@ class _SongsScreenState extends State<SongsScreen> {
         builder: (context, snap) {
           final lib = snap.data;
           final query = _search.text.trim();
-          return CustomScrollView(slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Text('Songs', style: t.textTheme.headlineMedium),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                child: TextField(
-                  controller: _search,
-                  onChanged: (_) => setState(() {}),
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: 'Search a song by number, title or lyricist',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: query.isEmpty
-                        ? null
-                        : IconButton(
-                            icon: const Icon(Icons.close_rounded),
-                            onPressed: () => setState(_search.clear),
-                          ),
+          final tabs = lib == null ? const <String>[] : [for (final b in lib.books) b.title, 'Albums', 'Saved'];
+          final tab = lib == null ? 0 : (_tab ?? _initialTab(lib)).clamp(0, tabs.length - 1);
+          final book = lib != null && tab < lib.books.length ? lib.books[tab] : null;
+          return CustomScrollView(keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag, slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              sliver: SliverList.list(children: [
+                ScreenTitle(
+                  'Songs',
+                  trailing: TextButton(
+                    onPressed: lib == null ? null : () => _goToNumber(lib, book ?? lib.books.firstOrNull),
+                    child: const Text('Go to number'),
                   ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                _SearchField(controller: _search, onChanged: () => setState(() {})),
+                if (query.isEmpty && tabs.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  UnderlineTabs(labels: tabs, selected: tab, gap: 16, onSelected: (i) => setState(() => _tab = i)),
+                ],
+              ]),
             ),
             if (lib == null)
               SliverToBoxAdapter(
                 child: snap.hasError
-                    ? Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text('Couldn\'t load songs. ${snap.error}', textAlign: TextAlign.center),
+                    ? BethelEmptyState(
+                        icon: Icons.error_outline_rounded,
+                        title: 'Couldn’t load songs',
+                        message: 'Check your connection and try again',
+                        action: OutlinedButton(
+                            onPressed: () => setState(() {
+                              _library = _load();
+                            }), child: const Text('Try again')),
                       )
                     : const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator())),
               )
             else if (query.isNotEmpty)
               ..._searchResults(lib, query)
-            else ...[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                  child: SegmentedButton<_View>(
-                    showSelectedIcon: false,
-                    segments: const [
-                      ButtonSegment(value: _View.book, label: Text('Song book')),
-                      ButtonSegment(value: _View.albums, label: Text('Albums')),
-                      ButtonSegment(value: _View.saved, label: Text('Saved')),
-                    ],
-                    selected: {_view},
-                    onSelectionChanged: (v) => setState(() => _view = v.first),
-                  ),
-                ),
-              ),
-              ...switch (_view) {
-                _View.book => _bookView(lib),
-                _View.albums => _albumsView(lib),
-                _View.saved => _savedView(lib),
-              },
-            ],
+            else if (book != null)
+              ..._bookView(lib, book)
+            else if (tab == lib.books.length)
+              ..._albumsView(lib)
+            else
+              ..._savedView(lib),
+            SliverToBoxAdapter(child: SizedBox(height: 24 + MediaQuery.paddingOf(context).bottom)),
           ]);
         },
       ),
@@ -126,189 +116,128 @@ class _SongsScreenState extends State<SongsScreen> {
 
   // ------------------------------------------------------------------ views
 
+  static bool _matches(Song s, String q) =>
+      s.title.toLowerCase().contains(q) ||
+      s.altTitle.toLowerCase().contains(q) ||
+      s.lyricist.toLowerCase().contains(q) ||
+      s.artist.toLowerCase().contains(q);
+
   List<Widget> _searchResults(_Library lib, String query) {
     final q = query.toLowerCase();
     final n = int.tryParse(q);
-    final results = lib.allSongs.where((s) {
-      if (n != null) return s.number == n;
-      return s.title.toLowerCase().contains(q) ||
-          s.altTitle.toLowerCase().contains(q) ||
-          s.lyricist.toLowerCase().contains(q) ||
-          s.artist.toLowerCase().contains(q) ||
-          s.lyrics.values.any((l) => l.toLowerCase().contains(q));
-    }).toList();
+    final all = lib.allSongs;
+    final titles = all.where((s) => n != null ? s.number == n : _matches(s, q)).toList();
+    final inLyrics =
+        n != null ? <Song>[] : all.where((s) => !titles.contains(s) && s.lyrics.values.any((l) => l.toLowerCase().contains(q))).toList();
+    if (titles.isEmpty && inLyrics.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: BethelEmptyState(
+            icon: Icons.search_rounded,
+            title: 'No songs match “$query”',
+            message: 'Try a song number, a shorter word or another spelling',
+          ),
+        ),
+      ];
+    }
     return [
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-          child: Text(results.isEmpty ? 'No songs match "$query".' : '${results.length} songs',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        ),
-      ),
       SliverPadding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 28),
-        sliver: SliverList.builder(
-          itemCount: results.length,
-          itemBuilder: (_, i) => SongRow(song: results[i], showBook: true),
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        sliver: SliverList.list(children: [
+          if (titles.isNotEmpty) ...[
+            BethelSectionTitle(n != null ? 'Number $n' : 'Titles'),
+            for (final s in titles) SongRow(song: s, showBook: true),
+          ],
+          if (inLyrics.isNotEmpty) ...[
+            if (titles.isNotEmpty) const SizedBox(height: 20),
+            const BethelSectionTitle('In lyrics'),
+            for (final s in inLyrics) SongRow(song: s, showBook: true, lyricMatch: _lyricLine(s, q)),
+          ],
+        ]),
       ),
     ];
   }
 
-  List<Widget> _bookView(_Library lib) {
+  /// The first lyric line containing the search, shown under the title.
+  static String? _lyricLine(Song s, String q) {
+    for (final l in s.lyrics.values) {
+      for (final line in l.split('\n')) {
+        if (line.toLowerCase().contains(q)) return '“${line.trim()}”';
+      }
+    }
+    return null;
+  }
+
+  List<Widget> _bookView(_Library lib, Album book) {
     final state = AppScope.of(context);
     final t = Theme.of(context);
-    if (lib.books.isEmpty) {
-      return [const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Text('No song books yet.')))];
-    }
-    final wanted = LaunchOptions.book;
-    final book = lib.books.firstWhere(
-      (b) => b.id == _bookId,
-      orElse: () => wanted == null
-          ? lib.books.first
-          : lib.books.firstWhere((b) => b.title.toLowerCase().contains(wanted), orElse: () => lib.books.first),
-    );
     final songs = lib.songsByBook[book.id] ?? const <Song>[];
+    final recent = state.recentSongs.take(6).toList();
     return [
-      // Song book picker
-      SliverToBoxAdapter(
-        child: SizedBox(
-          height: 96,
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            scrollDirection: Axis.horizontal,
-            itemCount: lib.books.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (_, i) {
-              final b = lib.books[i];
-              final selected = b.id == book.id;
-              return InkWell(
-                borderRadius: BorderRadius.circular(18),
-                onTap: () => setState(() => _bookId = b.id),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 210,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: selected ? BethelColors.forest : t.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: selected ? BethelColors.forest : t.colorScheme.outlineVariant),
-                  ),
-                  child: Row(children: [
-                    BethelImage(b.image, width: 56, height: 56, radius: 12),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(b.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontWeight: FontWeight.w600, color: selected ? Colors.white : null)),
-                            Text(
-                                '${(lib.songsByBook[b.id] ?? const []).length} songs${b.language.isEmpty ? '' : ' · ${b.language}'}',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: selected ? const Color(0xCCFFFFFF) : t.colorScheme.onSurfaceVariant)),
-                          ]),
-                    ),
-                  ]),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 22, 12, 4),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(book.title, style: t.textTheme.titleLarge),
-            Text('${songs.length} songs', style: TextStyle(fontSize: 12.5, color: t.colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 8),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              _HeaderAction(icon: Icons.tag_rounded, label: 'Go to number', onTap: () => _goToNumber(songs)),
-              _HeaderAction(
-                icon: Icons.bookmark_rounded,
-                label: state.savedSongs.isEmpty ? 'Saved' : 'Saved ${state.savedSongs.length}',
-                onTap: () => setState(() => _view = _View.saved),
-              ),
-              _HeaderAction(
-                icon: Icons.download_rounded,
-                label: 'Downloads',
-                onTap: () => setState(() => _view = _View.saved),
-              ),
-              _HeaderAction(
-                icon: Icons.ios_share_rounded,
-                label: 'Share',
-                onTap: () => showToast(context, 'Share link to "${book.title}" copied.'),
-              ),
-            ]),
-          ]),
-        ),
-      ),
       SliverPadding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        sliver: SliverList.builder(itemCount: songs.length, itemBuilder: (_, i) => SongRow(song: songs[i])),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        sliver: SliverList.list(children: [
+          Row(children: [
+            Text('${songs.length} songs', style: t.textTheme.bodySmall),
+            if (book.language.isNotEmpty) Text(' · ${book.language}', style: t.textTheme.bodySmall),
+          ]),
+          if (recent.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const BethelSectionTitle('Recently viewed'),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 132,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: recent.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 16),
+                itemBuilder: (_, i) => _RecentSong(song: recent[i]),
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
+        ]),
       ),
-      if (state.recentSongs.isNotEmpty) ...[
-        const SliverToBoxAdapter(child: SectionHeader('Recently viewed')),
-        SliverToBoxAdapter(child: _SongStrip(songs: state.recentSongs)),
-      ],
-      if (lib.trending.isNotEmpty) ...[
-        const SliverToBoxAdapter(child: SectionHeader('Trending')),
-        SliverToBoxAdapter(child: _SongStrip(songs: lib.trending)),
-      ],
-      const SliverToBoxAdapter(child: SizedBox(height: 28)),
+      if (songs.isEmpty)
+        const SliverToBoxAdapter(
+          child: BethelEmptyState(
+            icon: Icons.library_music_outlined,
+            title: 'No songs in this book yet',
+            message: 'Songs appear here once the church adds them',
+          ),
+        )
+      else
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          sliver: SliverList.builder(itemCount: songs.length, itemBuilder: (_, i) => SongRow(song: songs[i])),
+        ),
     ];
   }
 
-  Future<void> _goToNumber(List<Song> songs) async {
-    final ctrl = TextEditingController();
-    final n = await showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Go to song number'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: 'e.g. 12'),
-          onSubmitted: (v) => Navigator.pop(ctx, int.tryParse(v)),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-            onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text)),
-            child: const Text('Open'),
-          ),
-        ],
-      ),
-    );
-    if (n == null || !mounted) return;
-    final match = songs.where((s) => s.number == n);
-    if (match.isEmpty) {
-      showToast(context, 'There is no song number $n in this book.');
-    } else {
-      openSong(context, match.first);
-    }
+  Future<void> _goToNumber(_Library lib, Album? book) async {
+    if (book == null) return;
+    final songs = lib.songsByBook[book.id] ?? const <Song>[];
+    final song = await showDialog<Song>(context: context, builder: (_) => _GoToNumberDialog(book: book, songs: songs));
+    if (song != null && mounted) openSong(context, song);
   }
 
   List<Widget> _albumsView(_Library lib) {
     final albums = lib.albums.where((a) => !a.isSongBook).toList();
     if (albums.isEmpty) {
-      return [const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Text('No albums yet.')))];
+      return const [
+        SliverToBoxAdapter(
+          child: BethelEmptyState(icon: Icons.album_outlined, title: 'No albums yet', message: 'Church recordings appear here'),
+        ),
+      ];
     }
     return [
       SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
         sliver: SliverGrid.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, mainAxisSpacing: 16, crossAxisSpacing: 14, childAspectRatio: 0.78),
+              crossAxisCount: 2, mainAxisSpacing: 20, crossAxisSpacing: 16, childAspectRatio: 0.78),
           itemCount: albums.length,
-          itemBuilder: (_, i) => _AlbumCard(album: albums[i]),
+          itemBuilder: (_, i) => _AlbumTile(album: albums[i]),
         ),
       ),
     ];
@@ -316,36 +245,55 @@ class _SongsScreenState extends State<SongsScreen> {
 
   List<Widget> _savedView(_Library lib) {
     final state = AppScope.of(context);
+    if (state.guest) {
+      return [
+        SliverToBoxAdapter(
+          child: BethelEmptyState(
+            icon: Icons.person_outline_rounded,
+            title: 'Sign in to save songs',
+            message: 'Your saved songs and downloads stay with your account on every device',
+            action: FilledButton(onPressed: state.signOut, child: const Text('Sign in')),
+          ),
+        ),
+      ];
+    }
     final all = {
       for (final s in [...lib.allSongs, ...lib.trending, ...state.recentSongs]) s.id: s
     };
     final saved = state.savedSongs.map((id) => all[id]).whereType<Song>().toList();
     final downloaded = state.downloadedSongs.map((id) => all[id]).whereType<Song>().toList();
-    final t = Theme.of(context);
-    Widget empty(String text) => Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-          child: Text(text, style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
-        );
+    if (saved.isEmpty && downloaded.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: BethelEmptyState(
+            icon: Icons.favorite_border_rounded,
+            title: 'No saved songs yet',
+            message: 'Tap the heart on any song to keep it here. Downloads work without internet.',
+            action: OutlinedButton(onPressed: () => setState(() => _tab = 0), child: const Text('Browse songs')),
+          ),
+        ),
+      ];
+    }
     return [
-      const SliverToBoxAdapter(child: SectionHeader('Saved songs')),
-      if (saved.isEmpty)
-        SliverToBoxAdapter(child: empty('Tap the bookmark on any song to keep it here.'))
-      else
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          sliver: SliverList.builder(
-              itemCount: saved.length, itemBuilder: (_, i) => SongRow(song: saved[i], showBook: true)),
-        ),
-      const SliverToBoxAdapter(child: SectionHeader('Downloads')),
-      if (downloaded.isEmpty)
-        SliverToBoxAdapter(child: empty('Download lyrics to read them without internet, for example during a service.'))
-      else
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          sliver: SliverList.builder(
-              itemCount: downloaded.length, itemBuilder: (_, i) => SongRow(song: downloaded[i], showBook: true)),
-        ),
-      const SliverToBoxAdapter(child: SizedBox(height: 28)),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        sliver: SliverList.list(children: [
+          if (saved.isNotEmpty) ...[
+            const BethelSectionTitle('Saved songs'),
+            for (final s in saved) SongRow(song: s, showBook: true),
+          ],
+          if (downloaded.isNotEmpty) ...[
+            if (saved.isNotEmpty) const SizedBox(height: 20),
+            const BethelSectionTitle('Downloads'),
+            for (final s in downloaded)
+              SongRow(
+                song: s,
+                showBook: true,
+                trailing: Icon(Icons.download_done_rounded, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+          ],
+        ]),
+      ),
     ];
   }
 }
@@ -364,189 +312,195 @@ void openSong(BuildContext context, Song song) {
   Navigator.push(context, MaterialPageRoute(builder: (_) => SongScreen(song: song)));
 }
 
-class _HeaderAction extends StatelessWidget {
-  const _HeaderAction({required this.icon, required this.label, required this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+/// True when the text is mostly Telugu script, so it gets the Telugu serif.
+bool _isTelugu(String s) => s.runes.any((r) => r >= 0x0C00 && r <= 0x0C7F);
+
+TextStyle? _titleStyle(BuildContext context, String title, {double? size}) {
+  final base = Theme.of(context).textTheme.titleSmall;
+  if (!_isTelugu(title)) return size == null ? base : base?.copyWith(fontSize: size);
+  return base?.copyWith(fontFamily: BethelFonts.telugu, fontWeight: FontWeight.w400, fontSize: size ?? BethelType.lead, height: 1.4);
+}
+
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.controller, required this.onChanged});
+  final TextEditingController controller;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 21, color: t.colorScheme.primary),
-            const SizedBox(height: 2),
-            Text(label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w500)),
-          ]),
-        ),
+    final tk = BethelTokens.of(context);
+    return TextField(
+      controller: controller,
+      onChanged: (_) => onChanged(),
+      textInputAction: TextInputAction.search,
+      style: const TextStyle(fontSize: BethelType.body),
+      decoration: InputDecoration(
+        hintText: 'Search songs',
+        hintStyle: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant),
+        fillColor: tk.raised,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        prefixIcon: Icon(Icons.search_rounded, size: 20, color: t.colorScheme.onSurfaceVariant),
+        suffixIcon: controller.text.isEmpty
+            ? null
+            : IconButton(
+                tooltip: 'Clear search',
+                icon: Icon(Icons.close_rounded, size: 18, color: t.colorScheme.onSurfaceVariant),
+                onPressed: () {
+                  controller.clear();
+                  onChanged();
+                },
+              ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        focusedBorder:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: t.colorScheme.primary, width: 2)),
       ),
     );
   }
 }
 
-class _SongStrip extends StatelessWidget {
-  const _SongStrip({required this.songs});
-  final List<Song> songs;
+/// Small card in "Recently viewed": plaque, title, book.
+class _RecentSong extends StatelessWidget {
+  const _RecentSong({required this.song});
+  final Song song;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return SizedBox(
-      height: 168,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        scrollDirection: Axis.horizontal,
-        itemCount: songs.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (_, i) {
-          final s = songs[i];
-          return InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () => openSong(context, s),
-            child: SizedBox(
-              width: 112,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                BethelImage(s.image, width: 112, height: 112, radius: 16),
-                const SizedBox(height: 6),
-                Text(s.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                Text(s.lyricist.isNotEmpty ? s.lyricist : s.artist,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11.5, color: t.colorScheme.onSurfaceVariant)),
-              ]),
-            ),
-          );
-        },
+    final title = song.altTitle.isNotEmpty && _isTelugu(song.altTitle) ? song.altTitle : song.title;
+    return Pressable(
+      onTap: () => openSong(context, song),
+      semanticLabel: song.label,
+      child: SizedBox(
+        width: 104,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          song.number > 0 ? HymnPlaque('${song.number}') : BethelImage(song.image, width: 44, height: 44, radius: 8),
+          const SizedBox(height: 8),
+          Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: _titleStyle(context, title)),
+          if ((song.albumTitle ?? '').isNotEmpty)
+            Text(song.albumTitle!, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.bodySmall),
+        ]),
       ),
     );
   }
 }
 
-class _AlbumCard extends StatelessWidget {
-  const _AlbumCard({required this.album});
+class _AlbumTile extends StatelessWidget {
+  const _AlbumTile({required this.album});
   final Album album;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
+    final sub = [if (album.songCount > 0) '${album.songCount} songs', if (album.language.isNotEmpty) album.language].join(' · ');
+    return Pressable(
+      semanticLabel: album.title,
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AlbumScreen(album: album))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        AspectRatio(aspectRatio: 1, child: BethelImage(album.image, radius: 18)),
+        AspectRatio(aspectRatio: 1, child: BethelImage(album.image, radius: 12)),
         const SizedBox(height: 8),
-        Text(album.title,
-            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-        Text(album.artist,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: t.colorScheme.onSurfaceVariant)),
+        Text(album.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall),
+        Text(sub.isNotEmpty ? sub : album.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.bodySmall),
       ]),
     );
   }
 }
 
-/// One song in a list: number badge, title, lyricist and quick actions.
+/// One song in a list: hymn-board plaque, title (Telugu in the Telugu serif), lyricist or book.
 class SongRow extends StatelessWidget {
-  const SongRow({super.key, required this.song, this.showBook = false});
+  const SongRow({super.key, required this.song, this.showBook = false, this.lyricMatch, this.trailing});
   final Song song;
   final bool showBook;
 
+  /// The lyric line that matched a search.
+  final String? lyricMatch;
+  final Widget? trailing;
+
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
-    final saved = state.savedSongs.contains(song.id);
-    final downloaded = state.downloadedSongs.contains(song.id);
-    final t = Theme.of(context);
-    final sub = [
-      if (song.altTitle.isNotEmpty && song.altTitle != song.title)
-        song.altTitle
-      else if (song.lyricist.isNotEmpty)
-        song.lyricist
-      else if (song.artist.isNotEmpty)
-        song.artist,
-      if (showBook && song.albumTitle != null && song.albumTitle!.isNotEmpty) song.albumTitle!,
-    ].join(' · ');
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    final telugu = song.altTitle.isNotEmpty && _isTelugu(song.altTitle);
+    final title = telugu ? song.altTitle : song.title;
+    final sub = lyricMatch ??
+        [
+          if (telugu) song.title,
+          if (song.lyricist.isNotEmpty) song.lyricist else if (song.artist.isNotEmpty) song.artist,
+          if (showBook && (song.albumTitle ?? '').isNotEmpty) song.albumTitle!,
+        ].join(' · ');
+    return HairlineRow(
+      leading: song.number > 0 ? HymnPlaque('${song.number}') : BethelImage(song.image, width: 44, height: 44, radius: 8),
+      title: title,
+      titleStyle: _titleStyle(context, title),
+      subtitle: sub.isEmpty ? null : sub,
+      trailing: trailing,
       onTap: () => openSong(context, song),
-      leading: song.number > 0
-          ? Container(
-              width: 46,
-              height: 46,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: t.brightness == Brightness.dark ? t.colorScheme.surfaceContainer : BethelColors.brassSoft,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              padding: const EdgeInsets.all(4),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text('${song.number}',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: t.colorScheme.onSurface)),
-              ),
-            )
-          : BethelImage(song.image, width: 46, height: 46, radius: 12),
-      title: Text(song.title,
-          maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Row(children: [
-        if (downloaded) ...[
-          Icon(Icons.download_done_rounded, size: 14, color: t.colorScheme.primary),
-          const SizedBox(width: 4),
-        ],
-        Expanded(child: Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis)),
-      ]),
-      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-        IconButton(
-          tooltip: saved ? 'Saved' : 'Save',
-          onPressed: () => state.toggleSavedSong(song.id),
-          icon: Icon(saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-              color: saved ? BethelColors.brass : null),
-        ),
-        PopupMenuButton<String>(
-          tooltip: 'More',
-          icon: const Icon(Icons.more_vert_rounded),
-          onSelected: (v) {
-            switch (v) {
-              case 'lyrics':
-                openSong(context, song);
-              case 'present':
-                AppScope.read(context).openedSong(song);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => PresentLoader(song: song)));
-              case 'download':
-                state.toggleDownload(song.id);
-                showToast(context, downloaded ? 'Removed from downloads.' : 'Lyrics saved for offline use.');
-              case 'share':
-                showToast(context, 'Link to "${song.label}" copied.');
-            }
+    );
+  }
+}
+
+class _GoToNumberDialog extends StatefulWidget {
+  const _GoToNumberDialog({required this.book, required this.songs});
+  final Album book;
+  final List<Song> songs;
+
+  @override
+  State<_GoToNumberDialog> createState() => _GoToNumberDialogState();
+}
+
+class _GoToNumberDialogState extends State<_GoToNumberDialog> {
+  final _ctrl = TextEditingController();
+  final _focus = FocusNode();
+  String? _error;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _open() {
+    final n = int.tryParse(_ctrl.text.trim());
+    final match = n == null ? null : widget.songs.where((s) => s.number == n).firstOrNull;
+    if (match != null) {
+      Navigator.pop(context, match);
+      return;
+    }
+    final numbers = widget.songs.map((s) => s.number).where((x) => x > 0);
+    // Keep the keyboard up with the wrong number selected, so typing replaces it.
+    _focus.requestFocus();
+    _ctrl.selection = TextSelection(baseOffset: 0, extentOffset: _ctrl.text.length);
+    setState(() => _error = numbers.isEmpty
+        ? 'This book has no numbered songs'
+        : '${widget.book.title} has songs ${numbers.reduce((a, b) => a < b ? a : b)} to ${numbers.reduce((a, b) => a > b ? a : b)}');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Go to song number'),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(widget.book.title, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 12),
+        TileField(
+          controller: _ctrl,
+          label: 'Song number',
+          hint: 'Number',
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          focusNode: _focus,
+          errorText: _error,
+          onChanged: (_) {
+            if (_error != null) setState(() => _error = null);
           },
-          itemBuilder: (_) => [
-            const PopupMenuItem(
-                value: 'lyrics', child: ListTile(leading: Icon(Icons.lyrics_outlined), title: Text('Lyrics'))),
-            const PopupMenuItem(
-                value: 'present', child: ListTile(leading: Icon(Icons.slideshow_rounded), title: Text('Present'))),
-            PopupMenuItem(
-                value: 'download',
-                child: ListTile(
-                    leading: Icon(downloaded ? Icons.download_done_rounded : Icons.download_rounded),
-                    title: Text(downloaded ? 'Downloaded' : 'Download'))),
-            const PopupMenuItem(
-                value: 'share', child: ListTile(leading: Icon(Icons.ios_share_rounded), title: Text('Share'))),
-          ],
+          onSubmitted: (_) => _open(),
         ),
       ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: _open, child: const Text('Open')),
+      ],
     );
   }
 }
@@ -558,43 +512,42 @@ class AlbumScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    final t = Theme.of(context);
     return Scaffold(
-      body: CustomScrollView(slivers: [
-        SliverAppBar(
-          expandedHeight: 260,
-          pinned: true,
-          foregroundColor: Colors.white,
-          backgroundColor: BethelColors.forestDeep,
-          flexibleSpace: FlexibleSpaceBar(
-            title: Text(album.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-            background: Stack(fit: StackFit.expand, children: [
-              BethelImage(album.image),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0x00000000), Color(0xCC0F1520)],
-                  ),
-                ),
-              ),
-            ]),
-          ),
-        ),
-        AsyncView<List<Song>>(
-          sliver: true,
-          load: () => state.repo.songsForAlbum(album.id),
-          builder: (context, songs) => SliverPadding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 28),
-            sliver: SliverList.builder(itemCount: songs.length, itemBuilder: (_, i) => SongRow(song: songs[i])),
-          ),
-        ),
-      ]),
+      appBar: AppBar(),
+      body: AsyncView<List<Song>>(
+        load: () => state.repo.songsForAlbum(album.id),
+        builder: (context, songs) => ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            BethelImage(album.image, width: 132, height: 132, radius: 16),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Album', style: t.textTheme.bodySmall),
+                const SizedBox(height: 4),
+                Text(album.title, style: t.textTheme.headlineSmall),
+                const SizedBox(height: 4),
+                Text([
+                  '${songs.length} ${songs.length == 1 ? 'song' : 'songs'}',
+                  if (album.language.isNotEmpty) album.language,
+                ].join(' · '), style: t.textTheme.bodySmall),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: 24),
+          if (songs.isEmpty)
+            const BethelEmptyState(icon: Icons.album_outlined, title: 'No songs yet', message: 'This album has no songs yet')
+          else
+            for (final s in songs) SongRow(song: s),
+        ]),
+      ),
     );
   }
 }
 
-/// Song page: lyrics in each language, lyricist, chords, save/download/share, present.
+// ===================================================================== song page
+
+/// Song page: lyrics on the page like an open hymnal. Actions in the bar: text size, save, share, present.
 class SongScreen extends StatefulWidget {
   const SongScreen({super.key, required this.song});
   final Song song;
@@ -606,222 +559,210 @@ class SongScreen extends StatefulWidget {
 class _SongScreenState extends State<SongScreen> {
   late final Future<Song> _detail = AppScope.read(context).repo.songDetail(widget.song);
   String? _lang;
-  bool _chords = false;
+
+  void _toggleSave(Song song) {
+    final state = AppScope.read(context);
+    if (state.guest) {
+      _signInPrompt();
+      return;
+    }
+    final saving = !state.savedSongs.contains(song.id);
+    state.toggleSavedSong(song.id);
+    showBethelToast(context, saving ? 'Saved to your songs' : 'Removed from your songs',
+        icon: saving ? Icons.favorite_rounded : Icons.favorite_border_rounded);
+  }
+
+  void _signInPrompt() {
+    final t = Theme.of(context);
+    final tk = BethelTokens.of(context);
+    showBethelSheet<void>(
+      context,
+      builder: (ctx) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Center(
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(color: tk.raised, shape: BoxShape.circle),
+            child: Icon(Icons.favorite_border_rounded, color: t.colorScheme.primary),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text('Sign in to save songs', textAlign: TextAlign.center, style: t.textTheme.headlineSmall),
+        const SizedBox(height: 8),
+        Text('Saved songs, notes and comments need an account. Phone, Apple, Google or email all work.',
+            textAlign: TextAlign.center, style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 20),
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            Navigator.of(context).popUntil((r) => r.isFirst);
+            AppScope.read(context).signOut();
+          },
+          child: const Text('Continue'),
+        ),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Not now')),
+      ]),
+    );
+  }
+
+  void _textSize(Song song) {
+    showBethelSheet<void>(context, builder: (ctx) => _TextSizeSheet(song: song));
+  }
+
+  Future<void> _share(Song song) async {
+    final box = context.findRenderObject() as RenderBox?;
+    final book = (song.albumTitle ?? '').isEmpty ? '' : ' · ${song.albumTitle}';
+    await SharePlus.instance.share(ShareParams(
+      text: '${song.label}$book\nBethel Prayer House',
+      sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
     final t = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.song.albumTitle ?? 'Song', style: const TextStyle(fontSize: 16)),
-        actions: [
-          IconButton(
-            tooltip: 'Smaller text',
-            onPressed: () => state.setLyricsScale(state.lyricsScale - 0.1),
-            icon: const Icon(Icons.text_decrease_rounded),
-          ),
-          IconButton(
-            tooltip: 'Larger text',
-            onPressed: () => state.setLyricsScale(state.lyricsScale + 0.1),
-            icon: const Icon(Icons.text_increase_rounded),
-          ),
-        ],
-      ),
-      body: FutureBuilder<Song>(
-        future: _detail,
-        builder: (context, snap) {
-          final song = snap.data ?? widget.song;
-          final langs = song.lyrics.keys.toList();
-          final lang = _lang != null && langs.contains(_lang) ? _lang! : (langs.isEmpty ? null : langs.first);
-          final lyrics = lang == null ? null : song.lyrics[lang];
-          final saved = state.savedSongs.contains(song.id);
-          final downloaded = state.downloadedSongs.contains(song.id);
-          return ListView(padding: const EdgeInsets.fromLTRB(24, 4, 24, 48), children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              if (song.number > 0)
-                Container(
-                  width: 64,
-                  height: 64,
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(color: BethelColors.forest, borderRadius: BorderRadius.circular(18)),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      const Text('NO.',
-                          style: TextStyle(
-                              color: BethelColors.brassSoft,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 1)),
-                      Text('${song.number}',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700, height: 1.1)),
-                    ]),
-                  ),
-                )
-              else
-                BethelImage(song.image, width: 64, height: 64, radius: 18),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(song.title, style: t.textTheme.titleLarge),
-                  if (song.altTitle.isNotEmpty && song.altTitle != song.title)
-                    Text(song.altTitle, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500)),
-                  if (song.reference.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(song.reference,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: BethelColors.brassText, fontWeight: FontWeight.w600, fontSize: 13)),
-                    ),
-                  if (song.lyricist.isNotEmpty)
-                    Text('Lyricist: ${song.lyricist}', style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
-                  if (song.artist.isNotEmpty && song.artist != 'Traditional')
-                    Text('Sung by: ${song.artist}', style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
-                ]),
-              ),
-            ]),
-            const SizedBox(height: 18),
-            // Save · Download · Share · Present (original app had Saved / Downloads / Share)
-            Row(children: [
-              _SongAction(
-                icon: saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                label: saved ? 'Saved' : 'Save',
-                active: saved,
-                onTap: () => state.toggleSavedSong(song.id),
-              ),
-              _SongAction(
-                icon: downloaded ? Icons.download_done_rounded : Icons.download_rounded,
-                label: downloaded ? 'Downloaded' : 'Download',
-                active: downloaded,
-                onTap: () {
-                  state.toggleDownload(song.id);
-                  showToast(context, downloaded ? 'Removed from downloads.' : 'Lyrics saved for offline use.');
-                },
-              ),
-              _SongAction(
-                icon: Icons.ios_share_rounded,
-                label: 'Share',
-                onTap: () => showToast(context, 'Link to "${song.label}" copied.'),
-              ),
-              _SongAction(
-                icon: Icons.slideshow_rounded,
-                label: 'Present',
-                onTap: lyrics == null
-                    ? null
-                    : () => Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => PresentScreen(song: song, language: lang!))),
-              ),
-            ]),
-            const SizedBox(height: 10),
-            if (langs.length > 1 || song.chords != null)
-              Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                if (langs.length > 1) ...[
-                  Icon(Icons.language_rounded, size: 20, color: t.colorScheme.onSurfaceVariant),
-                  for (final l in langs)
-                    ChoiceChip(
-                      label: Text(l),
-                      selected: l == lang,
-                      showCheckmark: false,
-                      onSelected: (_) => setState(() => _lang = l),
-                    ),
-                ],
-                if (song.chords != null)
-                  FilterChip(
-                    avatar: const Icon(Icons.piano_rounded, size: 18),
-                    label: Text(song.chordKey == null ? 'Chords' : 'Chords · ${song.chordKey}'),
-                    selected: _chords,
-                    showCheckmark: false,
-                    onSelected: (v) => setState(() => _chords = v),
-                  ),
-              ]),
-            if (_chords && song.chords != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: t.colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(14),
+    final tk = BethelTokens.of(context);
+    return FutureBuilder<Song>(
+      future: _detail,
+      builder: (context, snap) {
+        final song = snap.data ?? widget.song;
+        final langs = song.lyrics.keys.toList();
+        final lang = _lang != null && langs.contains(_lang) ? _lang! : (langs.isEmpty ? null : langs.first);
+        final lyrics = lang == null ? null : song.lyrics[lang];
+        final saved = state.savedSongs.contains(song.id);
+        final telugu = song.altTitle.isNotEmpty && _isTelugu(song.altTitle);
+        final title = telugu ? song.altTitle : song.title;
+        final meta = [
+          if (telugu) song.title,
+          if (song.lyricist.isNotEmpty) song.lyricist,
+          if ((song.albumTitle ?? '').isNotEmpty) song.albumTitle!,
+        ].join(' · ');
+        return Scaffold(
+          appBar: AppBar(actions: [
+            IconButton(tooltip: 'Text size', onPressed: () => _textSize(song), icon: const Icon(Icons.format_size_rounded)),
+            IconButton(
+              tooltip: saved ? 'Saved' : 'Save',
+              onPressed: () => _toggleSave(song),
+              icon: Icon(saved ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: saved ? BethelColors.brass : null),
+            ),
+            IconButton(tooltip: 'Share', onPressed: () => _share(song), icon: const Icon(Icons.ios_share_rounded)),
+            IconButton(
+              tooltip: 'Present',
+              onPressed: lyrics == null
+                  ? null
+                  : () => Navigator.push(context, MaterialPageRoute(builder: (_) => PresentScreen(song: song, language: lang!))),
+              icon: const Icon(Icons.slideshow_outlined),
+            ),
+            const SizedBox(width: 8),
+          ]),
+          body: ListView(padding: const EdgeInsets.fromLTRB(24, 8, 24, 48), children: [
+            Container(
+              padding: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tk.hairline))),
+              child: Row(children: [
+                song.number > 0 ? HymnPlaque('${song.number}', large: true) : BethelImage(song.image, width: 64, height: 64, radius: 8),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(title,
+                        style: telugu
+                            ? t.textTheme.headlineSmall?.copyWith(fontFamily: BethelFonts.telugu, fontSize: 22, height: 1.4)
+                            : t.textTheme.headlineSmall),
+                    if (meta.isNotEmpty) ...[const SizedBox(height: 4), Text(meta, style: t.textTheme.bodySmall)],
+                    if (song.reference.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(song.reference, style: t.textTheme.bodySmall?.copyWith(color: tk.brassText)),
+                    ],
+                  ]),
                 ),
-                child: Text(song.chords!,
-                    style: const TextStyle(
-                        fontFamily: 'monospace', fontSize: 14, height: 1.7, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+            if (langs.length > 1) ...[
+              const SizedBox(height: 16),
+              UnderlineTabs(
+                labels: [for (final l in langs) l == 'Telugu' ? 'తెలుగు' : l],
+                selected: langs.indexOf(lang!),
+                onSelected: (i) => setState(() => _lang = langs[i]),
               ),
             ],
-            const SizedBox(height: 18),
+            const SizedBox(height: 24),
             if (snap.connectionState != ConnectionState.done)
               const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
             else if (lyrics == null)
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: t.colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Icon(Icons.lyrics_outlined, color: t.colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Lyrics for this song come from the church\'s song database. '
-                      'They appear here once the app is connected to the API.',
-                      style: TextStyle(height: 1.5),
-                    ),
-                  ),
-                ]),
+              BethelEmptyState(
+                icon: Icons.music_note_outlined,
+                title: 'Lyrics haven’t been added yet',
+                message: (song.audioUrl ?? '').isEmpty
+                    ? 'The church team is typing up this song. No recording has been uploaded either.'
+                    : 'The church team is typing up this song. You can listen to the recording.',
+                action: (song.audioUrl ?? '').isEmpty
+                    ? null
+                    : OutlinedButton.icon(
+                        onPressed: () => openLink(context, song.audioUrl!),
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text('Play recording'),
+                      ),
               )
             else
-              _Lyrics(text: lyrics, scale: state.lyricsScale),
-          ]);
-        },
-      ),
-      bottomNavigationBar: _PlayerBar(song: widget.song),
+              _Lyrics(text: lyrics, scale: state.lyricsScale, telugu: lang == 'Telugu'),
+          ]),
+        );
+      },
     );
   }
 }
 
-class _SongAction extends StatelessWidget {
-  const _SongAction({required this.icon, required this.label, required this.onTap, this.active = false});
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-  final bool active;
+class _TextSizeSheet extends StatelessWidget {
+  const _TextSizeSheet({required this.song});
+  final Song song;
 
   @override
   Widget build(BuildContext context) {
+    final state = AppScope.of(context);
     final t = Theme.of(context);
-    final color = onTap == null ? t.disabledColor : (active ? BethelColors.brass : t.colorScheme.primary);
-    return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 4),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w500, color: onTap == null ? t.disabledColor : null)),
-          ]),
+    final downloaded = state.downloadedSongs.contains(song.id);
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text('Text size', style: t.textTheme.titleLarge),
+      const SizedBox(height: 12),
+      Row(children: [
+        const Text('A', style: TextStyle(fontFamily: BethelFonts.display, fontSize: 15)),
+        Expanded(
+          child: Slider(
+            value: state.lyricsScale,
+            min: 0.8,
+            max: 1.8,
+            divisions: 10,
+            label: '${(state.lyricsScale * 100).round()}%',
+            onChanged: state.setLyricsScale,
+          ),
         ),
+        const Text('A', style: TextStyle(fontFamily: BethelFonts.display, fontSize: 26)),
+      ]),
+      const Divider(height: 24),
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        value: downloaded,
+        onChanged: (_) => state.toggleDownload(song.id),
+        title: const Text('Available offline'),
+        subtitle: const Text('Keep these lyrics on this phone'),
       ),
-    );
+      const SizedBox(height: 12),
+      FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
+    ]);
   }
 }
 
-/// Song lyrics, one block per stanza.
+/// Lyrics on the page, one block per stanza, in the reading serif.
 ///
-/// Song books like Songs of Zion write their own verse numbers ("1.") and refrain
-/// labels ("Pallavi :", "పల్లవి :"), so the app only adds numbers to songs that
-/// have none. Refrains get a gold bar so they are easy to find while singing.
+/// Song books like Songs of Zion write their own verse numbers ("1.") and refrain labels
+/// ("Pallavi :", "పల్లవి :"), so labels are only added to songs that have none: "Verse 1", "Verse 2".
+/// Refrains get a short brass rule so they are easy to find while singing.
 class _Lyrics extends StatelessWidget {
-  const _Lyrics({required this.text, required this.scale});
+  const _Lyrics({required this.text, required this.scale, required this.telugu});
   final String text;
   final double scale;
+  final bool telugu;
 
   static final _numbered = RegExp(r'^\s*\d+\s*[.)]');
   static final _refrain = RegExp(
@@ -830,86 +771,34 @@ class _Lyrics extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = Theme.of(context);
     final stanzas = text.split(RegExp(r'\n\s*\n')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     final labelled = stanzas.any((s) => _numbered.hasMatch(s) || _refrain.hasMatch(s));
-    final style = TextStyle(fontSize: 18 * scale, height: 1.7);
+    final style = TextStyle(
+      fontFamily: telugu ? BethelFonts.telugu : BethelFonts.display,
+      fontSize: (telugu ? 18 : BethelType.title) * scale,
+      height: telugu ? 1.8 : 1.6,
+      color: t.colorScheme.onSurface,
+    );
+    final label = t.textTheme.bodySmall;
+    var verse = 0;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      for (var i = 0; i < stanzas.length; i++)
+      for (final s in stanzas)
         Padding(
-          padding: const EdgeInsets.only(bottom: 22),
-          child: labelled
-              ? (_refrain.hasMatch(stanzas[i])
-                  ? Container(
-                      padding: const EdgeInsets.only(left: 12),
-                      decoration: const BoxDecoration(
-                        border: Border(left: BorderSide(color: BethelColors.brass, width: 3)),
-                      ),
-                      child: Text(stanzas[i], style: style),
-                    )
-                  : Text(stanzas[i], style: style))
-              : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  SizedBox(
-                    width: 26,
-                    child: Padding(
-                      padding: EdgeInsets.only(top: 4 * scale),
-                      child: Text('${i + 1}',
-                          style: const TextStyle(color: BethelColors.brassText, fontWeight: FontWeight.w700, fontSize: 13)),
-                    ),
-                  ),
-                  Expanded(child: Text(stanzas[i], style: style)),
-                ]),
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (_refrain.hasMatch(s))
+              const Padding(padding: EdgeInsets.only(bottom: 8, top: 8), child: BrassRule(width: 24))
+            else if (!labelled)
+              Padding(padding: const EdgeInsets.only(bottom: 8), child: Text('Verse ${++verse}', style: label)),
+            Text(s, style: style),
+          ]),
         ),
     ]);
   }
 }
 
-/// Bottom audio bar. Plays the song's recording when the API provides one.
-class _PlayerBar extends StatefulWidget {
-  const _PlayerBar({required this.song});
-  final Song song;
-
-  @override
-  State<_PlayerBar> createState() => _PlayerBarState();
-}
-
-class _PlayerBarState extends State<_PlayerBar> {
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    final hasAudio = widget.song.audioUrl != null && widget.song.audioUrl!.isNotEmpty;
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-        padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
-        decoration: BoxDecoration(
-          color: t.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: t.colorScheme.outlineVariant),
-        ),
-        child: Row(children: [
-          IconButton.filled(
-            style: IconButton.styleFrom(backgroundColor: BethelColors.forest, foregroundColor: Colors.white),
-            onPressed: hasAudio
-                ? () => openLink(context, widget.song.audioUrl!)
-                : () => showToast(context, 'No recording has been uploaded for this song yet.'),
-            icon: const Icon(Icons.play_arrow_rounded),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(widget.song.title,
-                  maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-              Text(hasAudio ? 'Play recording' : 'Recording not available yet',
-                  style: TextStyle(fontSize: 12, color: t.colorScheme.onSurfaceVariant)),
-            ]),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-/// Loads full lyrics, then opens presentation mode.
+/// Loads full lyrics, then opens present mode.
 class PresentLoader extends StatelessWidget {
   const PresentLoader({super.key, required this.song});
   final Song song;
@@ -917,7 +806,7 @@ class PresentLoader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BethelColors.forestDeep,
+      backgroundColor: const Color(0xFF0B0D0C),
       body: AsyncView<Song>(
         load: () => AppScope.read(context).repo.songDetail(song),
         builder: (context, full) => full.lyrics.isEmpty
@@ -925,8 +814,8 @@ class PresentLoader extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(32),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const Text('Lyrics for this song aren\'t available yet.',
-                        textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 16)),
+                    const Text('Lyrics for this song haven’t been added yet',
+                        textAlign: TextAlign.center, style: TextStyle(color: BethelColors.ivory, fontSize: BethelType.lead)),
                     TextButton(onPressed: () => Navigator.pop(context), child: const Text('Back')),
                   ]),
                 ),
@@ -937,7 +826,7 @@ class PresentLoader extends StatelessWidget {
   }
 }
 
-/// Full-screen lyrics, one stanza per page, for projecting during worship.
+/// Full-screen lyrics for projecting during worship: one stanza per page, swipe or use the arrows.
 class PresentScreen extends StatefulWidget {
   const PresentScreen({super.key, required this.song, required this.language});
   final Song song;
@@ -950,110 +839,124 @@ class PresentScreen extends StatefulWidget {
 class _PresentScreenState extends State<PresentScreen> {
   final _pages = PageController();
   int _page = 0;
-  Timer? _hideTimer;
-  bool _chrome = true;
 
-  late final List<String> _stanzas =
-      (widget.song.lyrics[widget.language] ?? '').split(RegExp(r'\n\s*\n')).map((s) => s.trim()).toList();
-
-  @override
-  void initState() {
-    super.initState();
-    _scheduleHide();
-  }
-
-  void _scheduleHide() {
-    _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted) setState(() => _chrome = false);
-    });
-  }
+  late final List<String> _stanzas = (widget.song.lyrics[widget.language] ?? '')
+      .split(RegExp(r'\n\s*\n'))
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
 
   void _go(int delta) {
     final next = (_page + delta).clamp(0, _stanzas.length - 1);
-    _pages.animateToPage(next, duration: const Duration(milliseconds: 280), curve: Curves.easeOut);
+    if (reduceMotion(context)) {
+      _pages.jumpToPage(next);
+    } else {
+      _pages.animateToPage(next, duration: const Duration(milliseconds: 280), curve: Curves.easeOut);
+    }
   }
 
   @override
   void dispose() {
-    _hideTimer?.cancel();
     _pages.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final telugu = widget.language == 'Telugu';
+    const bg = Color(0xFF0B0D0C);
     return Scaffold(
-      backgroundColor: BethelColors.forestDeep,
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapUp: (d) {
-          final w = MediaQuery.sizeOf(context).width;
-          setState(() => _chrome = true);
-          _scheduleHide();
-          if (d.localPosition.dx > w * 0.65) _go(1);
-          if (d.localPosition.dx < w * 0.35) _go(-1);
-        },
-        child: SafeArea(
-          child: Stack(children: [
-            PageView.builder(
-              controller: _pages,
-              itemCount: _stanzas.length,
-              onPageChanged: (i) => setState(() => _page = i),
-              itemBuilder: (_, i) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width - 56),
-                      child: Text(_stanzas[i],
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 28, height: 1.55, fontWeight: FontWeight.w500)),
-                    ),
+      backgroundColor: bg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(28, 8, 28, 24),
+          child: Column(children: [
+            Row(children: [
+              Expanded(
+                child: Text('${widget.song.title} · Verse ${_page + 1} of ${_stanzas.length}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: BethelType.caption, color: BethelColors.nightMuted)),
+              ),
+              _RoundButton(
+                icon: Icons.close_rounded,
+                label: 'Exit present mode',
+                onTap: () => Navigator.pop(context),
+                filled: false,
+              ),
+            ]),
+            Expanded(
+              child: PageView.builder(
+                controller: _pages,
+                itemCount: _stanzas.length,
+                onPageChanged: (i) => setState(() => _page = i),
+                itemBuilder: (_, i) => Center(
+                  child: SingleChildScrollView(
+                    child: Text(_stanzas[i],
+                        style: TextStyle(
+                          fontFamily: telugu ? BethelFonts.telugu : BethelFonts.display,
+                          fontSize: telugu ? 28 : BethelType.display,
+                          height: telugu ? 1.6 : 1.35,
+                          color: BethelColors.ivory,
+                        )),
                   ),
                 ),
               ),
             ),
-            AnimatedOpacity(
-              opacity: _chrome ? 1 : 0,
-              duration: const Duration(milliseconds: 250),
-              child: Column(children: [
-                Row(children: [
-                  IconButton(
-                    color: Colors.white,
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                  Expanded(
-                    child: Text(widget.song.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xCCFFFFFF), fontWeight: FontWeight.w600)),
-                  ),
-                  const SizedBox(width: 16),
-                ]),
-                const Spacer(),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 18),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    for (var i = 0; i < _stanzas.length; i++)
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: i == _page ? 22 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: i == _page ? BethelColors.brass : const Color(0x55FFFFFF),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+            Row(children: [
+              _RoundButton(icon: Icons.chevron_left_rounded, label: 'Previous verse', onTap: _page > 0 ? () => _go(-1) : null, filled: false),
+              Expanded(
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  for (var i = 0; i < _stanzas.length; i++)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: i == _page ? 24 : 8,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: i == _page ? BethelColors.brass : const Color(0x4DFFFFFF),
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                  ]),
-                ),
-              ]),
-            ),
+                    ),
+                ]),
+              ),
+              _RoundButton(
+                  icon: Icons.chevron_right_rounded,
+                  label: 'Next verse',
+                  onTap: _page < _stanzas.length - 1 ? () => _go(1) : null,
+                  filled: true),
+            ]),
           ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoundButton extends StatelessWidget {
+  const _RoundButton({required this.icon, required this.label, required this.onTap, required this.filled});
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return Pressable(
+      onTap: onTap,
+      semanticLabel: label,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.35,
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: filled ? BethelColors.ivory : Colors.transparent,
+            border: filled ? null : Border.all(color: const Color(0x33FFFFFF)),
+          ),
+          child: Icon(icon, size: 26, color: filled ? BethelColors.ink : BethelColors.nightMuted),
         ),
       ),
     );

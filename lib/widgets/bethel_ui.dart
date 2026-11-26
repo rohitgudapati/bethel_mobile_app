@@ -300,6 +300,7 @@ class TileField extends StatelessWidget {
     this.maxLines = 1,
     this.onChanged,
     this.focusNode,
+    this.inputFormatters,
   });
 
   final TextEditingController? controller;
@@ -318,6 +319,7 @@ class TileField extends StatelessWidget {
   final int maxLines;
   final ValueChanged<String>? onChanged;
   final FocusNode? focusNode;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -326,11 +328,12 @@ class TileField extends StatelessWidget {
       DecoratedBox(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), boxShadow: tk.tileShadow),
         child: Semantics(
-          label: label,
-          textField: true,
+          // The hint is read too, so skip a label that only repeats it ("Your name, Your name").
+          label: label == hint ? null : label,
           child: TextField(
           controller: controller,
           focusNode: focusNode,
+          inputFormatters: inputFormatters,
           keyboardType: keyboardType,
           autofillHints: autofillHints,
           obscureText: obscureText,

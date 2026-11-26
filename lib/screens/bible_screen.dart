@@ -15,7 +15,8 @@ class BibleScreen extends StatefulWidget {
 }
 
 class _BibleScreenState extends State<BibleScreen> {
-  final Set<String> _done = {};
+  /// Shared with Home's "Keep going" row.
+  Set<String> get _done => AppScope.read(context).readingDone;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +65,7 @@ class _BibleScreenState extends State<BibleScreen> {
                     onTap: () async {
                       final finished = await Navigator.push<bool>(
                           context, MaterialPageRoute(builder: (_) => PassageScreen(passage: plan[i])));
-                      if (finished == true) setState(() => _done.add(plan[i].reference));
+                      if (finished == true && context.mounted) AppScope.read(context).markPassageRead(plan[i].reference);
                     },
                   ),
                 ),
