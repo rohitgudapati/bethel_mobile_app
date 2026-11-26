@@ -38,7 +38,10 @@ class _PrayerScreenState extends State<PrayerScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return Scaffold(
+    // Its own messenger, so toasts from the wall show in this Scaffold and push the
+    // Request prayer button up instead of covering it.
+    return ScaffoldMessenger(
+      child: Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _newRequest,
         elevation: 2,
@@ -109,6 +112,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
           ]),
         ),
       ),
+    ),
     );
   }
 }
