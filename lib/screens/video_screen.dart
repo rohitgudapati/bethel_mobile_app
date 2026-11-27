@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
@@ -21,18 +23,64 @@ class _InlineYouTubeState extends State<InlineYouTube> {
     autoPlay: widget.autoPlay,
     params: const YoutubePlayerParams(showFullscreenButton: true, strictRelatedVideos: true, playsInline: true),
   );
+  StreamSubscription<YoutubePlayerValue>? _sub;
+  YoutubeError _error = YoutubeError.none;
+
+  @override
+  void initState() {
+    super.initState();
+    // When YouTube refuses to play the video here (embedding turned off, private, region
+    // or player errors), show a clear way to watch it on YouTube instead of a black box.
+    _sub = _controller.stream.listen((v) {
+      if (v.error != YoutubeError.none && v.error != _error && mounted) setState(() => _error = v.error);
+    });
+  }
 
   @override
   void dispose() {
+    _sub?.cancel();
     _controller.close();
     super.dispose();
   }
 
+  String get _reason => switch (_error) {
+        YoutubeError.videoNotFound || YoutubeError.cannotFindVideo => 'This video is private or was removed.',
+        YoutubeError.notEmbeddable || YoutubeError.sameAsNotEmbeddable => 'This video can only be played on YouTube.',
+        _ => 'This video can’t play inside the app right now.',
+      };
+
   @override
-  Widget build(BuildContext context) => ClipRRect(
+  Widget build(BuildContext context) {
+    if (_error == YoutubeError.none) {
+      return ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: YoutubePlayer(controller: _controller, aspectRatio: widget.aspectRatio),
       );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: AspectRatio(
+        aspectRatio: widget.aspectRatio,
+        child: Stack(fit: StackFit.expand, children: [
+          Image.network('https://i.ytimg.com/vi/${widget.videoId}/hqdefault.jpg', fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox()),
+          const ColoredBox(color: Color(0xC7000000)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text(_reason, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4)),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
+                onPressed: () => openLink(context, 'https://www.youtube.com/watch?v=${widget.videoId}'),
+                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                label: const Text('Watch on YouTube'),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
 }
 
 /// Full-screen page for a live stream, short, testimony or interview.
