@@ -352,7 +352,17 @@ class FirebaseRepository implements BethelRepository {
       description: _s(m, 'description'),
       preacher: _s(m, 'preacher'),
       embeddable: m['embeddable'] != false,
+      ref: _key(d.id),
+      live: m['isStreamRecording'] == true,
+      short: (m['typeOverride'] ?? m['kind'] ?? m['type']) == 'short',
+      playlistIds: List<String>.from(m['playlistIds'] as List? ?? const []),
     );
+  }
+
+  @override
+  Future<List<ChannelVideo>> channelVideos({int limit = 200}) async {
+    final q = await _db.collection('videos').orderBy('publishedAt', descending: true).limit(limit).get();
+    return [for (final d in q.docs) if (d.data()['hidden'] != true && d.data()['removed'] != true) _video(d)];
   }
 
   @override

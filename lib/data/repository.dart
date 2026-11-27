@@ -44,6 +44,9 @@ abstract class BethelRepository {
 
   /// The most recent recorded service (a finished live stream).
   Future<ChannelVideo?> latestService();
+
+  /// The channel's newest videos (live streams, uploads and shorts), newest first.
+  Future<List<ChannelVideo>> channelVideos({int limit = 200});
   Future<List<SermonComment>> sermonComments(int sermonId);
   Future<void> addSermonComment(int sermonId, String text);
   Future<List<MediaItem>> shorts();

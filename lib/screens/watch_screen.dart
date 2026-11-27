@@ -12,8 +12,8 @@ import 'live_banner.dart';
 import 'notes_screen.dart';
 import 'video_screen.dart';
 
-/// Watch: the church's YouTube channel. Live or latest service on top, the next live
-/// stream, then church messages and one shelf per YouTube playlist.
+/// Watch: the church's YouTube channel, in the same sections as YouTube: Live, Videos,
+/// Shorts and Playlists.
 class WatchScreen extends StatefulWidget {
   const WatchScreen({super.key});
 
@@ -22,22 +22,22 @@ class WatchScreen extends StatefulWidget {
 }
 
 class _WatchData {
-  _WatchData(this.streams, this.latest, this.playlists, this.sermons, this.shelves, this.failed);
+  _WatchData(this.streams, this.videos, this.playlists, this.failed);
   final List<LiveStream> streams;
-  final ChannelVideo? latest;
+  final List<ChannelVideo> videos;
   final List<VideoPlaylist> playlists;
-  final List<Sermon> sermons;
-  final Map<String, List<ChannelVideo>> shelves;
   final bool failed;
 
-  List<ChannelVideo> get allVideos => {
-        for (final v in [if (latest != null) latest!, for (final s in shelves.values) ...s]) v.id: v
-      }.values.toList();
+  List<ChannelVideo> get live => videos.where((v) => v.live).toList();
+  List<ChannelVideo> get shorts => videos.where((v) => v.short && !v.live).toList();
+  List<ChannelVideo> get uploads => videos.where((v) => !v.short && !v.live).toList();
 }
 
 class _WatchScreenState extends State<WatchScreen> {
   late Future<_WatchData> _data = _load();
   bool _reminded = false;
+  String _tab = 'Live';
+  String? _list;
 
   Future<_WatchData> _load() async {
     final repo = AppScope.read(context).repo;
@@ -52,15 +52,9 @@ class _WatchScreenState extends State<WatchScreen> {
     }
 
     final streams = safe<List<LiveStream>>(repo.liveStreams, const []);
-    final latest = safe<ChannelVideo?>(repo.latestService, null);
-    final sermons = safe<List<Sermon>>(repo.sermons, const []);
-    final playlists = await safe<List<VideoPlaylist>>(repo.playlists, const []);
-    final shelves = <String, List<ChannelVideo>>{};
-    await Future.wait([
-      for (final p in playlists.take(6))
-        safe<List<ChannelVideo>>(() => repo.playlistVideos(p.id, limit: 10), const []).then((v) => shelves[p.id] = v),
-    ]);
-    return _WatchData(await streams, await latest, playlists, await sermons, shelves, failures >= 3);
+    final playlists = safe<List<VideoPlaylist>>(repo.playlists, const []);
+    final videos = await safe<List<ChannelVideo>>(repo.channelVideos, const []);
+    return _WatchData(await streams, videos, await playlists, failures >= 2);
   }
 
   Future<void> _refresh() async {
@@ -71,12 +65,15 @@ class _WatchScreenState extends State<WatchScreen> {
     await f;
   }
 
+  void _openService(ChannelVideo v) => Navigator.push(context, MaterialPageRoute(builder: (_) => SermonDetailScreen(sermon: v.toSermon())));
+
   void _play(ChannelVideo v) => playVideo(context,
       youtubeId: v.embeddable ? v.id : null,
       url: 'https://www.youtube.com/watch?v=${v.id}',
       title: v.title,
       subtitle: [if (v.preacher.isNotEmpty) v.preacher, fmtShort(v.published)].join(' · '),
-      description: v.description);
+      description: v.description,
+      vertical: v.short);
 
   Future<void> _remind(DateTime start, String title) async {
     final state = AppScope.read(context);
@@ -93,42 +90,55 @@ class _WatchScreenState extends State<WatchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
     return SafeArea(
       bottom: false,
       child: FutureBuilder<_WatchData>(
         future: _data,
         builder: (context, snap) {
           final d = snap.data;
+          final tabs = ['Live', 'Videos', if (d != null && d.shorts.isNotEmpty) 'Shorts', 'Playlists'];
+          final tab = tabs.contains(_tab) ? _tab : 'Live';
           return RefreshIndicator(
             onRefresh: _refresh,
-            child: ListView(padding: const EdgeInsets.fromLTRB(0, 16, 0, 32), children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: ScreenTitle(
-                  'Watch',
-                  trailing: IconButton(
-                    tooltip: 'Search videos',
-                    icon: const Icon(Icons.search_rounded),
-                    onPressed: d == null ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => _VideoSearchScreen(data: d))),
-                  ),
+            child: ListView(padding: const EdgeInsets.fromLTRB(20, 16, 20, 32), children: [
+              ScreenTitle(
+                'Watch',
+                trailing: IconButton(
+                  tooltip: 'Search videos',
+                  icon: const Icon(Icons.search_rounded),
+                  onPressed: d == null ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => _VideoSearchScreen(data: d))),
                 ),
               ),
+              const SizedBox(height: 8),
+              UnderlineTabs(labels: tabs, selected: tabs.indexOf(tab), onSelected: (i) => setState(() => _tab = tabs[i])),
               const SizedBox(height: 16),
               if (d == null)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(children: [SkeletonBox(height: 200, radius: 16), SizedBox(height: 24), SkeletonBox(height: 120, radius: 12)]),
-                )
-              else if (d.failed && d.latest == null && d.playlists.isEmpty)
+                const Column(children: [SkeletonBox(height: 200, radius: 16), SizedBox(height: 24), SkeletonBox(height: 120, radius: 12)])
+              else if (d.failed && d.videos.isEmpty)
                 BethelEmptyState(
                   icon: Icons.wifi_off_rounded,
                   title: 'Couldn’t load videos',
                   message: 'Check your connection and try again. Everything is also on our YouTube channel.',
                   action: FilledButton.icon(onPressed: _refresh, icon: const Icon(Icons.refresh_rounded), label: const Text('Try again')),
                 )
-              else
-                ..._content(d, t),
+              else ...[
+                ...switch (tab) {
+                  'Videos' => _videosTab(d),
+                  'Shorts' => _shortsTab(d),
+                  'Playlists' => [_PlaylistGrid(playlists: d.playlists)],
+                  _ => _liveTab(d),
+                },
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => openLink(context, AppConfig.youtubeChannelUrl),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    iconAlignment: IconAlignment.end,
+                    label: const Text('Open our YouTube channel'),
+                  ),
+                ),
+              ],
             ]),
           );
         },
@@ -136,115 +146,122 @@ class _WatchScreenState extends State<WatchScreen> {
     );
   }
 
-  List<Widget> _content(_WatchData d, ThemeData t) {
+  List<Widget> _liveTab(_WatchData d) {
+    final t = Theme.of(context);
     final tk = BethelTokens.of(context);
-    final live = d.streams.any((s) => s.isLive);
+    final isLive = d.streams.any((s) => s.isLive);
     final upcoming = d.streams.where((s) => !s.isLive && s.scheduledStart != null).firstOrNull;
     final nextStart = upcoming?.scheduledStart?.toLocal() ?? nextSundayService();
     final nextTitle = upcoming?.title ?? 'Sunday Worship Service';
+    final past = d.live;
     return [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          if (live)
-            LiveBanner(streams: d.streams)
-          else if (d.latest != null) ...[
-            Pressable(
-              semanticLabel: 'Latest service: ${d.latest!.title}',
-              onTap: () => _play(d.latest!),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Stack(children: [
-                  _Thumb(url: d.latest!.thumbnail, duration: d.latest!.duration, radius: 16),
-                  Positioned(
-                    left: 12,
-                    top: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: BethelColors.ivory, borderRadius: BorderRadius.circular(6)),
-                      child: const Text('Latest service', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: BethelColors.ink)),
-                    ),
-                  ),
-                  const Positioned.fill(child: Center(child: PlayCircle())),
-                ]),
-                const SizedBox(height: 12),
-                Text('${d.latest!.title} · ${fmtShort(d.latest!.published)}', style: t.textTheme.titleLarge),
-                if (d.latest!.preacher.isNotEmpty) Text(d.latest!.preacher, style: t.textTheme.bodySmall),
-              ]),
+      if (isLive)
+        LiveBanner(streams: d.streams)
+      else
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+          decoration: BoxDecoration(color: tk.raised, borderRadius: BorderRadius.circular(12)),
+          child: Row(children: [
+            Icon(Icons.calendar_today_outlined, size: 18, color: tk.brassText),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text.rich(TextSpan(children: [
+                const TextSpan(text: 'Next live: '),
+                TextSpan(text: '${fmtShort(nextStart)} · ${_time(nextStart)}', style: const TextStyle(fontWeight: FontWeight.w500)),
+              ]), style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurface)),
             ),
-            const SizedBox(height: 16),
-          ],
-          if (!live)
-            Container(
-              padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
-              decoration: BoxDecoration(color: tk.raised, borderRadius: BorderRadius.circular(12)),
-              child: Row(children: [
-                Icon(Icons.calendar_today_outlined, size: 18, color: tk.brassText),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text.rich(TextSpan(children: [
-                    const TextSpan(text: 'Next live: '),
-                    TextSpan(text: '${fmtShort(nextStart)} · ${_time(nextStart)}', style: const TextStyle(fontWeight: FontWeight.w500)),
-                  ]), style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurface)),
-                ),
-                TextButton(
-                  onPressed: _reminded ? null : () => _remind(nextStart, nextTitle),
-                  child: Text(_reminded ? 'Reminder on' : 'Remind me'),
-                ),
-              ]),
+            TextButton(
+              onPressed: _reminded ? null : () => _remind(nextStart, nextTitle),
+              child: Text(_reminded ? 'Reminder on' : 'Remind me'),
             ),
-          if (d.playlists.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            InkWell(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlaylistsScreen(playlists: d.playlists))),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(children: [
-                  Icon(Icons.playlist_play_rounded, color: tk.brassText),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text('All playlists', style: t.textTheme.titleSmall)),
-                  Text('${d.playlists.length} from YouTube', style: t.textTheme.bodySmall),
-                  Icon(Icons.chevron_right_rounded, color: t.colorScheme.onSurfaceVariant),
-                ]),
-              ),
-            ),
-          ],
-        ]),
-      ),
-      if (d.sermons.isNotEmpty)
-        _Shelf(
-          title: 'Messages',
-          onSeeAll: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _MessagesScreen())),
-          children: [
-            for (final s in d.sermons.take(10))
-              _VideoCard(
-                title: s.title,
-                thumbnail: s.image,
-                duration: s.duration,
-                sub: [s.preacher, fmtShort(s.date)].where((x) => x.isNotEmpty).join(' · '),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SermonDetailScreen(sermon: s))),
-              ),
-          ],
+          ]),
         ),
-      for (final p in d.playlists.take(6))
-        if ((d.shelves[p.id] ?? const []).isNotEmpty)
-          _Shelf(
-            title: p.title,
-            onSeeAll: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlaylistScreen(playlist: p))),
-            children: [
-              for (final v in d.shelves[p.id]!)
-                _VideoCard(title: v.title, thumbnail: v.thumbnail, duration: v.duration, sub: fmtShort(v.published), onTap: () => _play(v)),
+      const SizedBox(height: 20),
+      if (past.isEmpty)
+        const BethelEmptyState(icon: Icons.sensors_rounded, title: 'No past live streams yet', message: 'Services appear here after they’re streamed on YouTube')
+      else ...[
+        Pressable(
+          semanticLabel: 'Latest service: ${past.first.title}',
+          onTap: () => _openService(past.first),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Stack(children: [
+              _Thumb(url: past.first.thumbnail, duration: past.first.duration, radius: 16),
+              Positioned(
+                left: 12,
+                top: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: BethelColors.ivory, borderRadius: BorderRadius.circular(6)),
+                  child: const Text('Latest service', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: BethelColors.ink)),
+                ),
+              ),
+              const Positioned.fill(child: Center(child: PlayCircle())),
+            ]),
+            const SizedBox(height: 12),
+            Text(past.first.title, style: t.textTheme.titleLarge?.copyWith(fontFamilyFallback: const [BethelFonts.telugu])),
+            Text([fmtShort(past.first.published), if (past.first.preacher.isNotEmpty) past.first.preacher].join(' · '), style: t.textTheme.bodySmall),
+          ]),
+        ),
+        if (past.length > 1) ...[
+          const SizedBox(height: 24),
+          const BethelSectionTitle('Past live streams'),
+          const SizedBox(height: 4),
+          for (final v in past.skip(1)) _VideoRow(video: v, onTap: () => _openService(v)),
+        ],
+      ],
+    ];
+  }
+
+  List<Widget> _videosTab(_WatchData d) {
+    final all = d.uploads;
+    final ids = {for (final v in all) ...v.playlistIds};
+    final lists = d.playlists.where((p) => ids.contains(p.id)).toList();
+    final list = _list != null && lists.any((p) => p.id == _list) ? _list : null;
+    final shown = list == null ? all : all.where((v) => v.playlistIds.contains(list)).toList();
+    return [
+      if (lists.isNotEmpty) ...[
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            ChoiceChip(label: const Text('All'), selected: list == null, showCheckmark: false, onSelected: (_) => setState(() => _list = null)),
+            for (final p in lists) ...[
+              const SizedBox(width: 8),
+              ChoiceChip(label: Text(p.title), selected: list == p.id, showCheckmark: false, onSelected: (on) => setState(() => _list = on ? p.id : null)),
             ],
-          ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: () => openLink(context, AppConfig.youtubeChannelUrl),
-            icon: const Icon(Icons.open_in_new_rounded, size: 16),
-            iconAlignment: IconAlignment.end,
-            label: const Text('Open our YouTube channel'),
-          ),
+          ]),
+        ),
+        const SizedBox(height: 8),
+      ],
+      if (shown.isEmpty)
+        const BethelEmptyState(icon: Icons.smart_display_outlined, title: 'No videos here yet', message: 'New videos appear after they’re posted on YouTube')
+      else
+        for (final v in shown) _VideoRow(video: v, onTap: () => _play(v)),
+    ];
+  }
+
+  List<Widget> _shortsTab(_WatchData d) {
+    final t = Theme.of(context);
+    final shorts = d.shorts;
+    return [
+      GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 16, crossAxisSpacing: 12, childAspectRatio: 0.48),
+        itemCount: shorts.length,
+        itemBuilder: (_, i) => Pressable(
+          semanticLabel: shorts[i].title,
+          onTap: () => _play(shorts[i]),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            AspectRatio(
+              aspectRatio: 9 / 16,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: ColoredBox(color: BethelTokens.of(context).raised, child: BethelImage(shorts[i].thumbnail)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(shorts[i].title, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, fontFamilyFallback: const [BethelFonts.telugu])),
+          ]),
         ),
       ),
     ];
@@ -290,57 +307,33 @@ class _Thumb extends StatelessWidget {
   }
 }
 
-class _Shelf extends StatelessWidget {
-  const _Shelf({required this.title, required this.children, this.onSeeAll});
-  final String title;
-  final List<Widget> children;
-  final VoidCallback? onSeeAll;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-        child: BethelSectionTitle(title, action: onSeeAll == null ? null : 'See all', onAction: onSeeAll),
-      ),
-      SizedBox(
-        height: 200,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          itemCount: children.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
-          itemBuilder: (_, i) => children[i],
-        ),
-      ),
-    ]);
-  }
-}
-
-class _VideoCard extends StatelessWidget {
-  const _VideoCard({required this.title, required this.thumbnail, required this.duration, required this.sub, required this.onTap});
-  final String title;
-  final String thumbnail;
-  final String duration;
-  final String sub;
+/// A video in a list: thumbnail on the left, title and date on the right.
+class _VideoRow extends StatelessWidget {
+  const _VideoRow({required this.video, required this.onTap});
+  final ChannelVideo video;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return Pressable(
-      semanticLabel: title,
+    final v = video;
+    return InkWell(
       onTap: onTap,
-      child: SizedBox(
-        width: 200,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _Thumb(url: thumbnail, duration: duration, width: 200),
-          const SizedBox(height: 8),
-          Text(title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: t.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, height: 1.3, fontFamilyFallback: const [BethelFonts.telugu])),
-          Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.bodySmall),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(children: [
+          _Thumb(url: v.thumbnail, duration: v.duration, width: 144, radius: 10),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(v.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, height: 1.3, fontFamilyFallback: const [BethelFonts.telugu])),
+              const SizedBox(height: 4),
+              Text([fmtShort(v.published), if (v.preacher.isNotEmpty) v.preacher].join(' · '), style: t.textTheme.bodySmall),
+            ]),
+          ),
         ]),
       ),
     );
@@ -348,55 +341,51 @@ class _VideoCard extends StatelessWidget {
 }
 
 /// Every playlist on the channel, two to a row, with its video count.
-class PlaylistsScreen extends StatelessWidget {
-  const PlaylistsScreen({super.key, required this.playlists});
+class _PlaylistGrid extends StatelessWidget {
+  const _PlaylistGrid({required this.playlists});
   final List<VideoPlaylist> playlists;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Playlists')),
-      body: ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 20, crossAxisSpacing: 16, childAspectRatio: 1.15),
-          itemCount: playlists.length,
-          itemBuilder: (_, i) {
-            final p = playlists[i];
-            return Pressable(
-              semanticLabel: '${p.title}, ${p.count} videos',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlaylistScreen(playlist: p))),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Stack(children: [
-                  _Thumb(url: p.thumbnail),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 52,
-                      decoration: const BoxDecoration(
-                        color: Color(0xD1152824),
-                        borderRadius: BorderRadius.horizontal(right: Radius.circular(12)),
-                      ),
-                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        const Icon(Icons.playlist_play_rounded, size: 18, color: BethelColors.ivory),
-                        Text('${p.count}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: BethelColors.ivory)),
-                      ]),
-                    ),
+    if (playlists.isEmpty) {
+      return const BethelEmptyState(icon: Icons.playlist_play_rounded, title: 'No playlists yet', message: 'Playlists made on our YouTube channel show up here by themselves');
+    }
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 20, crossAxisSpacing: 16, childAspectRatio: 1.15),
+      itemCount: playlists.length,
+      itemBuilder: (_, i) {
+        final p = playlists[i];
+        return Pressable(
+          semanticLabel: '${p.title}, ${p.count} videos',
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlaylistScreen(playlist: p))),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Stack(children: [
+              _Thumb(url: p.thumbnail),
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 52,
+                  decoration: const BoxDecoration(
+                    color: Color(0xD1152824),
+                    borderRadius: BorderRadius.horizontal(right: Radius.circular(12)),
                   ),
-                ]),
-                const SizedBox(height: 8),
-                Text(p.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall),
-              ]),
-            );
-          },
-        ),
-        const SizedBox(height: 16),
-        Text('Playlists come straight from the church’s YouTube channel. A new playlist there shows up here by itself.', style: t.textTheme.bodySmall),
-      ]),
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.playlist_play_rounded, size: 18, color: BethelColors.ivory),
+                    Text('${p.count}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: BethelColors.ivory)),
+                  ]),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            Text(p.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall?.copyWith(fontFamilyFallback: const [BethelFonts.telugu])),
+          ]),
+        );
+      },
     );
   }
 }
@@ -487,26 +476,6 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   }
 }
 
-/// All church messages (with notes and comments).
-class _MessagesScreen extends StatelessWidget {
-  const _MessagesScreen();
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Messages')),
-        body: AsyncView<List<Sermon>>(
-          load: AppScope.read(context).repo.sermons,
-          builder: (context, list) => list.isEmpty
-              ? const BethelEmptyState(icon: Icons.smart_display_outlined, title: 'No messages yet', message: 'New messages appear here after they’re posted')
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-                  itemCount: list.length,
-                  itemBuilder: (_, i) => SermonTile(sermon: list[i]),
-                ),
-        ),
-      );
-}
-
 class _VideoSearchScreen extends StatefulWidget {
   const _VideoSearchScreen({required this.data});
   final _WatchData data;
@@ -522,8 +491,7 @@ class _VideoSearchScreenState extends State<_VideoSearchScreen> {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final q = _q.trim().toLowerCase();
-    final videos = q.isEmpty ? const <ChannelVideo>[] : widget.data.allVideos.where((v) => v.title.toLowerCase().contains(q) || v.preacher.toLowerCase().contains(q)).toList();
-    final sermons = q.isEmpty ? const <Sermon>[] : widget.data.sermons.where((s) => s.title.toLowerCase().contains(q) || s.preacher.toLowerCase().contains(q)).toList();
+    final videos = q.isEmpty ? const <ChannelVideo>[] : widget.data.videos.where((v) => v.title.toLowerCase().contains(q) || v.preacher.toLowerCase().contains(q)).toList();
     return Scaffold(
       appBar: AppBar(
         title: TextField(
@@ -537,10 +505,9 @@ class _VideoSearchScreenState extends State<_VideoSearchScreen> {
               padding: const EdgeInsets.all(20),
               child: Text('Search by title or speaker', style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
             )
-          : videos.isEmpty && sermons.isEmpty
+          : videos.isEmpty
               ? BethelEmptyState(icon: Icons.search_rounded, title: 'No videos match “$_q”', message: 'Try a shorter word, or look on our YouTube channel')
               : ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 32), children: [
-                  for (final s in sermons) SermonTile(sermon: s),
                   for (final v in videos)
                     HairlineRow(
                       leading: _Thumb(url: v.thumbnail, width: 96, radius: 8),

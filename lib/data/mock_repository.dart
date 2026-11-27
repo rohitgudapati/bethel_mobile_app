@@ -260,6 +260,7 @@ class MockRepository implements BethelRepository {
     const VideoPlaylist(id: 'PLtel', title: 'Telugu Messages', thumbnail: 'assets/sermon-hero.png', count: 42),
     const VideoPlaylist(id: 'PLsp26', title: 'Special Meetings 2026', thumbnail: 'assets/church.jpg', count: 9),
     const VideoPlaylist(id: 'PLtest', title: 'Testimonies', thumbnail: 'assets/picture3.png', count: 27, kind: 'testimony'),
+    const VideoPlaylist(id: 'PLsongs', title: 'Worship Songs', thumbnail: 'assets/picture3.png', count: 31),
     const VideoPlaylist(id: 'PLkids', title: 'Kids and Youth', thumbnail: 'assets/ministriesimage.png', count: 18),
   ];
 
@@ -281,6 +282,10 @@ class MockRepository implements BethelRepository {
     'PLtest': [
       ChannelVideo(id: 'tst1', title: 'How God carried our family through 2025', thumbnail: 'assets/picture3.png', published: DateTime(2026, 9, 14), duration: '6:40'),
     ],
+    'PLsongs': [
+      ChannelVideo(id: 'song1', title: 'Yesu Raja · Bethel Worship', thumbnail: 'assets/picture3.png', published: DateTime(2026, 11, 18), duration: '5:12'),
+      ChannelVideo(id: 'song2', title: 'Sthuthi Sthothramu', thumbnail: 'assets/church.jpg', published: DateTime(2026, 10, 2), duration: '6:48'),
+    ],
     'PLkids': [
       ChannelVideo(id: 'kid1', title: 'Christmas program 2025', thumbnail: 'assets/ministriesimage.png', published: DateTime(2025, 12, 21), duration: '38:20'),
     ],
@@ -292,6 +297,35 @@ class MockRepository implements BethelRepository {
   @override
   Future<List<ChannelVideo>> playlistVideos(String playlistId, {int limit = 50}) =>
       _delay((_playlistVideos[playlistId] ?? const <ChannelVideo>[]).take(limit).toList());
+
+  @override
+  Future<List<ChannelVideo>> channelVideos({int limit = 200}) {
+    const liveLists = {'PLsun', 'PLsp26'};
+    final byId = <String, ChannelVideo>{};
+    for (final e in _playlistVideos.entries) {
+      for (final v in e.value) {
+        final lists = [...(byId[v.id]?.playlistIds ?? const <String>[]), e.key];
+        byId[v.id] = ChannelVideo(
+          id: v.id,
+          title: v.title,
+          thumbnail: v.thumbnail,
+          published: v.published,
+          duration: v.duration,
+          description: v.description,
+          preacher: v.preacher,
+          ref: v.id.hashCode & 0x7fffffff,
+          live: lists.any(liveLists.contains),
+          playlistIds: lists,
+        );
+      }
+    }
+    final all = [
+      ...byId.values,
+      ChannelVideo(id: 'sh1', title: 'One minute with Psalm 23', thumbnail: 'assets/sermon-hero.png', published: DateTime(2026, 11, 20), duration: '0:58', short: true, ref: 9001),
+      ChannelVideo(id: 'sh2', title: 'Why we pray together', thumbnail: 'assets/live_event.jpeg', published: DateTime(2026, 11, 12), duration: '0:45', short: true, ref: 9002),
+    ]..sort((a, b) => b.published.compareTo(a.published));
+    return _delay(all.take(limit).toList());
+  }
 
   @override
   Future<ChannelVideo?> latestService() => _delay(_playlistVideos['PLsun']!.first);

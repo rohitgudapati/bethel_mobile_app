@@ -382,6 +382,10 @@ class ChannelVideo {
     this.description = '',
     this.preacher = '',
     this.embeddable = true,
+    this.ref = 0,
+    this.live = false,
+    this.short = false,
+    this.playlistIds = const [],
   });
 
   /// The YouTube video id.
@@ -393,4 +397,28 @@ class ChannelVideo {
   final String description;
   final String preacher;
   final bool embeddable;
+
+  /// The app's id for this video, used for comments and notes (as a [Sermon] id).
+  final int ref;
+
+  /// A finished live stream (a service), shown under Live.
+  final bool live;
+
+  /// A YouTube Short, shown under Shorts.
+  final bool short;
+
+  /// The channel playlists this video is in.
+  final List<String> playlistIds;
+
+  Sermon toSermon() => Sermon(
+        id: ref,
+        title: title,
+        preacher: preacher,
+        date: published,
+        image: thumbnail,
+        videoUrl: 'https://www.youtube.com/watch?v=$id',
+        youtubeId: embeddable ? id : null,
+        description: description,
+        duration: duration,
+      );
 }
