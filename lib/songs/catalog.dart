@@ -56,7 +56,7 @@ class SongCatalog {
 
   static Future<SongCatalog> load(BethelRepository repo) async {
     final all = await repo.albums();
-    final topics = await _topics();
+    final topics = await _topics(repo);
     final books = <SongBook>[];
     for (final a in all.where((a) => a.isSongBook)) {
       final songs = await repo.songsForAlbum(a.id);
@@ -72,5 +72,15 @@ class SongCatalog {
     return SongCatalog(books: books, albums: albums, albumSongs: albumSongs);
   }
 
-  static Future<Map<String, List<SongTopic>>> _topics() async => draftTopics;
+  /// Topics set in Firestore (songBooks/{id}.topics) win; otherwise the ranges built into the app.
+  static Future<Map<String, List<SongTopic>>> _topics(BethelRepository repo) async {
+    Map<String, List<Map<String, dynamic>>> remote = const {};
+    try {
+      remote = await repo.songTopics();
+    } catch (_) {}
+    return {
+      ...draftTopics,
+      for (final e in remote.entries) e.key: [for (final j in e.value) SongTopic.fromJson(j)].whereType<SongTopic>().toList(),
+    };
+  }
 }

@@ -114,7 +114,9 @@ On an Android emulator add `--dart-define=EMULATOR_HOST=10.0.2.2`.
 | `church/youtube` | channelId, channelTitle, lastSync, series |
 | `videos/{youtubeId}` | kind, type, title, description, thumbnail, publishedAt, durationSec, series, hidden, removed, typeOverride, preacher, seriesOverride |
 | `videos/{id}/comments` | uid, name, text, createdAt |
-| `songBooks/{id}` | title, language, image, order, songCount |
+| `songBooks/{id}` | title, language, image, order, songCount, topics (optional list of {en, te, from, to, icon}: the sections of the book by song number) |
+| `albums/{id}` | title, subtitle, image, startDate, endDate, dates (optional text, e.g. "Dec 4–6, 2027"), addedOn, songIds (song document ids in singing order), hidden, isNew (optional; otherwise new until a week after endDate) |
+| `playlists/{youtubeId}` | title, thumbnail, itemCount, position, kind, removed, hidden (written by the YouTube sync) |
 | `songs/{bookId}-{number}` | bookId, number, title, artist, lyricist, lyrics {language: text}, chordKey, chords, audioUrl, trendingScore |
 | `events/{id}` | title, date, time, venue, description, image, speakers, category |
 | `events/{id}/rsvps/{uid}` | one per person |

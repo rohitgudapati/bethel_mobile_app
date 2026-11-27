@@ -546,21 +546,70 @@ class FirebaseRepository implements BethelRepository {
 
   // ------------------------------------------------------------------ songs
 
+  /// Albums that aren't song books (special meetings, a youth camp), kept apart from book ids.
+  final Set<int> _albumKeys = {};
+
   @override
   Future<List<Album>> albums() async {
-    final q = await _db.collection('songBooks').orderBy('order').get();
-    return q.docs.map((d) {
-      final m = d.data();
-      return Album(
-        id: _key(d.id),
-        title: _s(m, 'title'),
-        image: _s(m, 'image', 'assets/church.jpg'),
-        artist: m['language'] == null ? '' : '${m['language']} song book',
-        language: _s(m, 'language'),
-        songCount: (m['songCount'] as num?)?.toInt() ?? 0,
-        isSongBook: true,
-      );
-    }).toList();
+    final books = await _db.collection('songBooks').orderBy('order').get();
+    final out = <Album>[
+      for (final d in books.docs)
+        Album(
+          id: _key(d.id),
+          title: _s(d.data(), 'title'),
+          image: _s(d.data(), 'image', 'assets/church.jpg'),
+          artist: d.data()['language'] == null ? '' : '${d.data()['language']} song book',
+          language: _s(d.data(), 'language'),
+          songCount: (d.data()['songCount'] as num?)?.toInt() ?? 0,
+          isSongBook: true,
+        ),
+    ];
+    try {
+      final albums = await _db.collection('albums').get();
+      final now = DateTime.now();
+      for (final d in albums.docs) {
+        final m = d.data();
+        if (m['hidden'] == true) continue;
+        final start = m['startDate'] == null ? null : _date(m['startDate']);
+        final end = m['endDate'] == null ? start : _date(m['endDate']);
+        final added = m['addedOn'] == null ? start : _date(m['addedOn']);
+        final key = _key('album:${d.id}');
+        _albumKeys.add(key);
+        out.add(Album(
+          id: key,
+          title: _s(m, 'title'),
+          image: _s(m, 'image', 'assets/church.jpg'),
+          artist: _s(m, 'subtitle'),
+          songCount: (m['songIds'] as List?)?.length ?? 0,
+          // New until a week after the meetings end (or 60 days after it was added).
+          isNew: m['isNew'] as bool? ??
+              (end != null ? now.isBefore(end.add(const Duration(days: 7))) : added != null && now.difference(added).inDays < 60),
+          dates: _s(m, 'dates', start == null ? '' : _dateRange(start, end ?? start)),
+          addedOn: added,
+        ));
+      }
+    } catch (_) {
+      // No albums collection yet, or rules not deployed: show the song books only.
+    }
+    return out;
+  }
+
+  static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  static String _dateRange(DateTime a, DateTime b) {
+    final m1 = _months[a.month - 1], m2 = _months[b.month - 1];
+    if (a.year == b.year && a.month == b.month) return a.day == b.day ? '$m1 ${a.day}, ${a.year}' : '$m1 ${a.day}–${b.day}, ${a.year}';
+    if (a.year == b.year) return '$m1 ${a.day} – $m2 ${b.day}, ${a.year}';
+    return '$m1 ${a.day}, ${a.year} – $m2 ${b.day}, ${b.year}';
+  }
+
+  @override
+  Future<Map<String, List<Map<String, dynamic>>>> songTopics() async {
+    final q = await _db.collection('songBooks').get();
+    return {
+      for (final d in q.docs)
+        if (d.data()['topics'] is List && (d.data()['topics'] as List).isNotEmpty)
+          _s(d.data(), 'title'): [for (final t in d.data()['topics'] as List) if (t is Map) Map<String, dynamic>.from(t)],
+    };
   }
 
   Song _song(DocumentSnapshot<Map<String, dynamic>> d, {String? bookTitle}) {
@@ -586,6 +635,7 @@ class FirebaseRepository implements BethelRepository {
   final Map<String, String> _bookTitles = {};
 
   Future<String?> _bookTitle(String bookId) async {
+    if (bookId.isEmpty) return null;
     if (_bookTitles.containsKey(bookId)) return _bookTitles[bookId];
     final t = (await _db.doc('songBooks/$bookId').get()).data()?['title'] as String?;
     if (t != null) _bookTitles[bookId] = t;
@@ -594,10 +644,25 @@ class FirebaseRepository implements BethelRepository {
 
   @override
   Future<List<Song>> songsForAlbum(int albumId) async {
+    if (_albumKeys.contains(albumId)) return _albumSongs(_doc(albumId).substring('album:'.length));
     final bookId = _doc(albumId);
     final title = await _bookTitle(bookId);
     final q = await _db.collection('songs').where('bookId', isEqualTo: bookId).orderBy('number').get();
     return q.docs.map((d) => _song(d, bookTitle: title)).toList();
+  }
+
+  /// An album lists its songs by document id (`songIds`), in the order they're sung.
+  Future<List<Song>> _albumSongs(String albumId) async {
+    final ids = List<String>.from((await _db.doc('albums/$albumId').get()).data()?['songIds'] as List? ?? const []);
+    final found = <String, Song>{};
+    for (var i = 0; i < ids.length; i += 30) {
+      final chunk = ids.sublist(i, i + 30 > ids.length ? ids.length : i + 30);
+      final q = await _db.collection('songs').where(FieldPath.documentId, whereIn: chunk).get();
+      for (final d in q.docs) {
+        found[d.id] = _song(d, bookTitle: await _bookTitle(d.data()['bookId'] as String? ?? ''));
+      }
+    }
+    return [for (final id in ids) if (found[id] != null) found[id]!];
   }
 
   @override

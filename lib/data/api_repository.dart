@@ -235,6 +235,9 @@ class ApiRepository implements BethelRepository {
       );
 
   @override
+  Future<Map<String, List<Map<String, dynamic>>>> songTopics() => _fallback.songTopics();
+
+  @override
   Future<List<Song>> trendingSongs() async {
     final json =
         await _get('AlbumApi/GetTrendingSongsByChurchId', {'id': AppConfig.churchId, 'page': 1, 'pageSize': 20});

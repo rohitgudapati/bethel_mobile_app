@@ -839,6 +839,9 @@ class MockRepository implements BethelRepository {
   }
 
   @override
+  Future<Map<String, List<Map<String, dynamic>>>> songTopics() async => const {};
+
+  @override
   Future<List<Song>> trendingSongs() async {
     final zion = await _zionSongs();
     Song? z(int n) => zion.where((s) => s.number == n).firstOrNull;

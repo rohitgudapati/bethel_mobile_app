@@ -63,6 +63,10 @@ abstract class BethelRepository {
   /// Song books and albums. Song books (`isSongBook`) come first.
   Future<List<Album>> albums();
   Future<List<Song>> songsForAlbum(int albumId);
+
+  /// Topic ranges per song book, keyed by book title: {'Songs of Zion': [{en, te, from, to, icon}]}.
+  /// Empty means use the ranges built into the app.
+  Future<Map<String, List<Map<String, dynamic>>>> songTopics();
   Future<List<Song>> trendingSongs();
 
   /// Full song with lyrics in every available language, lyricist and chords.
