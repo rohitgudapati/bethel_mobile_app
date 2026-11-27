@@ -85,7 +85,13 @@ export function fakeFetch(s: Scenario, calls: string[] = []): FetchLike {
         break;
       }
       case 'playlists':
-        body = { items: s.playlists.map((x) => ({ id: x.id, snippet: { title: x.title } })) };
+        body = {
+          items: s.playlists.map((x) => ({
+            id: x.id,
+            snippet: { title: x.title, thumbnails: { high: { url: `https://i.ytimg.com/pl/${x.id}.jpg` } } },
+            contentDetails: { itemCount: x.items.length },
+          })),
+        };
         break;
       case 'videos': {
         const ids = (p.get('id') ?? '').split(',');

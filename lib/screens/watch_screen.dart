@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../app/app_state.dart';
 import '../app/config.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../widgets/common.dart';
+import '../widgets/sign_in_prompt.dart';
+import '../notifications/notification_service.dart';
 import 'live_banner.dart';
+import 'notes_screen.dart';
 import 'video_screen.dart';
 
-enum _Section { sermons, shorts, interviews, testimonies }
-
-/// Watch tab (the original app's "Resources"): live stream, sermons,
-/// shorts, interviews and testimonies.
+/// Watch: the church's YouTube channel, grouped the way YouTube groups it —
+/// Live (services), Playlists, and Videos (songs, testimonies, messages, shorts).
 class WatchScreen extends StatefulWidget {
   const WatchScreen({super.key});
 
@@ -19,231 +21,292 @@ class WatchScreen extends StatefulWidget {
   State<WatchScreen> createState() => _WatchScreenState();
 }
 
+class _WatchData {
+  _WatchData(this.streams, this.live, this.uploads, this.playlists, this.sermons, this.failed);
+  final List<LiveStream> streams;
+  final List<ChannelVideo> live;
+  final List<ChannelVideo> uploads;
+  final List<VideoPlaylist> playlists;
+
+  /// Church messages by YouTube id, so a service opens with its notes and comments.
+  final Map<String, Sermon> sermons;
+  final bool failed;
+
+  List<ChannelVideo> get allVideos => [...live, ...uploads];
+}
+
+/// The Videos tab's filters, in this order, shown only when they have videos.
+const _videoFilters = [
+  ('all', 'All'),
+  ('song', 'Songs'),
+  ('testimony', 'Testimonies'),
+  ('sermon', 'Messages'),
+  ('interview', 'Interviews'),
+  ('short', 'Shorts'),
+];
+
 class _WatchScreenState extends State<WatchScreen> {
-  _Section _section = _Section.sermons;
+  late Future<_WatchData> _data = _load();
+  bool _reminded = false;
+  int _tab = 0;
+  String _filter = 'all';
 
-  static const _labels = {
-    _Section.sermons: 'Sermons',
-    _Section.shorts: 'Shorts',
-    _Section.interviews: 'Interviews',
-    _Section.testimonies: 'Testimonies',
-  };
+  Future<_WatchData> _load() async {
+    final repo = AppScope.read(context).repo;
+    var failures = 0;
+    Future<T> safe<T>(Future<T> Function() f, T fallback) async {
+      try {
+        return await f();
+      } catch (_) {
+        failures++;
+        return fallback;
+      }
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final state = AppScope.of(context);
-    final t = Theme.of(context);
-    return SafeArea(
-      bottom: false,
-      child: CustomScrollView(slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-            child: Text('Watch', style: t.textTheme.headlineMedium),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: AsyncView<List<LiveStream>>(
-              load: state.repo.liveStreams,
-              builder: (context, streams) => LiveBanner(streams: streams, height: 200),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: OutlinedButton.icon(
-              onPressed: () => openLink(context, AppConfig.youtubeChannelUrl),
-              icon: const Icon(Icons.smart_display_outlined),
-              label: const Text('Past services on YouTube'),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 64,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-              scrollDirection: Axis.horizontal,
-              itemCount: _Section.values.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
-                final s = _Section.values[i];
-                return ChoiceChip(
-                  label: Text(_labels[s]!),
-                  selected: _section == s,
-                  showCheckmark: false,
-                  onSelected: (_) => setState(() => _section = s),
-                );
-              },
-            ),
-          ),
-        ),
-        ...switch (_section) {
-          _Section.sermons => [
-              AsyncView<List<Sermon>>(
-                key: const ValueKey('sermons'),
-                sliver: true,
-                load: state.repo.sermons,
-                builder: (context, sermons) => SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-                  sliver: SliverList.separated(
-                    itemCount: sermons.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) => SermonTile(sermon: sermons[i]),
-                  ),
-                ),
-              ),
-            ],
-          _Section.shorts => [
-              AsyncView<List<MediaItem>>(
-                key: const ValueKey('shorts'),
-                sliver: true,
-                load: state.repo.shorts,
-                builder: (context, items) => SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-                  sliver: SliverGrid.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 9 / 15),
-                    itemCount: items.length,
-                    itemBuilder: (_, i) => _ShortCard(item: items[i]),
-                  ),
-                ),
-              ),
-            ],
-          _Section.interviews => [_mediaList(state.repo.interviews, 'interviews', 'Interview')],
-          _Section.testimonies => [_mediaList(state.repo.testimonies, 'testimonies', 'Testimony')],
-        },
-      ]),
-    );
+    final streams = safe<List<LiveStream>>(repo.liveStreams, const []);
+    final live = safe<List<ChannelVideo>>(repo.liveRecordings, const []);
+    final uploads = safe<List<ChannelVideo>>(repo.uploads, const []);
+    final playlists = safe<List<VideoPlaylist>>(repo.playlists, const []);
+    final sermons = safe<List<Sermon>>(repo.sermons, const []);
+    final bySermon = {for (final s in await sermons) if ((s.youtubeId ?? '').isNotEmpty) s.youtubeId!: s};
+    return _WatchData(await streams, await live, await uploads, await playlists, bySermon, failures >= 4);
   }
 
-  Widget _mediaList(Future<List<MediaItem>> Function() load, String key, String kind) => AsyncView<List<MediaItem>>(
-        key: ValueKey(key),
-        sliver: true,
-        load: load,
-        builder: (context, items) => SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          sliver: SliverList.separated(
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 14),
-            itemBuilder: (_, i) => _MediaCard(item: items[i], kind: kind),
-          ),
-        ),
-      );
-}
+  Future<void> _refresh() async {
+    final f = _load();
+    setState(() {
+      _data = f;
+    });
+    await f;
+  }
 
-class _ShortCard extends StatelessWidget {
-  const _ShortCard({required this.item});
-  final MediaItem item;
+  void _open(ChannelVideo v, _WatchData d) {
+    final sermon = d.sermons[v.id];
+    if (sermon != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => SermonDetailScreen(sermon: sermon)));
+      return;
+    }
+    playVideo(context,
+        youtubeId: v.embeddable ? v.id : null,
+        url: 'https://www.youtube.com/watch?v=${v.id}',
+        title: v.title,
+        subtitle: [if (v.preacher.isNotEmpty) v.preacher, fmtShort(v.published)].join(' · '),
+        description: v.description,
+        vertical: v.type == 'short');
+  }
 
-  @override
-  Widget build(BuildContext context) => OverlayCard(
-        image: item.image,
-        height: double.infinity,
-        title: item.title,
-        subtitle: item.duration.isEmpty ? null : item.duration,
-        top: const Pill('SHORT', icon: Icons.bolt_rounded),
-        onTap: () => playVideo(context,
-            youtubeId: item.youtubeId,
-            url: item.videoUrl ?? AppConfig.youtubeChannelUrl,
-            title: item.title,
-            vertical: true),
-      );
-}
-
-class _MediaCard extends StatelessWidget {
-  const _MediaCard({required this.item, required this.kind});
-  final MediaItem item;
-  final String kind;
+  Future<void> _remind(DateTime start, String title) async {
+    final state = AppScope.read(context);
+    final when = start.subtract(const Duration(minutes: 10));
+    await state.notifications.requestPermission();
+    await state.notifications.replaceGroup('live', [
+      if (when.isAfter(DateTime.now()))
+        PlannedNotification(id: 4000, when: when, title: '$title starts in 10 minutes', body: 'Tap to watch live', route: 'watch'),
+    ]);
+    if (!mounted) return;
+    setState(() => _reminded = true);
+    showBethelToast(context, 'We’ll remind you 10 minutes before', icon: Icons.notifications_active_outlined);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => playVideo(context,
-            youtubeId: item.youtubeId,
-            url: item.videoUrl ?? AppConfig.youtubeChannelUrl,
-            title: item.title,
-            subtitle: '$kind${item.duration.isEmpty ? '' : ' · ${item.duration}'}',
-            description: item.info),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          AspectRatio(
-            aspectRatio: 16 / 8,
-            child: Stack(fit: StackFit.expand, alignment: Alignment.center, children: [
-              BethelImage(item.image),
-              const Center(child: PlayBadge()),
-              if (item.duration.isNotEmpty)
-                Positioned(
-                  right: 10,
-                  bottom: 10,
-                  child: Pill(item.duration, color: const Color(0xCC000000), textColor: Colors.white),
+    return SafeArea(
+      bottom: false,
+      child: FutureBuilder<_WatchData>(
+        future: _data,
+        builder: (context, snap) {
+          final d = snap.data;
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView(padding: const EdgeInsets.fromLTRB(20, 16, 20, 32), children: [
+              ScreenTitle(
+                'Watch',
+                trailing: IconButton(
+                  tooltip: 'Search videos',
+                  icon: const Icon(Icons.search_rounded),
+                  onPressed: d == null ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => _VideoSearchScreen(data: d, onOpen: (v) => _open(v, d)))),
                 ),
+              ),
+              const SizedBox(height: 12),
+              UnderlineTabs(labels: const ['Live', 'Playlists', 'Videos'], selected: _tab, onSelected: (i) => setState(() => _tab = i)),
+              const SizedBox(height: 16),
+              if (d == null)
+                const Column(children: [SkeletonBox(height: 200, radius: 16), SizedBox(height: 24), SkeletonBox(height: 80, radius: 12)])
+              else if (d.failed && d.live.isEmpty && d.uploads.isEmpty && d.playlists.isEmpty)
+                BethelEmptyState(
+                  icon: Icons.wifi_off_rounded,
+                  title: 'Couldn’t load videos',
+                  message: 'Check your connection and try again. Everything is also on our YouTube channel.',
+                  action: FilledButton.icon(onPressed: _refresh, icon: const Icon(Icons.refresh_rounded), label: const Text('Try again')),
+                )
+              else
+                ...switch (_tab) {
+                  0 => _liveTab(d),
+                  1 => _playlistsTab(d),
+                  _ => _videosTab(d),
+                },
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => openLink(context, AppConfig.youtubeChannelUrl),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                  iconAlignment: IconAlignment.end,
+                  label: const Text('Open our YouTube channel'),
+                ),
+              ),
             ]),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(kind.toUpperCase(),
-                  style: const TextStyle(
-                      fontSize: 10.5, fontWeight: FontWeight.w700, color: BethelColors.brassText, letterSpacing: 0.6)),
-              Text(item.title, style: t.textTheme.titleMedium),
-              if (item.info.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(item.info, style: TextStyle(color: t.colorScheme.onSurfaceVariant, height: 1.5)),
-              ],
-            ]),
-          ),
-        ]),
+          );
+        },
       ),
     );
   }
+
+  List<Widget> _liveTab(_WatchData d) {
+    final t = Theme.of(context);
+    final tk = BethelTokens.of(context);
+    final isLive = d.streams.any((s) => s.isLive);
+    final upcoming = d.streams.where((s) => !s.isLive && s.scheduledStart != null).firstOrNull;
+    final nextStart = upcoming?.scheduledStart?.toLocal() ?? nextSundayService();
+    final nextTitle = upcoming?.title ?? 'Sunday Worship Service';
+    final latest = d.live.firstOrNull;
+    return [
+      if (isLive) ...[LiveBanner(streams: d.streams), const SizedBox(height: 16)],
+      if (!isLive)
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+          decoration: BoxDecoration(color: tk.raised, borderRadius: BorderRadius.circular(12)),
+          child: Row(children: [
+            Icon(Icons.calendar_today_outlined, size: 18, color: tk.brassText),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text.rich(
+                  TextSpan(children: [
+                    const TextSpan(text: 'Next live: '),
+                    TextSpan(text: '${fmtShort(nextStart)} · ${_time(nextStart)}', style: const TextStyle(fontWeight: FontWeight.w500)),
+                  ]),
+                  style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurface)),
+            ),
+            TextButton(onPressed: _reminded ? null : () => _remind(nextStart, nextTitle), child: Text(_reminded ? 'Reminder on' : 'Remind me')),
+          ]),
+        ),
+      const SizedBox(height: 20),
+      if (latest == null)
+        const BethelEmptyState(icon: Icons.live_tv_rounded, title: 'No past services yet', message: 'Services appear here after each live stream ends')
+      else ...[
+        Pressable(
+          semanticLabel: 'Latest service: ${latest.title}',
+          onTap: () => _open(latest, d),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Stack(children: [
+              _Thumb(url: latest.thumbnail, duration: latest.duration, radius: 16),
+              Positioned(
+                left: 12,
+                top: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: BethelColors.ivory, borderRadius: BorderRadius.circular(6)),
+                  child: const Text('Latest service', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: BethelColors.ink)),
+                ),
+              ),
+              const Positioned.fill(child: Center(child: PlayCircle())),
+            ]),
+            const SizedBox(height: 12),
+            Text(latest.title, style: t.textTheme.titleLarge?.copyWith(fontFamilyFallback: const [BethelFonts.telugu])),
+            Text([fmtShort(latest.published), if (latest.preacher.isNotEmpty) latest.preacher].join(' · '), style: t.textTheme.bodySmall),
+          ]),
+        ),
+        if (d.live.length > 1) ...[
+          const SizedBox(height: 24),
+          const BethelSectionTitle('Past services'),
+          const SizedBox(height: 4),
+          for (final v in d.live.skip(1)) _VideoRow(video: v, onTap: () => _open(v, d)),
+        ],
+      ],
+    ];
+  }
+
+  List<Widget> _playlistsTab(_WatchData d) => [
+        if (d.playlists.isEmpty)
+          const BethelEmptyState(icon: Icons.playlist_play_rounded, title: 'No playlists yet', message: 'Playlists from our YouTube channel appear here')
+        else
+          _PlaylistGrid(playlists: d.playlists),
+        const SizedBox(height: 16),
+        Text('Playlists come straight from the church’s YouTube channel. A new playlist there shows up here by itself.',
+            style: Theme.of(context).textTheme.bodySmall),
+      ];
+
+  List<Widget> _videosTab(_WatchData d) {
+    final counts = <String, int>{};
+    for (final v in d.uploads) {
+      counts[v.type] = (counts[v.type] ?? 0) + 1;
+    }
+    final filters = [for (final f in _videoFilters) if (f.$1 == 'all' || (counts[f.$1] ?? 0) > 0) f];
+    final filter = filters.any((f) => f.$1 == _filter) ? _filter : 'all';
+    final list = filter == 'all' ? d.uploads : d.uploads.where((v) => v.type == filter).toList();
+    return [
+      if (filters.length > 2)
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            for (final f in filters)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(f.$1 == 'all' ? f.$2 : '${f.$2} · ${counts[f.$1]}'),
+                  selected: filter == f.$1,
+                  showCheckmark: false,
+                  onSelected: (_) => setState(() => _filter = f.$1),
+                ),
+              ),
+          ]),
+        ),
+      const SizedBox(height: 8),
+      if (list.isEmpty)
+        const BethelEmptyState(icon: Icons.smart_display_outlined, title: 'No videos here yet', message: 'New videos appear after they’re posted on YouTube')
+      else
+        for (final v in list) _VideoRow(video: v, onTap: () => _open(v, d), showType: filter == 'all'),
+    ];
+  }
 }
 
-class SermonTile extends StatelessWidget {
-  const SermonTile({super.key, required this.sermon});
-  final Sermon sermon;
+const _typeLabels = {'song': 'Song', 'testimony': 'Testimony', 'sermon': 'Message', 'interview': 'Interview', 'short': 'Short'};
+
+class _VideoRow extends StatelessWidget {
+  const _VideoRow({required this.video, required this.onTap, this.showType = false});
+  final ChannelVideo video;
+  final VoidCallback onTap;
+  final bool showType;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SermonDetailScreen(sermon: sermon))),
+    final v = video;
+    return InkWell(
+      onTap: onTap,
+      child: Semantics(
+        button: true,
+        label: v.title,
+        excludeSemantics: false,
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(children: [
-            Stack(alignment: Alignment.center, children: [
-              BethelImage(sermon.image, width: 112, height: 76, radius: 12),
-              const PlayBadge(size: 30),
-            ]),
-            const SizedBox(width: 14),
+            _Thumb(url: v.thumbnail, duration: v.duration, width: 144, radius: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                if (sermon.series != null)
-                  Text(sermon.series!.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 10.5, fontWeight: FontWeight.w700, color: BethelColors.brassText, letterSpacing: 0.5)),
-                Text(sermon.title,
+                Text(v.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: t.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, fontSize: 14.5)),
-                const SizedBox(height: 2),
+                    style: t.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, height: 1.3, fontFamilyFallback: const [BethelFonts.telugu])),
+                const SizedBox(height: 4),
                 Text(
-                  [sermon.preacher, fmtDate(sermon.date), if (sermon.duration.isNotEmpty) sermon.duration]
-                      .where((s) => s.isNotEmpty)
-                      .join(' · '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: t.colorScheme.onSurfaceVariant),
-                ),
+                    [
+                      if (showType && _typeLabels[v.type] != null) _typeLabels[v.type]!,
+                      fmtShort(v.published),
+                      if (v.preacher.isNotEmpty) v.preacher,
+                    ].join(' · '),
+                    style: t.textTheme.bodySmall),
               ]),
             ),
           ]),
@@ -252,6 +315,275 @@ class SermonTile extends StatelessWidget {
     );
   }
 }
+
+String _time(DateTime d) {
+  final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  return '$h:${d.minute.toString().padLeft(2, '0')} ${d.hour < 12 ? 'AM' : 'PM'}';
+}
+
+class _Thumb extends StatelessWidget {
+  const _Thumb({required this.url, this.duration = '', this.radius = 12, this.width});
+  final String url;
+  final String duration;
+  final double radius;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: Stack(fit: StackFit.expand, children: [
+            ColoredBox(color: BethelTokens.of(context).raised, child: BethelImage(url)),
+            if (duration.isNotEmpty)
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: const Color(0xB8000000), borderRadius: BorderRadius.circular(4)),
+                  child: Text(duration, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
+                ),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Every playlist on the channel, two to a row, with its video count.
+class _PlaylistGrid extends StatelessWidget {
+  const _PlaylistGrid({required this.playlists});
+  final List<VideoPlaylist> playlists;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 20, crossAxisSpacing: 16, childAspectRatio: 1.15),
+      itemCount: playlists.length,
+      itemBuilder: (_, i) {
+        final p = playlists[i];
+        return Pressable(
+          semanticLabel: '${p.title}, ${p.count} videos',
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlaylistScreen(playlist: p))),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Stack(children: [
+              _Thumb(url: p.thumbnail),
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 52,
+                  decoration: const BoxDecoration(
+                    color: Color(0xD1152824),
+                    borderRadius: BorderRadius.horizontal(right: Radius.circular(12)),
+                  ),
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.playlist_play_rounded, size: 18, color: BethelColors.ivory),
+                    Text('${p.count}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: BethelColors.ivory)),
+                  ]),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            Text(p.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall?.copyWith(fontFamilyFallback: const [BethelFonts.telugu])),
+          ]),
+        );
+      },
+    );
+  }
+}
+
+/// One playlist: newest or oldest first, or one year.
+class PlaylistScreen extends StatefulWidget {
+  const PlaylistScreen({super.key, required this.playlist});
+  final VideoPlaylist playlist;
+
+  @override
+  State<PlaylistScreen> createState() => _PlaylistScreenState();
+}
+
+class _PlaylistScreenState extends State<PlaylistScreen> {
+  late final Future<List<ChannelVideo>> _videos = AppScope.read(context).repo.playlistVideos(widget.playlist.id, limit: 200);
+  bool _oldest = false;
+  int? _year;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final p = widget.playlist;
+    return Scaffold(
+      appBar: AppBar(actions: [
+        IconButton(
+          tooltip: 'Share playlist',
+          icon: const Icon(Icons.ios_share_rounded),
+          onPressed: () => SharePlus.instance.share(ShareParams(text: '${p.title}\nhttps://www.youtube.com/playlist?list=${p.id}')),
+        ),
+      ]),
+      body: FutureBuilder<List<ChannelVideo>>(
+        future: _videos,
+        builder: (context, snap) {
+          final all = snap.data ?? const <ChannelVideo>[];
+          final years = {for (final v in all) v.published.year}.toList()..sort((a, b) => b.compareTo(a));
+          var list = _year == null ? [...all] : all.where((v) => v.published.year == _year).toList();
+          list.sort((a, b) => _oldest ? a.published.compareTo(b.published) : b.published.compareTo(a.published));
+          return ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 32), children: [
+            Text('Playlist · ${p.count} videos', style: t.textTheme.bodySmall),
+            const SizedBox(height: 4),
+            Text(p.title, style: t.textTheme.headlineMedium),
+            const SizedBox(height: 12),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              ChoiceChip(label: const Text('Newest'), selected: !_oldest, showCheckmark: false, onSelected: (_) => setState(() => _oldest = false)),
+              ChoiceChip(label: const Text('Oldest'), selected: _oldest, showCheckmark: false, onSelected: (_) => setState(() => _oldest = true)),
+              if (years.length > 1)
+                for (final y in years)
+                  ChoiceChip(label: Text('$y'), selected: _year == y, showCheckmark: false, onSelected: (on) => setState(() => _year = on ? y : null)),
+            ]),
+            const SizedBox(height: 8),
+            if (snap.connectionState != ConnectionState.done)
+              const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))
+            else if (snap.hasError)
+              const BethelEmptyState(icon: Icons.wifi_off_rounded, title: 'Couldn’t load this playlist', message: 'Check your connection and try again')
+            else if (list.isEmpty)
+              const BethelEmptyState(icon: Icons.smart_display_outlined, title: 'No videos here yet', message: 'New videos appear after they’re posted on YouTube')
+            else
+              for (final v in list)
+                InkWell(
+                  onTap: () => playVideo(context,
+                      youtubeId: v.embeddable ? v.id : null,
+                      url: 'https://www.youtube.com/watch?v=${v.id}',
+                      title: v.title,
+                      subtitle: fmtShort(v.published),
+                      description: v.description),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(children: [
+                      _Thumb(url: v.thumbnail, duration: v.duration, width: 144, radius: 10),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(v.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: t.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, height: 1.3, fontFamilyFallback: const [BethelFonts.telugu])),
+                          const SizedBox(height: 4),
+                          Text([fmtShort(v.published), if (v.preacher.isNotEmpty) v.preacher].join(' · '), style: t.textTheme.bodySmall),
+                        ]),
+                      ),
+                    ]),
+                  ),
+                ),
+          ]);
+        },
+      ),
+    );
+  }
+}
+
+class _VideoSearchScreen extends StatefulWidget {
+  const _VideoSearchScreen({required this.data, required this.onOpen});
+  final _WatchData data;
+  final ValueChanged<ChannelVideo> onOpen;
+
+  @override
+  State<_VideoSearchScreen> createState() => _VideoSearchScreenState();
+}
+
+class _VideoSearchScreenState extends State<_VideoSearchScreen> {
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final q = _q.trim().toLowerCase();
+    final videos = q.isEmpty
+        ? const <ChannelVideo>[]
+        : widget.data.allVideos.where((v) => v.title.toLowerCase().contains(q) || v.preacher.toLowerCase().contains(q)).toList();
+    return Scaffold(
+      appBar: AppBar(
+        title: TextField(
+          autofocus: true,
+          onChanged: (v) => setState(() => _q = v),
+          decoration: const InputDecoration(hintText: 'Search videos', filled: false, border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none),
+        ),
+      ),
+      body: q.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text('Search services, songs and testimonies by title or speaker', style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+            )
+          : videos.isEmpty
+              ? BethelEmptyState(icon: Icons.search_rounded, title: 'No videos match “$_q”', message: 'Try a shorter word, or look on our YouTube channel')
+              : ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 32), children: [
+                  for (final v in videos) _VideoRow(video: v, onTap: () => widget.onOpen(v), showType: true),
+                ]),
+    );
+  }
+}
+
+Widget _playIcon(BuildContext context) => Icon(Icons.play_circle_outline_rounded, size: 24, color: Theme.of(context).colorScheme.primary);
+
+TextStyle? _rowTitle(BuildContext context) =>
+    Theme.of(context).textTheme.titleMedium?.copyWith(fontFamily: BethelFonts.display, fontWeight: FontWeight.w500);
+
+class _MediaRow extends StatelessWidget {
+  const _MediaRow({required this.item, required this.kind});
+  final MediaItem item;
+  final String kind;
+
+  @override
+  Widget build(BuildContext context) {
+    return HairlineRow(
+      title: item.title,
+      titleStyle: _rowTitle(context),
+      subtitle: [kind, if (item.duration.isNotEmpty) item.duration].join(' · '),
+      trailing: _playIcon(context),
+      showChevron: false,
+      onTap: () => playVideo(context,
+          youtubeId: item.youtubeId,
+          url: item.videoUrl ?? AppConfig.youtubeChannelUrl,
+          title: item.title,
+          subtitle: '$kind${item.duration.isEmpty ? '' : ' · ${item.duration}'}',
+          description: item.info),
+    );
+  }
+}
+
+/// One sermon in a list: title in the serif, preacher and date, a play mark.
+class SermonTile extends StatelessWidget {
+  const SermonTile({super.key, required this.sermon});
+  final Sermon sermon;
+
+  @override
+  Widget build(BuildContext context) {
+    final sub = [
+      sermon.preacher,
+      '${_month(sermon.date)} ${sermon.date.day}',
+      if (sermon.duration.isNotEmpty) sermon.duration,
+    ].where((s) => s.isNotEmpty).join(' · ');
+    return HairlineRow(
+      title: sermon.title,
+      titleStyle: _rowTitle(context),
+      subtitle: sub,
+      trailing: _playIcon(context),
+      showChevron: false,
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SermonDetailScreen(sermon: sermon))),
+    );
+  }
+}
+
+String _month(DateTime d) =>
+    const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.month - 1];
+
+// ===================================================================== message page
 
 class SermonDetailScreen extends StatefulWidget {
   const SermonDetailScreen({super.key, required this.sermon});
@@ -262,27 +594,70 @@ class SermonDetailScreen extends StatefulWidget {
 }
 
 class _SermonDetailScreenState extends State<SermonDetailScreen> {
-  final _note = TextEditingController();
+  late final _note = TextEditingController(text: AppScope.read(context).noteForSermon(widget.sermon.id)?.body ?? '');
   final _comment = TextEditingController();
-  final List<String> _notes = [];
   late Future<List<SermonComment>> _comments = AppScope.read(context).repo.sermonComments(widget.sermon.id);
+
+  /// Comments posted on this visit, shown at the top straight away.
+  final List<SermonComment> _posted = [];
   bool _posting = false;
+
+  @override
+  void dispose() {
+    _note.dispose();
+    _comment.dispose();
+    super.dispose();
+  }
+
+  bool get _hasVideo => (widget.sermon.youtubeId ?? '').isNotEmpty;
+
+  Future<void> _play() async {
+    final s = widget.sermon;
+    if (_hasVideo) {
+      playVideo(context, youtubeId: s.youtubeId, title: s.title, subtitle: s.preacher, description: s.description);
+      return;
+    }
+    final open = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Open in YouTube?'),
+        content: const Text('This video plays in the YouTube app'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Open')),
+        ],
+      ),
+    );
+    if (open == true && mounted) openLink(context, s.videoUrl ?? AppConfig.youtubeChannelUrl);
+  }
+
+  Future<void> _share() async {
+    final s = widget.sermon;
+    final box = context.findRenderObject() as RenderBox?;
+    final link = (s.youtubeId ?? '').isNotEmpty ? 'https://youtu.be/${s.youtubeId}' : (s.videoUrl ?? AppConfig.youtubeChannelUrl);
+    await SharePlus.instance.share(ShareParams(
+      text: '${s.title} · ${s.preacher}\n$link',
+      sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+    ));
+  }
 
   Future<void> _postComment() async {
     final text = _comment.text.trim();
     if (text.isEmpty) return;
     final state = AppScope.read(context);
     if (state.user == null) {
-      showToast(context, 'Sign in to leave a comment.');
+      showSignInPrompt(context, title: 'Sign in to comment', icon: Icons.chat_bubble_outline_rounded);
       return;
     }
     setState(() => _posting = true);
     try {
       await state.repo.addSermonComment(widget.sermon.id, text);
       _comment.clear();
-      setState(() => _comments = state.repo.sermonComments(widget.sermon.id));
+      FocusScope.of(context).unfocus();
+      setState(() => _posted.insert(0, SermonComment(name: state.user!.name, text: text, at: DateTime.now())));
+      if (mounted) showBethelToast(context, 'Comment posted', icon: Icons.check_rounded);
     } catch (e) {
-      if (mounted) showToast(context, '$e');
+      if (mounted) showBethelToast(context, 'Couldn’t post your comment. Try again.', icon: Icons.error_outline_rounded);
     } finally {
       if (mounted) setState(() => _posting = false);
     }
@@ -292,136 +667,222 @@ class _SermonDetailScreenState extends State<SermonDetailScreen> {
   Widget build(BuildContext context) {
     final s = widget.sermon;
     final t = Theme.of(context);
+    final state = AppScope.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Message')),
-      body: ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 32), children: [
-        if (s.youtubeId != null && s.youtubeId!.isNotEmpty)
-          InlineYouTube(videoId: s.youtubeId!)
-        else
-          GestureDetector(
-            onTap: () => openLink(context, s.videoUrl ?? AppConfig.youtubeChannelUrl),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Stack(alignment: Alignment.center, children: [
-                Positioned.fill(child: BethelImage(s.image, radius: 18)),
-                const PlayBadge(size: 64),
-              ]),
-            ),
-          ),
-        const SizedBox(height: 18),
-        if (s.series != null) Align(alignment: Alignment.centerLeft, child: Pill(s.series!)),
-        const SizedBox(height: 8),
-        Text(s.title, style: t.textTheme.headlineSmall),
-        const SizedBox(height: 6),
-        Text('${s.preacher} · ${fmtDate(s.date)}', style: TextStyle(color: t.colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 16),
-        Row(children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => showToast(context, 'Audio-only playback for listening on the go.'),
-              icon: const Icon(Icons.headphones_rounded),
-              label: const Text('Listen'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => showToast(context, 'Share link copied.'),
-              icon: const Icon(Icons.ios_share_rounded),
-              label: const Text('Share'),
-            ),
-          ),
-        ]),
-        const SizedBox(height: 20),
-        Text(s.description, style: const TextStyle(fontSize: 15, height: 1.6)),
-        const SizedBox(height: 28),
-        Text('My notes', style: t.textTheme.titleMedium),
-        const SizedBox(height: 10),
-        for (final n in _notes)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Padding(
-                  padding: EdgeInsets.only(top: 7), child: Icon(Icons.circle, size: 7, color: BethelColors.brass)),
-              const SizedBox(width: 10),
-              Expanded(child: Text(n, style: const TextStyle(height: 1.5))),
-            ]),
-          ),
-        TextField(
-          controller: _note,
-          minLines: 1,
-          maxLines: 4,
-          decoration: InputDecoration(
-            hintText: 'Write a note while you watch…',
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.add_rounded),
-              onPressed: () {
-                if (_note.text.trim().isEmpty) return;
-                setState(() => _notes.add(_note.text.trim()));
-                _note.clear();
-              },
-            ),
-          ),
-        ),
-        const SizedBox(height: 28),
-        Text('Comments', style: t.textTheme.titleMedium),
-        const SizedBox(height: 10),
-        FutureBuilder<List<SermonComment>>(
-          future: _comments,
-          builder: (context, snap) {
-            final list = snap.data ?? const <SermonComment>[];
-            if (snap.connectionState != ConnectionState.done) {
-              return const Padding(padding: EdgeInsets.all(12), child: Center(child: CircularProgressIndicator()));
-            }
-            if (list.isEmpty) {
-              return Text('No comments yet. Be the first to share what spoke to you.',
-                  style: TextStyle(color: t.colorScheme.onSurfaceVariant));
-            }
-            return Column(children: [
-              for (final c in list)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor: t.colorScheme.surfaceContainer,
-                      child: Text(c.name.isEmpty ? '?' : c.name[0],
-                          style: TextStyle(color: t.colorScheme.primary, fontWeight: FontWeight.w700)),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${c.name} · ${timeAgo(c.at)}',
-                            style: TextStyle(fontSize: 12.5, color: t.colorScheme.onSurfaceVariant)),
-                        Text(c.text, style: const TextStyle(height: 1.5)),
+      body: Column(children: [
+        Expanded(
+          child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            children: [
+              if (_hasVideo)
+                ClipRRect(borderRadius: BorderRadius.circular(16), child: InlineYouTube(videoId: s.youtubeId!))
+              else
+                Pressable(
+                  onTap: _play,
+                  semanticLabel: 'Play ${s.title}',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Stack(fit: StackFit.expand, children: [
+                        ColoredBox(color: BethelColors.ink, child: BethelImage(s.image)),
+                        const Center(child: PlayCircle()),
                       ]),
                     ),
-                  ]),
+                  ),
                 ),
-            ]);
-          },
-        ),
-        TextField(
-          controller: _comment,
-          minLines: 1,
-          maxLines: 4,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(
-            hintText: 'Leave a comment',
-            suffixIcon: IconButton(
-              icon: _posting
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.send_rounded),
-              onPressed: _posting ? null : _postComment,
-            ),
+              const SizedBox(height: 20),
+              if ((s.series ?? '').isNotEmpty) ...[
+                Text(s.series!, style: t.textTheme.bodySmall?.copyWith(color: BethelTokens.of(context).brassText)),
+                const SizedBox(height: 4),
+              ],
+              Text(s.title, style: t.textTheme.headlineSmall?.copyWith(height: 1.2)),
+              const SizedBox(height: 8),
+              Text([s.preacher, fmtShort(s.date), if (s.duration.isNotEmpty) s.duration].where((x) => x.isNotEmpty).join(' · '),
+                  style: t.textTheme.bodySmall),
+              const SizedBox(height: 20),
+              Row(children: [
+                if (!_hasVideo) ...[
+                  Expanded(
+                    child: FilledButton.icon(onPressed: _play, icon: const Icon(Icons.play_arrow_rounded), label: const Text('Play')),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: OutlinedButton.icon(onPressed: _share, icon: const Icon(Icons.ios_share_rounded, size: 18), label: const Text('Share')),
+                ),
+              ]),
+              if (s.description.trim().isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text(s.description.trim(), style: t.textTheme.bodyLarge?.copyWith(height: 1.6)),
+              ],
+              const SizedBox(height: 32),
+              const BethelSectionTitle('My notes'),
+              const SizedBox(height: 12),
+              if (state.user == null)
+                HairlineRow(
+                  title: 'Sign in to keep notes',
+                  subtitle: 'Notes stay with your account',
+                  leading: const RowIcon(Icons.edit_note_rounded),
+                  onTap: () => showSignInPrompt(context, title: 'Sign in to keep notes', icon: Icons.edit_note_rounded),
+                )
+              else
+                TileField(
+                  controller: _note,
+                  label: 'My notes',
+                  hint: 'Your notes',
+                  minLines: 2,
+                  maxLines: 8,
+                  textInputAction: TextInputAction.newline,
+                  onChanged: (v) => state.setSermonNote(sermonId: s.id, title: s.title, speaker: s.preacher, date: s.date, body: v),
+                ),
+              if (state.user != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 44)),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotesScreen())),
+                    child: Text('Saved in Notes with ${s.preacher.isEmpty ? 'the date' : '${s.preacher} and the date'}'),
+                  ),
+                ),
+              const SizedBox(height: 32),
+              const BethelSectionTitle('Comments'),
+              const SizedBox(height: 4),
+              FutureBuilder<List<SermonComment>>(
+                future: _comments,
+                builder: (context, snap) {
+                  if (snap.connectionState != ConnectionState.done) {
+                    return const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()));
+                  }
+                  if (snap.hasError && _posted.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(children: [
+                        Expanded(child: Text('Couldn’t load comments', style: t.textTheme.bodyMedium)),
+                        TextButton(
+                          onPressed: () => setState(() {
+                            _comments = state.repo.sermonComments(s.id);
+                          }),
+                          child: const Text('Try again'),
+                        ),
+                      ]),
+                    );
+                  }
+                  final list = [..._posted, ...?snap.data];
+                  if (list.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text('No comments yet. Share what spoke to you.',
+                          style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+                    );
+                  }
+                  return Column(children: [for (final c in list) _CommentRow(comment: c)]);
+                },
+              ),
+            ],
           ),
+        ),
+        _CommentBar(controller: _comment, posting: _posting, onPost: _postComment),
+      ]),
+    );
+  }
+}
+
+class _CommentRow extends StatelessWidget {
+  const _CommentRow({required this.comment});
+  final SermonComment comment;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final tk = BethelTokens.of(context);
+    final name = comment.name.trim().isEmpty ? 'Member' : comment.name.trim();
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tk.hairline))),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: tk.raised, shape: BoxShape.circle),
+          child: Text(name.characters.first.toUpperCase(),
+              style: t.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text.rich(
+              TextSpan(children: [
+                TextSpan(text: name, style: TextStyle(color: t.colorScheme.onSurface, fontWeight: FontWeight.w500)),
+                TextSpan(text: ' · ${timeAgo(comment.at)}'),
+              ]),
+              style: t.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 4),
+            Text(comment.text, style: t.textTheme.bodyMedium?.copyWith(height: 1.45)),
+          ]),
         ),
       ]),
     );
   }
 }
 
-/// A full-page list of testimonies, interviews or other videos (used by the Home heart button).
+/// Comment box pinned above the keyboard. "Post" appears once there's something to post.
+class _CommentBar extends StatelessWidget {
+  const _CommentBar({required this.controller, required this.posting, required this.onPost});
+  final TextEditingController controller;
+  final bool posting;
+  final VoidCallback onPost;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final tk = BethelTokens.of(context);
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.paddingOf(context).bottom),
+      decoration: BoxDecoration(
+        color: t.scaffoldBackgroundColor,
+        border: Border(top: BorderSide(color: tk.hairline)),
+      ),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (context, v, _) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Expanded(
+            child: TileField(
+              controller: controller,
+              label: 'Leave a comment',
+              hint: 'Leave a comment',
+              minLines: 1,
+              maxLines: 4,
+              textInputAction: TextInputAction.newline,
+            ),
+          ),
+          if (v.text.trim().isNotEmpty) ...[
+            const SizedBox(width: 12),
+            SizedBox(
+              height: 48,
+              child: FilledButton(
+                style: FilledButton.styleFrom(minimumSize: const Size(0, 48), padding: const EdgeInsets.symmetric(horizontal: 16)),
+                onPressed: posting ? null : onPost,
+                child: posting
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: t.filledButtonTheme.style?.foregroundColor?.resolve({})))
+                    : const Text('Post'),
+              ),
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+/// A full-page list of testimonies, interviews or other videos (opened from More).
 class MediaListScreen extends StatelessWidget {
   const MediaListScreen({super.key, required this.title, required this.kind, required this.load});
   final String title;
@@ -434,12 +895,15 @@ class MediaListScreen extends StatelessWidget {
         body: AsyncView<List<MediaItem>>(
           load: load,
           builder: (context, items) => items.isEmpty
-              ? const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('Nothing here yet.')))
-              : ListView.separated(
+              ? BethelEmptyState(
+                  icon: Icons.smart_display_outlined,
+                  title: 'Nothing here yet',
+                  message: 'New videos appear here after they’re posted',
+                )
+              : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                   itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 14),
-                  itemBuilder: (_, i) => _MediaCard(item: items[i], kind: kind),
+                  itemBuilder: (_, i) => _MediaRow(item: items[i], kind: kind),
                 ),
         ),
       );

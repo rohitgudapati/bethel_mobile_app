@@ -212,7 +212,10 @@ class BethelTheme {
         TextStyle(fontFamily: BethelFonts.sans, fontSize: size, fontWeight: weight, height: height, color: color ?? text);
 
     // Primary buttons stay Forest with Ivory text in both modes (as in the dark wireframes).
-    const forestFill = BethelColors.forest;
+    // Forest disappears on the night surfaces, so dark mode buttons are Ivory with Ink text.
+    final forestFill = dark ? BethelColors.ivory : BethelColors.forest;
+    final fillPressed = dark ? BethelColors.stone : BethelColors.forestDeep;
+    final fillText = dark ? BethelColors.ink : BethelColors.ivory;
     final pressScale = WidgetStateProperty.all<OutlinedBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)));
 
     final textTheme = TextTheme(
@@ -283,9 +286,9 @@ class BethelTheme {
           backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.disabled)
               ? forestFill.withValues(alpha: 0.5)
               : s.contains(WidgetState.pressed)
-                  ? BethelColors.forestDeep
+                  ? fillPressed
                   : forestFill),
-          foregroundColor: WidgetStateProperty.all(BethelColors.ivory),
+          foregroundColor: WidgetStateProperty.all(fillText),
           overlayColor: WidgetStateProperty.all(Colors.transparent),
           textStyle: WidgetStateProperty.all(sans(BethelType.body, weight: FontWeight.w500)),
         ),

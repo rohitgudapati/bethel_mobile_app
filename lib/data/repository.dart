@@ -35,6 +35,21 @@ abstract class BethelRepository {
   // Watch / resources
   Future<List<LiveStream>> liveStreams();
   Future<List<Sermon>> sermons();
+
+  /// The channel's playlists, in the channel's order.
+  Future<List<VideoPlaylist>> playlists();
+
+  /// Videos in a playlist, newest first.
+  Future<List<ChannelVideo>> playlistVideos(String playlistId, {int limit = 50});
+
+  /// The most recent recorded service (a finished live stream).
+  Future<ChannelVideo?> latestService();
+
+  /// Past live streams (services), newest first — the channel's Live tab.
+  Future<List<ChannelVideo>> liveRecordings({int limit = 60});
+
+  /// Uploaded videos (songs, testimonies, messages, shorts), newest first — the channel's Videos tab.
+  Future<List<ChannelVideo>> uploads({int limit = 120});
   Future<List<SermonComment>> sermonComments(int sermonId);
   Future<void> addSermonComment(int sermonId, String text);
   Future<List<MediaItem>> shorts();
@@ -54,6 +69,10 @@ abstract class BethelRepository {
   /// Song books and albums. Song books (`isSongBook`) come first.
   Future<List<Album>> albums();
   Future<List<Song>> songsForAlbum(int albumId);
+
+  /// Topic ranges per song book, keyed by book title: {'Songs of Zion': [{en, te, from, to, icon}]}.
+  /// Empty means use the ranges built into the app.
+  Future<Map<String, List<Map<String, dynamic>>>> songTopics();
   Future<List<Song>> trendingSongs();
 
   /// Full song with lyrics in every available language, lyricist and chords.
@@ -74,4 +93,7 @@ abstract class BethelRepository {
   Future<void> prayFor(int prayerId);
 
   Future<List<BiblePassage>> readingPlan();
+
+  /// Newest first. Read state is kept on the device.
+  Future<List<NotificationItem>> notifications();
 }

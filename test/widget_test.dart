@@ -8,8 +8,12 @@ import 'package:bethelprayerhouse/data/models.dart';
 import 'package:bethelprayerhouse/screens/live_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  // The welcome screen remembers the last sign-in method.
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   testWidgets('guest can reach every tab', (tester) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
@@ -21,10 +25,11 @@ void main() {
     await tester.ensureVisible(find.text('Continue as guest'));
     await tester.tap(find.text('Continue as guest'));
     await tester.pumpAndSettle();
-    expect(find.text('VERSE OF THE DAY'), findsOneWidget);
-    expect(find.text(builtInVerse(DateTime.now()).reference!), findsWidgets, reason: "today's verse is shown");
-    await tester.scrollUntilVisible(find.text('Testimonies'), 200, scrollable: find.byType(Scrollable).first);
-    expect(find.text('Testimonies'), findsOneWidget, reason: 'heart shortcut opens Testimonies');
+    expect(find.text('Verse of the day'), findsOneWidget);
+    expect(find.textContaining(builtInVerse(DateTime.now()).reference!), findsWidgets, reason: "today's verse is shown");
+    expect(find.textContaining('Good '), findsOneWidget, reason: 'greeting');
+    expect(find.textContaining('friend'), findsWidgets, reason: 'guests are greeted as friend');
+    expect(find.text('Sign in to save songs and notes'), findsOneWidget);
     expect(find.text('Give'), findsNothing);
     expect(find.text('Meet our elders'), findsNothing, reason: 'elders moved to More');
 
@@ -32,9 +37,9 @@ void main() {
       await tester.tap(find.text(tab).last);
       await tester.pumpAndSettle();
     }
-    // More: Meet our elders
+    // More: Our elders
     await tester.scrollUntilVisible(find.text('Bro. Moses Polugari'), 300, scrollable: find.byType(Scrollable).last);
-    expect(find.text('Meet our elders'), findsOneWidget);
+    expect(find.text('Our elders'), findsOneWidget);
     expect(find.text('Bro. Vinod Somepalli'), findsOneWidget);
     await tester.tap(find.text('Home').last);
     await tester.pumpAndSettle();
@@ -55,12 +60,17 @@ void main() {
     await tester.tap(find.text('Request prayer'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'Please pray for our exams this week.');
-    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Sam Lee');
+    // Guests add a name; members send under their account.
+    await tester.enterText(find.widgetWithText(TextField, 'Your name'), 'Sam Lee');
     await tester.tap(find.text('Send request'));
+    await tester.pumpAndSettle();
+    expect(find.text('Request sent'), findsOneWidget);
+    expect(find.textContaining('on the wall as Sam.'), findsOneWidget);
+    await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
     expect(find.text('Please pray for our exams this week.'), findsOneWidget);
-    expect(find.text('Sam (you)'), findsOneWidget);
+    expect(find.textContaining('Your request'), findsOneWidget);
   });
 
   testWidgets('song book: search by number, open lyrics, save', (tester) async {
@@ -68,23 +78,17 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
-    final state = AppState(repository: MockRepository())..continueAsGuest();
+    // Saving needs an account (guests get a sign-in prompt).
+    final state = AppState(repository: MockRepository())..signInAs(const UserProfile(name: 'Sam Lee', email: 'sam@example.com'));
     await tester.pumpWidget(BethelApp(state: state));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Songs').last);
     await tester.pumpAndSettle();
 
     expect(find.text('Songs of Zion'), findsWidgets);
-    // Song 1 of Songs of Zion: the real book when assets/songs/songs_of_zion.json is present, else the sample.
-    expect(
-      find.text('Dustula allochana choppuna').evaluate().isNotEmpty ||
-          find.text('Aadhaaram Naaku Aadhaaram').evaluate().isNotEmpty,
-      isTrue,
-    );
+    expect(find.text('Special Meetings 2026'), findsWidgets, reason: 'the newest album leads');
 
-    // Switch to the hymn book and search by number.
-    await tester.tap(find.text('Hymns of Faith').first);
-    await tester.pumpAndSettle();
+    // Search by number: song 3 is in Hymns of Faith.
     await tester.enterText(find.byType(TextField).first, '3');
     await tester.pumpAndSettle();
     expect(find.text('Blessed Assurance'), findsOneWidget);
@@ -94,9 +98,10 @@ void main() {
     expect(find.textContaining('Fanny Crosby'), findsOneWidget);
     expect(find.textContaining('Blessed assurance, Jesus is mine!'), findsOneWidget);
 
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.byTooltip('Save'));
     await tester.pumpAndSettle();
     expect(state.savedSongs, contains(3));
+    expect(find.text('Saved to your songs'), findsOneWidget);
     expect(state.recentSongs.first.id, 3);
     expect(tester.takeException(), isNull);
   });
@@ -113,11 +118,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Songs').last);
       await tester.pumpAndSettle();
-      expect(find.text('866 songs'), findsOneWidget);
+      expect(find.textContaining('866 songs'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField).first, '500');
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Ne Yesuni velugulo nadichedanu'));
+      // Rows show the Telugu title with the transliteration underneath.
+      await tester.tap(find.textContaining('Ne Yesuni velugulo nadichedanu').first);
       await tester.pumpAndSettle();
 
       expect(find.text('నే యేసుని వెలుగులో నడిచెదను'), findsOneWidget, reason: 'Telugu title');
@@ -139,32 +145,42 @@ void main() {
 
     final state = AppState(repository: MockRepository());
     await tester.pumpWidget(BethelApp(state: state));
-    await tester.tap(find.text('Get started'));
     await tester.pumpAndSettle();
-    expect(find.text('Join the family'), findsOneWidget, reason: 'floating sign-up card');
+    await tester.tap(find.text('Continue with phone'));
+    await tester.pumpAndSettle();
+    expect(find.text('Your phone number'), findsOneWidget, reason: 'floating card');
 
-    await tester.tap(find.text('Phone'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, 'Full name'), 'Grace Paul');
-    await tester.enterText(find.widgetWithText(TextField, 'Phone number'), '(630) 555-0123');
+    await tester.enterText(find.byType(TextField), '6305550123');
+    await tester.pump();
+    expect(find.text('+1 (630) 555-0123'), findsOneWidget, reason: 'formatted while typing');
     await tester.tap(find.text('Send code'));
     // The resend countdown ticks every second, so step the clock instead of pumpAndSettle.
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Verify your phone number'), findsOneWidget, reason: 'its own step');
-    expect(find.textContaining('+1 (630) 555‑0123', findRichText: true), findsOneWidget);
-    expect(find.text('Join the family'), findsNothing);
-    expect(find.text('Resend in 0:30'), findsOneWidget);
+    expect(find.text('Enter the code'), findsOneWidget, reason: 'its own step');
+    expect(find.text('+1 (630) 555‑0123'), findsOneWidget);
+    expect(find.text('Resend in 0:42'), findsOneWidget);
 
-    // A wrong-length paste is trimmed to six digits, which verifies straight away.
+    // A paste with letters and extra digits is trimmed to six digits, which submits by itself.
     await tester.enterText(find.byType(TextField), '12a3456789');
     await tester.pump();
     expect(find.text('6'), findsOneWidget, reason: 'only digits, at most six');
-    expect(find.text('Verifying…'), findsOneWidget);
+    expect(find.text('Checking'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Verified'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Shown on the prayer wall'), findsOneWidget, reason: 'new members give a name');
+    await tester.enterText(find.byType(TextField), 'Grace Paul');
+    await tester.tap(find.text('Continue'));
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
     expect(state.user?.name, 'Grace Paul');
     expect(state.user?.contact, '+16305550123');
-    expect(find.text('VERSE OF THE DAY'), findsOneWidget, reason: 'signed in and on Home');
+    expect(find.text('Verse of the day'), findsOneWidget, reason: 'signed in and on Home');
+    expect(find.textContaining('Grace'), findsWidgets, reason: 'greeted by first name');
   });
 
   test('the built-in verse changes every day and repeats the same verse for everyone', () {
@@ -189,8 +205,8 @@ void main() {
         tester.pumpWidget(MaterialApp(home: Scaffold(body: LiveBanner(streams: s))));
 
     await show(const []);
-    expect(find.text('LIVE'), findsNothing);
-    expect(find.text('NEXT SERVICE'), findsOneWidget);
+    expect(find.text('Live now'), findsNothing);
+    expect(find.text('Sunday Worship Service'), findsOneWidget);
     expect(find.textContaining('3:00 PM CT'), findsOneWidget);
 
     await show([
@@ -203,13 +219,56 @@ void main() {
         scheduledStart: DateTime(2027, 3, 26, 11),
       ),
     ]);
-    expect(find.text('LIVE'), findsNothing);
-    expect(find.text('UPCOMING'), findsOneWidget, reason: 'special events scheduled on YouTube');
+    expect(find.text('Live now'), findsNothing);
+    expect(find.text('Good Friday Service'), findsOneWidget, reason: 'special events scheduled on YouTube');
+    expect(find.textContaining('Next stream'), findsOneWidget);
     expect(find.textContaining('11:00 AM'), findsOneWidget);
 
     await show(const [
       LiveStream(id: 1, title: 'Sunday Worship Service', description: '', image: '', youtubeUrl: '', isLive: true),
     ]);
-    expect(find.text('LIVE'), findsOneWidget);
+    expect(find.text('Live now'), findsOneWidget);
+  });
+
+  testWidgets('song book topics, A–Z, and an album with Present all', (tester) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final state = AppState(repository: MockRepository())..continueAsGuest();
+    await tester.pumpWidget(BethelApp(state: state));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Songs').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Songs of Zion').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Worship'), findsOneWidget);
+    expect(find.text('76–201'), findsOneWidget);
+    await tester.tap(find.text('Psalms'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('songs 1–75'), findsOneWidget);
+    expect(find.textContaining('Aadhaaram Naaku Aadhaaram').evaluate().isNotEmpty || find.textContaining('Dustula').evaluate().isNotEmpty, isTrue);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('A–Z'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sorted by English spelling'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Special Meetings 2026').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Album · Dec 4–6, 2026'), findsOneWidget);
+    expect(find.text('Present all'), findsOneWidget);
+    expect(find.text('5 songs'), findsOneWidget);
+
+    // A number that isn't in any book says so.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '9999');
+    await tester.pumpAndSettle();
+    expect(find.text('No song number 9999'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

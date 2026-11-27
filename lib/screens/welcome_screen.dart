@@ -193,7 +193,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                             const SizedBox(height: 12),
                             _AuthButton(
-                              icon: SvgPicture.asset('assets/google.svg', width: 18, height: 18),
+                              icon: SvgPicture.asset('assets/google_g.svg', width: 18, height: 18),
                               label: 'Continue with Google',
                               badge: badge('google'),
                               busy: _busyProvider == 'google',
@@ -265,7 +265,12 @@ class _AuthButton extends StatelessWidget {
               : Row(mainAxisSize: MainAxisSize.min, children: [
                   icon,
                   const SizedBox(width: 10),
-                  Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: fg)),
+                  Flexible(
+                    child: Text(label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: fg)),
+                  ),
                 ]),
         ),
         if (badge != null)
@@ -638,9 +643,10 @@ class _AuthFlowState extends State<_AuthFlow> {
             child: TileField(
               controller: _phone,
               label: 'Phone number',
-              hint: '+1 (630) 555-0123',
+              hint: 'Phone number',
               keyboardType: TextInputType.phone,
               autofillHints: const [AutofillHints.telephoneNumber],
+              inputFormatters: [_UsPhoneFormatter()],
               autofocus: true,
               errorText: _error,
               textInputAction: TextInputAction.done,
@@ -855,7 +861,13 @@ class _AuthFlowState extends State<_AuthFlow> {
   Widget _primary(String label, Future<void> Function() onTap) => FilledButton(
         onPressed: _busy ? null : onTap,
         child: _busy
-            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: BethelColors.ivory))
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Theme.of(context).brightness == Brightness.dark ? BethelColors.ink : BethelColors.ivory,
+                ))
             : Text(label),
       );
 }
@@ -906,23 +918,24 @@ class _OtpFieldState extends State<_OtpField> {
     final t = Theme.of(context);
     final tk = BethelTokens.of(context);
     final code = widget.controller.text;
-    return Semantics(
-      label: '6-digit code',
-      textField: true,
-      child: Stack(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          for (var i = 0; i < 6; i++)
-            _Tile(
-              digit: i < code.length ? code[i] : null,
-              active: widget.enabled && i == code.length && _focus.hasFocus,
-              error: widget.error,
-              ringColor: widget.error ? tk.error : t.colorScheme.primary,
-            ),
-        ]),
+    return Stack(children: [
+        // The tiles are drawing only. If their digits were in the accessibility tree, the tree would
+        // change shape while typing and the browser would recreate the text box mid-code, losing focus.
+        ExcludeSemantics(
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            for (var i = 0; i < 6; i++)
+              _Tile(
+                digit: i < code.length ? code[i] : null,
+                active: widget.enabled && i == code.length && _focus.hasFocus,
+                error: widget.error,
+                ringColor: widget.error ? tk.error : t.colorScheme.primary,
+              ),
+          ]),
+        ),
         // The real input sits on top, invisible, so taps focus it and autofill can fill it.
         Positioned.fill(
-          child: Opacity(
-            opacity: 0,
+          child: Semantics(
+            label: '6-digit code',
             child: TextField(
               controller: widget.controller,
               focusNode: _focus,
@@ -932,13 +945,21 @@ class _OtpFieldState extends State<_OtpField> {
               inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
               showCursor: false,
               enableInteractiveSelection: false,
-              decoration: const InputDecoration(filled: false, border: InputBorder.none, counterText: ''),
+              style: const TextStyle(color: Colors.transparent, fontSize: 1),
+              cursorColor: Colors.transparent,
+              decoration: const InputDecoration(
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                counterText: '',
+              ),
               onTap: () => setState(() {}),
             ),
           ),
         ),
-      ]),
-    );
+      ]);
   }
 }
 
@@ -1085,4 +1106,28 @@ class _CheckPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CheckPainter old) => old.progress != progress || old.color != color;
+}
+
+/// Formats US numbers as "+1 (630) 555-0123" while typing. Numbers starting with another country code
+/// (+44 …) are left as typed. Backspace over punctuation removes the digit before it.
+class _UsPhoneFormatter extends TextInputFormatter {
+  static String _digits(String s) => s.replaceAll(RegExp(r'\D'), '');
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final raw = newValue.text.trim();
+    if (raw.startsWith('+') && !raw.startsWith('+1')) return newValue;
+    var d = _digits(raw);
+    if (d.startsWith('1')) d = d.substring(1);
+    final deleting = newValue.text.length < oldValue.text.length;
+    if (deleting && _digits(newValue.text) == _digits(oldValue.text) && d.isNotEmpty) d = d.substring(0, d.length - 1);
+    if (d.length > 10) d = d.substring(0, 10);
+    final b = StringBuffer('+1 ');
+    if (d.isNotEmpty) b.write('(${d.substring(0, d.length < 3 ? d.length : 3)}');
+    if (d.length >= 3) b.write(') ');
+    if (d.length > 3) b.write(d.substring(3, d.length < 6 ? d.length : 6));
+    if (d.length > 6) b.write('-${d.substring(6)}');
+    final text = b.toString();
+    return TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length));
+  }
 }

@@ -114,6 +114,13 @@ class Album {
   final String language;
   final int songCount;
   final bool isSongBook;
+
+  /// Shown first on Songs with a New label, e.g. songs for this year's special meetings.
+  final bool isNew;
+
+  /// When the album is for, e.g. "Dec 4–6, 2026".
+  final String dates;
+  final DateTime? addedOn;
   const Album({
     required this.id,
     required this.title,
@@ -122,6 +129,9 @@ class Album {
     this.language = '',
     this.songCount = 0,
     this.isSongBook = false,
+    this.isNew = false,
+    this.dates = '',
+    this.addedOn,
   });
 }
 
@@ -318,6 +328,18 @@ class BiblePassage {
   const BiblePassage({required this.reference, required this.title, required this.verses});
 }
 
+/// Something the church or the app wants the member to see (service reminders, new messages, prayer updates).
+class NotificationItem {
+  final int id;
+  final String title;
+  final String detail;
+  final DateTime at;
+
+  /// `event`, `sermon`, `prayer`, `reading` or `service`; picks the icon and where a tap goes.
+  final String kind;
+  const NotificationItem({required this.id, required this.title, required this.detail, required this.at, required this.kind});
+}
+
 class UserProfile {
   final String name;
   final String email;
@@ -335,4 +357,48 @@ class UserProfile {
     if (parts.isEmpty) return '?';
     return parts.take(2).map((p) => p[0].toUpperCase()).join();
   }
+}
+
+/// A playlist on the church's YouTube channel (Watch shows one shelf per playlist).
+class VideoPlaylist {
+  const VideoPlaylist({required this.id, required this.title, required this.thumbnail, required this.count, this.kind = 'series'});
+  final String id;
+  final String title;
+  final String thumbnail;
+  final int count;
+
+  /// series, testimony or interview.
+  final String kind;
+}
+
+/// A video from the church's YouTube channel.
+class ChannelVideo {
+  const ChannelVideo({
+    required this.id,
+    required this.title,
+    required this.thumbnail,
+    required this.published,
+    this.duration = '',
+    this.description = '',
+    this.preacher = '',
+    this.embeddable = true,
+    this.type = 'sermon',
+    this.liveRecording = false,
+  });
+
+  /// The YouTube video id.
+  final String id;
+  final String title;
+  final String thumbnail;
+  final DateTime published;
+  final String duration;
+  final String description;
+  final String preacher;
+  final bool embeddable;
+
+  /// sermon, song, testimony, interview or short (as sorted by the YouTube sync).
+  final String type;
+
+  /// A recording of a live stream (a service), not an upload.
+  final bool liveRecording;
 }

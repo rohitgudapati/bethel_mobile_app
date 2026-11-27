@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
-import { classifyVideo, parseChannelRef, parseDuration, pickLive } from '../src/youtube';
+import { classifyVideo, parseChannelRef, parseDuration, pickLive, playlistDoc } from '../src/youtube';
 import { scenario } from './fakeYouTube';
 
 test('parseDuration handles hours, minutes, seconds and live placeholders', () => {
@@ -65,4 +65,37 @@ test('pickLive prefers a live stream, then the next scheduled one', () => {
   assert.equal(next.videoId, 'upcoming001');
 
   assert.equal(pickLive([], s.now).status, 'none');
+});
+
+test('playlistDoc keeps the channel order and labels testimony and interview playlists', () => {
+  const p = { id: 'PL1', title: 'Sunday Services', thumbnail: 'https://i.ytimg.com/x.jpg', itemCount: 84 };
+  assert.deepEqual(playlistDoc(p, 0), {
+    title: 'Sunday Services',
+    thumbnail: 'https://i.ytimg.com/x.jpg',
+    itemCount: 84,
+    position: 0,
+    kind: 'series',
+    removed: false,
+  });
+  assert.equal(playlistDoc({ ...p, title: 'Testimonies 2026' }, 3).kind, 'testimony');
+  assert.equal(playlistDoc({ ...p, title: 'Pastor Interviews' }, 4).kind, 'interview');
+});
+
+test('classifyVideo sorts uploads into songs and testimonies by title, but never a live service', () => {
+  const up = (id: string, title: string, live = false) => ({
+    id,
+    snippet: { title, publishedAt: '2026-11-01T10:00:00Z', liveBroadcastContent: 'none' as const },
+    contentDetails: { duration: 'PT6M10S' },
+    status: { privacyStatus: 'public', embeddable: true },
+    ...(live ? { liveStreamingDetails: { actualStartTime: '2026-11-01T15:00:00Z', actualEndTime: '2026-11-01T17:00:00Z' } } : {}),
+  });
+  const none = new Map<string, { id: string; title: string }[]>();
+  assert.equal(classifyVideo(up('song00000001', 'Yesu Raja | New Telugu Christian Song 2026'), none)!.type, 'song');
+  assert.equal(classifyVideo(up('song00000002', 'దేవుని పాట'), none)!.type, 'song');
+  assert.equal(classifyVideo(up('test00000001', 'Testimony - Sis. Mary'), none)!.type, 'testimony');
+  assert.equal(classifyVideo(up('serm00000001', 'Walking in the light'), none)!.type, 'sermon');
+  assert.equal(classifyVideo(up('live00000001', 'Sunday worship with songs', true), none)!.type, 'sermon', 'live services stay services');
+  const inSongs = new Map([['plain0000001', [{ id: 'PLsongs', title: 'Worship Songs' }]]]);
+  assert.equal(classifyVideo(up('plain0000001', 'Nee Prema'), inSongs)!.type, 'song', 'a video in a Songs playlist is a song');
+  assert.equal(playlistDoc({ id: 'PLsongs', title: 'Worship Songs', thumbnail: '', itemCount: 3 }, 0).kind, 'song');
 });

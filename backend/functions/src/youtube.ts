@@ -64,17 +64,24 @@ export class YouTubeClient {
     return ids;
   }
 
-  async playlists(channelId: string): Promise<{ id: string; title: string }[]> {
-    const out: { id: string; title: string }[] = [];
+  async playlists(channelId: string): Promise<ChannelPlaylist[]> {
+    const out: ChannelPlaylist[] = [];
     let pageToken: string | undefined;
     do {
       const data = await this.get('playlists', {
-        part: 'snippet',
+        part: 'snippet,contentDetails',
         channelId,
         maxResults: 50,
         ...(pageToken ? { pageToken } : {}),
       });
-      for (const p of data.items ?? []) out.push({ id: p.id, title: p.snippet?.title ?? '' });
+      for (const p of data.items ?? []) {
+        out.push({
+          id: p.id,
+          title: p.snippet?.title ?? '',
+          thumbnail: bestThumbnail(p),
+          itemCount: p.contentDetails?.itemCount ?? 0,
+        });
+      }
       pageToken = data.nextPageToken;
     } while (pageToken && out.length < 200);
     return out;
@@ -124,7 +131,7 @@ export interface RawVideo {
   status?: { privacyStatus?: string; embeddable?: boolean };
 }
 
-export type VideoType = 'sermon' | 'short' | 'testimony' | 'interview';
+export type VideoType = 'sermon' | 'short' | 'testimony' | 'interview' | 'song';
 
 export interface VideoDoc {
   videoId: string;
@@ -156,14 +163,17 @@ export interface SyncRules {
   /** Playlist title patterns → content type. Anything else is a sermon series. */
   testimonyPattern: RegExp;
   interviewPattern: RegExp;
+  /** Song videos: matched against playlist titles, and against the titles of uploads (not live services). */
+  songPattern: RegExp;
   /** Playlists whose titles match this are ignored (e.g. "Favorites"). */
   ignorePlaylistPattern: RegExp;
 }
 
 export const defaultRules: SyncRules = {
   shortMaxSec: 180,
-  testimonyPattern: /testimon/i,
+  testimonyPattern: /testimon|సాక్ష్య/i,
   interviewPattern: /interview/i,
+  songPattern: /\bsongs?\b|\bmusic video\b|\blyric(al)? video\b|పాట|కీర్తన|గీతం/i,
   ignorePlaylistPattern: /^(favorites|liked videos|uploads)$/i,
 };
 
@@ -176,7 +186,27 @@ export function parseDuration(iso: string | undefined): number {
   return d * 86400 + h * 3600 + min * 60 + s;
 }
 
-export function bestThumbnail(v: RawVideo): string {
+/** A playlist on the channel, as the app shows it on Watch. */
+export interface ChannelPlaylist {
+  id: string;
+  title: string;
+  thumbnail: string;
+  itemCount: number;
+}
+
+/** What `playlists/{id}` holds. `position` keeps the channel's own order. */
+export function playlistDoc(p: ChannelPlaylist, position: number, rules: SyncRules = defaultRules) {
+  const kind = rules.testimonyPattern.test(p.title)
+    ? 'testimony'
+    : rules.songPattern.test(p.title)
+      ? 'song'
+      : rules.interviewPattern.test(p.title)
+        ? 'interview'
+        : 'series';
+  return { title: p.title, thumbnail: p.thumbnail, itemCount: p.itemCount, position, kind, removed: false };
+}
+
+export function bestThumbnail(v: { snippet?: { thumbnails?: Record<string, { url: string }> } }): string {
   const t = v.snippet?.thumbnails ?? {};
   return (t.maxres ?? t.standard ?? t.high ?? t.medium ?? t.default)?.url ?? '';
 }
@@ -206,13 +236,20 @@ export function classifyVideo(
   const durationSec = parseDuration(v.contentDetails?.duration);
   const lists = (playlistsByVideo.get(v.id) ?? []).filter((p) => !rules.ignorePlaylistPattern.test(p.title));
 
+  // Uploads (not live services) are also sorted by words in their own title, e.g. "Testimony - Sis. Mary".
+  const title = v.snippet?.title ?? '';
+  const upload = !v.liveStreamingDetails;
+  const matches = (re: RegExp) => lists.some((p) => re.test(p.title)) || (upload && re.test(title));
+
   let type: VideoType = 'sermon';
   let series: string | null = null;
   if (isShort(v, durationSec, rules)) {
     type = 'short';
-  } else if (lists.some((p) => rules.testimonyPattern.test(p.title))) {
+  } else if (matches(rules.testimonyPattern)) {
     type = 'testimony';
-  } else if (lists.some((p) => rules.interviewPattern.test(p.title))) {
+  } else if (matches(rules.songPattern)) {
+    type = 'song';
+  } else if (matches(rules.interviewPattern)) {
     type = 'interview';
   } else if (lists.length > 0) {
     series = lists[0].title;

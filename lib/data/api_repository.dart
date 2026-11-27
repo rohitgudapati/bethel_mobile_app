@@ -133,6 +133,22 @@ class ApiRepository implements BethelRepository {
   Future<void> likeVerse(int id, bool liked) =>
       _postForm('DailyVerseAPI/LikeDailyVerse', const {}, {'id': id, 'isLiked': liked});
 
+  // The church server has no playlist data; Watch shows the demo shelves until Firebase is on.
+  @override
+  Future<List<VideoPlaylist>> playlists() => _fallback.playlists();
+
+  @override
+  Future<List<ChannelVideo>> playlistVideos(String playlistId, {int limit = 50}) => _fallback.playlistVideos(playlistId, limit: limit);
+
+  @override
+  Future<List<ChannelVideo>> liveRecordings({int limit = 60}) => _fallback.liveRecordings(limit: limit);
+
+  @override
+  Future<List<ChannelVideo>> uploads({int limit = 120}) => _fallback.uploads(limit: limit);
+
+  @override
+  Future<ChannelVideo?> latestService() => _fallback.latestService();
+
   @override
   Future<List<Sermon>> sermons() async {
     final json = await _get('SermonApi/GetAllSermons', {'page': 1, 'pageSize': 20});
@@ -223,6 +239,9 @@ class ApiRepository implements BethelRepository {
         albumId: _i(m, ['albumId']),
         albumTitle: _s(m, ['albumName']),
       );
+
+  @override
+  Future<Map<String, List<Map<String, dynamic>>>> songTopics() => _fallback.songTopics();
 
   @override
   Future<List<Song>> trendingSongs() async {
@@ -408,6 +427,10 @@ class ApiRepository implements BethelRepository {
 
   @override
   Future<List<BiblePassage>> readingPlan() => _fallback.readingPlan();
+
+  // The .NET API has no notifications endpoint yet.
+  @override
+  Future<List<NotificationItem>> notifications() async => const [];
 }
 
 class ApiException implements Exception {

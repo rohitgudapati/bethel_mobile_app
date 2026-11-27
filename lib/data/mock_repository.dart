@@ -66,12 +66,12 @@ class MockRepository implements BethelRepository {
     }
     final local = email.split('@').first;
     final name = local.isEmpty ? 'Friend' : '${local[0].toUpperCase()}${local.substring(1)}';
-    return _delay(UserProfile(name: name, email: email.trim()));
+    return _delay(_current = UserProfile(name: name, email: email.trim()));
   }
 
   @override
   Future<UserProfile> signUp(String name, String email, String password) =>
-      _delay(UserProfile(name: name.trim(), email: email.trim()));
+      _delay(_current = UserProfile(name: name.trim(), email: email.trim()));
 
   String? _pendingPhone;
 
@@ -89,7 +89,7 @@ class MockRepository implements BethelRepository {
   Future<UserProfile> verifyPhoneCode(String code, {String name = ''}) {
     if (_pendingPhone == null) return Future.error('Please request a code first.');
     if (!RegExp(r'^\d{6}$').hasMatch(code.trim())) return Future.error('Enter the 6-digit code we texted you.');
-    return _delay(UserProfile(name: name.trim().isEmpty ? 'Friend' : name.trim(), email: '', phone: _pendingPhone!));
+    return _delay(_current = UserProfile(name: name.trim().isEmpty ? 'Friend' : name.trim(), email: '', phone: _pendingPhone!));
   }
 
   UserProfile? _current;
@@ -114,7 +114,7 @@ class MockRepository implements BethelRepository {
   @override
   Future<UserProfile> updateName(String name) {
     final u = _current;
-    return _delay(UserProfile(name: name.trim(), email: u?.email ?? '', phone: u?.phone ?? _pendingPhone ?? ''));
+    return _delay(_current = UserProfile(name: name.trim(), email: u?.email ?? '', phone: u?.phone ?? _pendingPhone ?? ''));
   }
 
   @override
@@ -199,7 +199,7 @@ class MockRepository implements BethelRepository {
 
   @override
   Future<void> addSermonComment(int sermonId, String text) async {
-    (_comments[sermonId] ??= []).add(SermonComment(name: 'You', text: text, at: DateTime.now()));
+    (_comments[sermonId] ??= []).insert(0, SermonComment(name: _current?.name ?? 'You', text: text, at: DateTime.now()));
   }
 
   @override
@@ -254,6 +254,68 @@ class MockRepository implements BethelRepository {
   @override
   Future<void> bookService(int serviceId, {required String name, required String phone, required String note}) =>
       _delay(null);
+
+  static final _playlists = <VideoPlaylist>[
+    const VideoPlaylist(id: 'PLsun', title: 'Sunday Services', thumbnail: 'assets/live_event.jpeg', count: 84),
+    const VideoPlaylist(id: 'PLtel', title: 'Telugu Messages', thumbnail: 'assets/sermon-hero.png', count: 42),
+    const VideoPlaylist(id: 'PLsp26', title: 'Special Meetings 2026', thumbnail: 'assets/church.jpg', count: 9),
+    const VideoPlaylist(id: 'PLtest', title: 'Testimonies', thumbnail: 'assets/picture3.png', count: 27, kind: 'testimony'),
+    const VideoPlaylist(id: 'PLkids', title: 'Kids and Youth', thumbnail: 'assets/ministriesimage.png', count: 18),
+  ];
+
+  static final _playlistVideos = <String, List<ChannelVideo>>{
+    'PLsun': [
+      ChannelVideo(liveRecording: true, id: 'svc1122', title: 'Sunday Worship Service', thumbnail: 'assets/live_event.jpeg', published: DateTime(2026, 11, 22, 15), duration: '2:14:05', preacher: 'Bro. Moses Polugari'),
+      ChannelVideo(liveRecording: true, id: 'svc1115', title: 'Walking in the light', thumbnail: 'assets/sermon-hero.png', published: DateTime(2026, 11, 15, 15), duration: '1:58:40', preacher: 'Bro. Vinod Somepalli'),
+      ChannelVideo(liveRecording: true, id: 'svc1108', title: 'Peace that guards your heart', thumbnail: 'assets/church.jpg', published: DateTime(2026, 11, 8, 15), duration: '2:02:11', preacher: 'Bro. Moses Polugari'),
+      ChannelVideo(liveRecording: true, id: 'svc1101', title: 'Thanksgiving service', thumbnail: 'assets/picture3.png', published: DateTime(2026, 11, 1, 15), duration: '2:20:30'),
+      ChannelVideo(liveRecording: true, id: 'svc1025', title: 'Communion Sunday', thumbnail: 'assets/ministriesimage.png', published: DateTime(2025, 10, 25, 15), duration: '2:05:10'),
+    ],
+    'PLtel': [
+      ChannelVideo(id: 'tel1030', title: 'దేవుని ప్రేమ', thumbnail: 'assets/sermon-hero.png', published: DateTime(2026, 10, 30), duration: '48:12'),
+      ChannelVideo(id: 'tel1012', title: 'విశ్వాసము', thumbnail: 'assets/church.jpg', published: DateTime(2026, 10, 12), duration: '51:03'),
+    ],
+    'PLsp26': [
+      ChannelVideo(liveRecording: true, id: 'sp1', title: 'Special Meetings · Night 1', thumbnail: 'assets/church.jpg', published: DateTime(2026, 3, 6, 19), duration: '1:45:00'),
+    ],
+    'PLtest': [
+      ChannelVideo(type: 'testimony', id: 'tst1', title: 'How God carried our family through 2025', thumbnail: 'assets/picture3.png', published: DateTime(2026, 9, 14), duration: '6:40'),
+    ],
+    'PLkids': [
+      ChannelVideo(id: 'kid1', title: 'Christmas program 2025', thumbnail: 'assets/ministriesimage.png', published: DateTime(2025, 12, 21), duration: '38:20'),
+    ],
+  };
+
+  @override
+  Future<List<VideoPlaylist>> playlists() => _delay(_playlists);
+
+  @override
+  Future<List<ChannelVideo>> playlistVideos(String playlistId, {int limit = 50}) =>
+      _delay((_playlistVideos[playlistId] ?? const <ChannelVideo>[]).take(limit).toList());
+
+  @override
+  Future<List<ChannelVideo>> liveRecordings({int limit = 60}) {
+    final all = {for (final l in _playlistVideos.values) for (final v in l) if (v.liveRecording) v.id: v}.values.toList()
+      ..sort((a, b) => b.published.compareTo(a.published));
+    return _delay(all.take(limit).toList());
+  }
+
+  static final _uploads = <ChannelVideo>[
+    ChannelVideo(type: 'song', id: 'song01', title: 'Yesu Raja · Bethel Worship', thumbnail: 'assets/picture3.png', published: DateTime(2026, 11, 18), duration: '5:42'),
+    ChannelVideo(type: 'testimony', id: 'tst2', title: 'Testimony · Sis. Grace, healed after surgery', thumbnail: 'assets/pray.png', published: DateTime(2026, 11, 10), duration: '8:15'),
+    ChannelVideo(type: 'song', id: 'song02', title: 'నీ ప్రేమ · Telugu worship song', thumbnail: 'assets/church.jpg', published: DateTime(2026, 10, 28), duration: '4:58'),
+    ChannelVideo(type: 'sermon', id: 'tel1030', title: 'దేవుని ప్రేమ', thumbnail: 'assets/sermon-hero.png', published: DateTime(2026, 10, 30), duration: '48:12'),
+    ChannelVideo(type: 'testimony', id: 'tst1', title: 'How God carried our family through 2025', thumbnail: 'assets/picture3.png', published: DateTime(2026, 9, 14), duration: '6:40'),
+    ChannelVideo(type: 'song', id: 'song03', title: 'Christmas carol · Youth choir', thumbnail: 'assets/ministriesimage.png', published: DateTime(2025, 12, 22), duration: '3:30'),
+    ChannelVideo(type: 'short', id: 'sh01', title: 'One verse for your week', thumbnail: 'assets/videoimage.png', published: DateTime(2026, 11, 20), duration: '0:45'),
+  ];
+
+  @override
+  Future<List<ChannelVideo>> uploads({int limit = 120}) =>
+      _delay(([..._uploads]..sort((a, b) => b.published.compareTo(a.published))).take(limit).toList());
+
+  @override
+  Future<ChannelVideo?> latestService() => _delay(_playlistVideos['PLsun']!.first);
 
   @override
   Future<List<Sermon>> sermons() => _delay([
@@ -408,8 +470,16 @@ class MockRepository implements BethelRepository {
             language: 'English',
             songCount: 20,
             isSongBook: true),
-        Album(id: 1, title: 'Sunday Praise', image: 'assets/live_event.jpeg', artist: 'Bethel Worship'),
-        Album(id: 2, title: 'Kids Worship', image: 'assets/ministriesimage.png', artist: 'Children\'s Ministry'),
+        Album(
+            id: 3,
+            title: 'Special Meetings 2026',
+            image: '',
+            artist: 'Bethel Prayer House',
+            dates: 'Dec 4–6, 2026',
+            isNew: true,
+            addedOn: DateTime(2026, 11, 20)),
+        Album(id: 1, title: 'Sunday Praise', image: 'assets/live_event.jpeg', artist: 'Bethel Worship', addedOn: DateTime(2026, 6, 1)),
+        Album(id: 2, title: 'Kids Worship', image: 'assets/ministriesimage.png', artist: 'Children\'s Ministry', addedOn: DateTime(2026, 3, 1)),
       ]);
 
   static const _zion = 10;
@@ -421,6 +491,7 @@ class MockRepository implements BethelRepository {
       id: 101,
       number: 1,
       title: 'Aadhaaram Naaku Aadhaaram',
+      altTitle: 'ఆధారం నాకు ఆధారం',
       artist: 'Bethel Worship',
       lyricist: 'Bonigala Babu Rao',
       image: 'assets/church.jpg',
@@ -789,6 +860,9 @@ class MockRepository implements BethelRepository {
   }
 
   @override
+  Future<Map<String, List<Map<String, dynamic>>>> songTopics() async => const {};
+
+  @override
   Future<List<Song>> trendingSongs() async {
     final zion = await _zionSongs();
     Song? z(int n) => zion.where((s) => s.number == n).firstOrNull;
@@ -801,6 +875,11 @@ class MockRepository implements BethelRepository {
   @override
   Future<List<Song>> songsForAlbum(int albumId) async {
     if (albumId == _zion) return _delay(await _zionSongs());
+    if (albumId == 3) {
+      // Special meetings: songs from both books, in the order they'll be sung.
+      final zion = await _zionSongs();
+      return _delay([...zion.take(2), ..._songs.where((s) => s.albumId == _hymns).take(3)]);
+    }
     final list = _songs.where((s) => s.albumId == albumId).toList();
     // Albums that aren't song books reuse a few hymns in the demo.
     return _delay(list.isEmpty ? _songs.where((s) => s.albumId == _hymns).take(3).toList() : list);
@@ -890,4 +969,16 @@ class MockRepository implements BethelRepository {
           'But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.',
         ]),
       ]);
+
+  @override
+  Future<List<NotificationItem>> notifications() {
+    final now = DateTime.now();
+    return _delay([
+      NotificationItem(id: 1, title: 'Prayer Meeting is tomorrow', detail: 'Fri · 7:30 PM', at: now.subtract(const Duration(hours: 1)), kind: 'event'),
+      NotificationItem(id: 2, title: 'New message: Peace That Guards Your Heart', detail: 'Associate Pastor', at: now.subtract(const Duration(hours: 3)), kind: 'sermon'),
+      NotificationItem(id: 3, title: '12 people prayed for your request', detail: 'Prayer wall', at: now.subtract(const Duration(days: 2)), kind: 'prayer'),
+      NotificationItem(id: 4, title: 'Day 3 of your reading plan is ready', detail: 'Peace and Strength', at: now.subtract(const Duration(days: 2)), kind: 'reading'),
+      NotificationItem(id: 5, title: 'Sunday Worship Service starts in 1 hour', detail: 'Sunday · 3:00 PM', at: now.subtract(const Duration(days: 4)), kind: 'service'),
+    ]);
+  }
 }

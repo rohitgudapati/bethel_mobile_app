@@ -36,44 +36,27 @@ class _AppShellState extends State<AppShell> {
         PrayerScreen(),
         MoreScreen(),
       ]),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: select,
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.library_music_outlined),
-              selectedIcon: Icon(Icons.library_music_rounded),
-              label: 'Songs'),
-          NavigationDestination(
-              icon: Icon(Icons.play_circle_outline), selectedIcon: Icon(Icons.play_circle_rounded), label: 'Watch'),
-          NavigationDestination(
-              icon: _HomeIcon(selected: false), selectedIcon: _HomeIcon(selected: true), label: 'Home'),
-          NavigationDestination(
-              icon: Icon(Icons.volunteer_activism_outlined),
-              selectedIcon: Icon(Icons.volunteer_activism),
-              label: 'Prayer'),
-          NavigationDestination(
-              icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: 'More'),
-        ],
+      // Flat tab bar with a hairline on top; Forest (Sage in dark mode) marks the selected tab.
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: BethelTokens.of(context).hairline))),
+        child: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: select,
+          destinations: const [
+            NavigationDestination(
+                icon: Icon(Icons.library_music_outlined), selectedIcon: Icon(Icons.library_music_rounded), label: 'Songs'),
+            NavigationDestination(
+                icon: Icon(Icons.play_circle_outline), selectedIcon: Icon(Icons.play_circle_rounded), label: 'Watch'),
+            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+            NavigationDestination(
+                icon: Icon(Icons.volunteer_activism_outlined),
+                selectedIcon: Icon(Icons.volunteer_activism),
+                label: 'Prayer'),
+            NavigationDestination(
+                icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: 'More'),
+          ],
+        ),
       ),
     );
   }
-}
-
-/// The centre Home button is a filled circle so it stands out, like the old app's centre button.
-class _HomeIcon extends StatelessWidget {
-  const _HomeIcon({required this.selected});
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: selected ? BethelColors.forest : BethelColors.brass,
-          boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 8, offset: Offset(0, 3))],
-        ),
-        child: Icon(selected ? Icons.home_rounded : Icons.home_outlined, color: Colors.white),
-      );
 }
