@@ -141,6 +141,12 @@ class ApiRepository implements BethelRepository {
   Future<List<ChannelVideo>> playlistVideos(String playlistId, {int limit = 50}) => _fallback.playlistVideos(playlistId, limit: limit);
 
   @override
+  Future<List<ChannelVideo>> liveRecordings({int limit = 60}) => _fallback.liveRecordings(limit: limit);
+
+  @override
+  Future<List<ChannelVideo>> uploads({int limit = 120}) => _fallback.uploads(limit: limit);
+
+  @override
   Future<ChannelVideo?> latestService() => _fallback.latestService();
 
   @override

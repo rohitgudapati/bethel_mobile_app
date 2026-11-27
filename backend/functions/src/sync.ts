@@ -126,7 +126,7 @@ export async function syncChannel(db: Firestore, yt: YouTubeClient, opts: SyncOp
       lastSync: FieldValue.serverTimestamp(),
       ...(opts.full ? { lastFullSync: FieldValue.serverTimestamp() } : {}),
       series: [...new Set(playlists.map((p) => p.title))].filter(
-        (t) => !rules.ignorePlaylistPattern.test(t) && !rules.testimonyPattern.test(t) && !rules.interviewPattern.test(t),
+        (t) => !rules.ignorePlaylistPattern.test(t) && !rules.testimonyPattern.test(t) && !rules.interviewPattern.test(t) && !rules.songPattern.test(t),
       ),
     },
     { merge: true },

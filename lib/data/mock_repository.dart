@@ -265,21 +265,21 @@ class MockRepository implements BethelRepository {
 
   static final _playlistVideos = <String, List<ChannelVideo>>{
     'PLsun': [
-      ChannelVideo(id: 'svc1122', title: 'Sunday Worship Service', thumbnail: 'assets/live_event.jpeg', published: DateTime(2026, 11, 22, 15), duration: '2:14:05', preacher: 'Bro. Moses Polugari'),
-      ChannelVideo(id: 'svc1115', title: 'Walking in the light', thumbnail: 'assets/sermon-hero.png', published: DateTime(2026, 11, 15, 15), duration: '1:58:40', preacher: 'Bro. Vinod Somepalli'),
-      ChannelVideo(id: 'svc1108', title: 'Peace that guards your heart', thumbnail: 'assets/church.jpg', published: DateTime(2026, 11, 8, 15), duration: '2:02:11', preacher: 'Bro. Moses Polugari'),
-      ChannelVideo(id: 'svc1101', title: 'Thanksgiving service', thumbnail: 'assets/picture3.png', published: DateTime(2026, 11, 1, 15), duration: '2:20:30'),
-      ChannelVideo(id: 'svc1025', title: 'Communion Sunday', thumbnail: 'assets/ministriesimage.png', published: DateTime(2025, 10, 25, 15), duration: '2:05:10'),
+      ChannelVideo(liveRecording: true, id: 'svc1122', title: 'Sunday Worship Service', thumbnail: 'assets/live_event.jpeg', published: DateTime(2026, 11, 22, 15), duration: '2:14:05', preacher: 'Bro. Moses Polugari'),
+      ChannelVideo(liveRecording: true, id: 'svc1115', title: 'Walking in the light', thumbnail: 'assets/sermon-hero.png', published: DateTime(2026, 11, 15, 15), duration: '1:58:40', preacher: 'Bro. Vinod Somepalli'),
+      ChannelVideo(liveRecording: true, id: 'svc1108', title: 'Peace that guards your heart', thumbnail: 'assets/church.jpg', published: DateTime(2026, 11, 8, 15), duration: '2:02:11', preacher: 'Bro. Moses Polugari'),
+      ChannelVideo(liveRecording: true, id: 'svc1101', title: 'Thanksgiving service', thumbnail: 'assets/picture3.png', published: DateTime(2026, 11, 1, 15), duration: '2:20:30'),
+      ChannelVideo(liveRecording: true, id: 'svc1025', title: 'Communion Sunday', thumbnail: 'assets/ministriesimage.png', published: DateTime(2025, 10, 25, 15), duration: '2:05:10'),
     ],
     'PLtel': [
       ChannelVideo(id: 'tel1030', title: 'దేవుని ప్రేమ', thumbnail: 'assets/sermon-hero.png', published: DateTime(2026, 10, 30), duration: '48:12'),
       ChannelVideo(id: 'tel1012', title: 'విశ్వాసము', thumbnail: 'assets/church.jpg', published: DateTime(2026, 10, 12), duration: '51:03'),
     ],
     'PLsp26': [
-      ChannelVideo(id: 'sp1', title: 'Special Meetings · Night 1', thumbnail: 'assets/church.jpg', published: DateTime(2026, 3, 6, 19), duration: '1:45:00'),
+      ChannelVideo(liveRecording: true, id: 'sp1', title: 'Special Meetings · Night 1', thumbnail: 'assets/church.jpg', published: DateTime(2026, 3, 6, 19), duration: '1:45:00'),
     ],
     'PLtest': [
-      ChannelVideo(id: 'tst1', title: 'How God carried our family through 2025', thumbnail: 'assets/picture3.png', published: DateTime(2026, 9, 14), duration: '6:40'),
+      ChannelVideo(type: 'testimony', id: 'tst1', title: 'How God carried our family through 2025', thumbnail: 'assets/picture3.png', published: DateTime(2026, 9, 14), duration: '6:40'),
     ],
     'PLkids': [
       ChannelVideo(id: 'kid1', title: 'Christmas program 2025', thumbnail: 'assets/ministriesimage.png', published: DateTime(2025, 12, 21), duration: '38:20'),
@@ -292,6 +292,27 @@ class MockRepository implements BethelRepository {
   @override
   Future<List<ChannelVideo>> playlistVideos(String playlistId, {int limit = 50}) =>
       _delay((_playlistVideos[playlistId] ?? const <ChannelVideo>[]).take(limit).toList());
+
+  @override
+  Future<List<ChannelVideo>> liveRecordings({int limit = 60}) {
+    final all = {for (final l in _playlistVideos.values) for (final v in l) if (v.liveRecording) v.id: v}.values.toList()
+      ..sort((a, b) => b.published.compareTo(a.published));
+    return _delay(all.take(limit).toList());
+  }
+
+  static final _uploads = <ChannelVideo>[
+    ChannelVideo(type: 'song', id: 'song01', title: 'Yesu Raja · Bethel Worship', thumbnail: 'assets/picture3.png', published: DateTime(2026, 11, 18), duration: '5:42'),
+    ChannelVideo(type: 'testimony', id: 'tst2', title: 'Testimony · Sis. Grace, healed after surgery', thumbnail: 'assets/pray.png', published: DateTime(2026, 11, 10), duration: '8:15'),
+    ChannelVideo(type: 'song', id: 'song02', title: 'నీ ప్రేమ · Telugu worship song', thumbnail: 'assets/church.jpg', published: DateTime(2026, 10, 28), duration: '4:58'),
+    ChannelVideo(type: 'sermon', id: 'tel1030', title: 'దేవుని ప్రేమ', thumbnail: 'assets/sermon-hero.png', published: DateTime(2026, 10, 30), duration: '48:12'),
+    ChannelVideo(type: 'testimony', id: 'tst1', title: 'How God carried our family through 2025', thumbnail: 'assets/picture3.png', published: DateTime(2026, 9, 14), duration: '6:40'),
+    ChannelVideo(type: 'song', id: 'song03', title: 'Christmas carol · Youth choir', thumbnail: 'assets/ministriesimage.png', published: DateTime(2025, 12, 22), duration: '3:30'),
+    ChannelVideo(type: 'short', id: 'sh01', title: 'One verse for your week', thumbnail: 'assets/videoimage.png', published: DateTime(2026, 11, 20), duration: '0:45'),
+  ];
+
+  @override
+  Future<List<ChannelVideo>> uploads({int limit = 120}) =>
+      _delay(([..._uploads]..sort((a, b) => b.published.compareTo(a.published))).take(limit).toList());
 
   @override
   Future<ChannelVideo?> latestService() => _delay(_playlistVideos['PLsun']!.first);

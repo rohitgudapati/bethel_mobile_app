@@ -382,6 +382,8 @@ class ChannelVideo {
     this.description = '',
     this.preacher = '',
     this.embeddable = true,
+    this.type = 'sermon',
+    this.liveRecording = false,
   });
 
   /// The YouTube video id.
@@ -393,4 +395,10 @@ class ChannelVideo {
   final String description;
   final String preacher;
   final bool embeddable;
+
+  /// sermon, song, testimony, interview or short (as sorted by the YouTube sync).
+  final String type;
+
+  /// A recording of a live stream (a service), not an upload.
+  final bool liveRecording;
 }

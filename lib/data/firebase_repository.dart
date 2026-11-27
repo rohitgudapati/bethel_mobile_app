@@ -352,8 +352,26 @@ class FirebaseRepository implements BethelRepository {
       description: _s(m, 'description'),
       preacher: _s(m, 'preacher'),
       embeddable: m['embeddable'] != false,
+      type: _s(m, 'kind', _s(m, 'type', 'sermon')),
+      liveRecording: m['isStreamRecording'] == true,
     );
   }
+
+  Future<List<ChannelVideo>> _byRecording(bool live, int limit) async {
+    final q = await _db
+        .collection('videos')
+        .where('isStreamRecording', isEqualTo: live)
+        .orderBy('publishedAt', descending: true)
+        .limit(limit)
+        .get();
+    return [for (final d in q.docs) if (d.data()['hidden'] != true && d.data()['removed'] != true) _video(d)];
+  }
+
+  @override
+  Future<List<ChannelVideo>> liveRecordings({int limit = 60}) => _byRecording(true, limit);
+
+  @override
+  Future<List<ChannelVideo>> uploads({int limit = 120}) => _byRecording(false, limit);
 
   @override
   Future<List<ChannelVideo>> playlistVideos(String playlistId, {int limit = 50}) async {
