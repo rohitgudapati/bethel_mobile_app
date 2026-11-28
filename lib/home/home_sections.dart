@@ -98,9 +98,13 @@ class _NextUpCardState extends State<NextUpCard> {
                 style: const TextStyle(fontSize: 11, letterSpacing: 1.1, fontWeight: FontWeight.w600, color: BethelColors.brassSoft)),
             const SizedBox(height: 2),
             Text(widget.service.name,
-                maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: BethelColors.ivory)),
+                maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, height: 1.25, fontWeight: FontWeight.w600, color: BethelColors.ivory)),
             Text(
-              [if (w.hasTime) clockTime(w.start), if (w.hasTime && !happening) countdown(w.start, now), if (!w.hasTime) widget.service.schedule].join(' · '),
+              [
+                if (w.hasTime) clockTime(w.start),
+                if (w.hasTime && !happening && w.start.difference(now).inHours < 24) countdown(w.start, now),
+                if (!w.hasTime) widget.service.schedule,
+              ].join(' · '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 13, color: Color(0xCCF4EFE6)),
@@ -108,10 +112,11 @@ class _NextUpCardState extends State<NextUpCard> {
           ]),
         ),
         if (!happening)
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: BethelColors.ivory),
+          IconButton(
+            tooltip: _reminded ? 'Reminder on' : 'Remind me',
             onPressed: _reminded ? null : _remind,
-            child: Text(_reminded ? 'Reminder on' : 'Remind me', style: TextStyle(color: _reminded ? const Color(0x99F4EFE6) : BethelColors.ivory)),
+            icon: Icon(_reminded ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
+                color: _reminded ? BethelColors.brassSoft : BethelColors.ivory),
           )
         else
           TextButton(
@@ -139,7 +144,7 @@ class ServicesRow extends StatelessWidget {
           action: 'View all', onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ServicesScreen()))),
       const SizedBox(height: 10),
       SizedBox(
-        height: 132,
+        height: 148,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           clipBehavior: Clip.none,
@@ -179,7 +184,7 @@ class ServicesRow extends StatelessWidget {
                       ),
                   ]),
                   const Spacer(),
-                  Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall),
+                  Text(s.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall?.copyWith(height: 1.25)),
                   Text(s.schedule, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.bodySmall),
                 ]),
               ),
@@ -253,7 +258,7 @@ class NewAndLatest extends StatelessWidget {
           card(
             label: 'New album',
             title: a.title,
-            sub: [if (a.dates.isNotEmpty) a.dates, '${a.songCount} songs'].join(' · '),
+            sub: [if (a.dates.isNotEmpty) a.dates, if (a.songCount > 0) '${a.songCount} songs'].join(' · '),
             image: a.image,
             icon: Icons.library_music_rounded,
             onTap: () => openAlbum(context, a),

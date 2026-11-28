@@ -15,7 +15,6 @@ import 'events_screen.dart';
 import 'notifications_screen.dart';
 import 'shell.dart';
 import 'video_screen.dart';
-import 'watch_screen.dart';
 
 /// Everything Home shows, loaded together so the screen appears in one go.
 class _HomeData {
