@@ -32,6 +32,10 @@ class AppConfig {
   static const String churchCity = 'Naperville, IL';
   static const String churchAddress = '7S201 South River Rd, Naperville, IL 60540';
 
+  /// Google Maps Static API key for the map on Home (`--dart-define=MAPS_API_KEY=...`).
+  /// Without it, Home shows a photo of the church instead of the map.
+  static const String mapsApiKey = String.fromEnvironment('MAPS_API_KEY');
+
   /// Google Maps pin for the church.
   static String get mapsUrl =>
       'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent('$churchName, $churchAddress')}';

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../app/app_state.dart';
+import '../app/config.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../bible/bible_text.dart';
 import '../bible/books.dart';
 import '../widgets/common.dart';
+import '../home/home_sections.dart';
 import 'reading_plan_screen.dart';
 import 'church_screens.dart';
 import 'events_screen.dart';
@@ -24,6 +26,10 @@ class _HomeData {
     required this.sermons,
     required this.plan,
     required this.notifications,
+    required this.services,
+    required this.albums,
+    required this.prayers,
+    required this.info,
     required this.offline,
   });
 
@@ -33,6 +39,10 @@ class _HomeData {
   final List<Sermon> sermons;
   final List<BiblePassage> plan;
   final List<NotificationItem> notifications;
+  final List<ChurchService> services;
+  final List<Album> albums;
+  final List<PrayerRequest> prayers;
+  final ChurchInfo? info;
 
   /// Nothing could be loaded: show the offline notice.
   final bool offline;
@@ -69,6 +79,10 @@ class _HomeScreenState extends State<HomeScreen> {
       safe<List<Sermon>>(() => repo.sermons(), const []),
       safe<List<BiblePassage>>(() => repo.readingPlan(), const []),
       safe<List<NotificationItem>>(() => repo.notifications(), const []),
+      safe<List<ChurchService>>(() => repo.services(), const []),
+      safe<List<Album>>(() => repo.albums(), const []),
+      safe<List<PrayerRequest>>(() => repo.prayerWall(), const []),
+      safe<ChurchInfo?>(() => repo.churchInfo(), null),
     ]);
     return _HomeData(
       verse: results[0] as DailyVerse?,
@@ -77,7 +91,11 @@ class _HomeScreenState extends State<HomeScreen> {
       sermons: results[3] as List<Sermon>,
       plan: results[4] as List<BiblePassage>,
       notifications: results[5] as List<NotificationItem>,
-      offline: failures >= 5,
+      services: results[6] as List<ChurchService>,
+      albums: results[7] as List<Album>,
+      prayers: results[8] as List<PrayerRequest>,
+      info: results[9] as ChurchInfo?,
+      offline: failures >= 8,
     );
   }
 
@@ -132,17 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const _HomeSkeleton(),
                 ] else ...[
                   if (data.offline) ...[const SizedBox(height: 20), _OfflineNotice(onRetry: _refresh)],
-                  if (data.streams.any((s) => s.isLive)) ...[
-                    const SizedBox(height: 20),
-                    _LiveCard(stream: data.streams.firstWhere((s) => s.isLive)),
-                  ],
-                  if (data.verse != null) ...[const SizedBox(height: 20), VerseCard(verse: data.verse!)],
-                  const SizedBox(height: 16),
-                  _StreakCard(onOpenPlan: () => _push(const ReadingPlanScreen())),
-                  const SizedBox(height: 16),
-                  const _FactCard(),
-                  ..._comingUp(data.events),
-                  if (!state.guest) ..._keepGoing(state, data),
+                  ..._sections(state, data),
                 ],
               ],
             ),
@@ -152,14 +160,39 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Home, top to bottom: what's next, the verse, your day, this week's services, the daily
+  /// question, what's new, the prayer wall, coming events, and how to find the church.
+  List<Widget> _sections(AppState state, _HomeData data) {
+    const gap = SizedBox(height: 24);
+    final live = data.streams.where((s) => s.isLive).firstOrNull;
+    final next = nextService(data.services, DateTime.now());
+    final newAlbum = data.albums.where((a) => a.isNew && !a.isSongBook).firstOrNull;
+    final sermon = data.sermons.firstOrNull;
+    return [
+      if (live != null) ...[const SizedBox(height: 20), _LiveCard(stream: live)]
+      else if (next != null) ...[const SizedBox(height: 20), NextUpCard(service: next.service, when: next.when)],
+      if (data.verse != null) ...[const SizedBox(height: 16), VerseCard(verse: data.verse!)],
+      const SizedBox(height: 16),
+      _StreakCard(onOpenPlan: () => _push(const ReadingPlanScreen())),
+      if (data.services.isNotEmpty) ...[gap, ServicesRow(services: data.services)],
+      gap,
+      const _FactCard(),
+      if (sermon != null || newAlbum != null) ...[gap, NewAndLatest(album: newAlbum, sermon: sermon)],
+      if (data.prayers.isNotEmpty) ...[gap, PrayerPeek(prayers: data.prayers)],
+      ..._comingUp(data.events),
+      gap,
+      VisitUsCard(info: data.info ?? const ChurchInfo(name: AppConfig.churchName, address: AppConfig.churchAddress, country: 'United States')),
+    ];
+  }
+
   List<Widget> _comingUp(List<ChurchEvent> events) {
     final today = _dateOnly(DateTime.now());
     final next = events.where((e) => !_dateOnly(e.date).isBefore(today)).toList()..sort((a, b) => a.date.compareTo(b.date));
     if (next.isEmpty) return const [];
     return [
-      const SizedBox(height: 20),
+      const SizedBox(height: 24),
       BethelSectionTitle('Coming up', action: 'All events', onAction: () => _push(const EventsScreen())),
-      for (final e in next.take(2))
+      for (final e in next.take(3))
         HairlineRow(
           leading: DatePlaque(e.date),
           title: e.title,
@@ -169,20 +202,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
   }
 
-  List<Widget> _keepGoing(AppState state, _HomeData data) {
-    final rows = <Widget>[];
-    if (data.sermons.isNotEmpty) {
-      final s = data.sermons.first;
-      rows.add(HairlineRow(
-        leading: const RowIcon(Icons.play_circle_outline_rounded),
-        title: s.title,
-        subtitle: s.preacher,
-        onTap: () => _push(SermonDetailScreen(sermon: s)),
-      ));
-    }
-    if (rows.isEmpty) return const [];
-    return [const SizedBox(height: 20), const BethelSectionTitle('Latest message'), ...rows];
-  }
 }
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
