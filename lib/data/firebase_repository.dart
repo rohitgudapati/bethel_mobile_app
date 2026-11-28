@@ -714,61 +714,86 @@ class FirebaseRepository implements BethelRepository {
     );
   }
 
-  // ------------------------------------------------------------ daily question
+  // ------------------------------------------------------------ daily questions
 
-  DailyQuestion _question(Map<String, dynamic> q, Map<String, dynamic>? mine) => DailyQuestion(
-        date: _s(q, 'date'),
-        question: _s(q, 'question'),
-        choices: [for (final c in (q['choices'] as List? ?? const [])) '$c'],
-        week: _s(q, 'week'),
-        myChoice: (mine?['choice'] as num?)?.toInt(),
-        correct: mine?['correct'] as bool?,
-        answer: (mine?['answer'] as num?)?.toInt(),
-        points: (mine?['points'] as num?)?.toInt(),
-        ref: mine == null ? '' : _s(mine, 'ref'),
-        streak: (mine?['streak'] as num?)?.toInt() ?? 0,
-      );
-
-  @override
-  Future<DailyQuestion?> dailyQuestion() async {
+  Future<Map<String, dynamic>?> _todaysQuiz() async {
     final now = Timestamp.now();
     final q = await _db.collection('quiz').where('opensAt', isLessThanOrEqualTo: now).orderBy('opensAt', descending: true).limit(1).get();
     if (q.docs.isEmpty) return null;
     final data = q.docs.first.data();
     final closes = data['closesAt'];
     if (closes is Timestamp && closes.compareTo(now) <= 0) return null;
-    final user = _auth.currentUser;
-    Map<String, dynamic>? mine;
-    if (user != null) {
-      try {
-        mine = (await _db.doc('quizAnswers/${_s(data, 'date')}_${user.uid}').get()).data();
-      } catch (_) {}
-    }
-    return _question(data, mine);
+    return data;
+  }
+
+  QuizAnswer _answer(Map<String, dynamic> m, Map<String, dynamic>? stats) {
+    final i = (m['index'] as num?)?.toInt() ?? 0;
+    int? pct;
+    final answered = (stats?['answered'] as Map?)?['$i'] as num?;
+    final right = (stats?['right'] as Map?)?['$i'] as num?;
+    if (answered != null && answered > 0) pct = ((right ?? 0) * 100 / answered).round();
+    return QuizAnswer(
+      choice: (m['choice'] as num?)?.toInt() ?? 0,
+      correct: m['correct'] as bool?,
+      answer: (m['answer'] as num?)?.toInt(),
+      ref: _s(m, 'ref'),
+      points: (m['points'] as num?)?.toInt() ?? 0,
+      rightPercent: pct,
+    );
   }
 
   @override
-  Future<DailyQuestion> answerDailyQuestion(DailyQuestion q, int choice) async {
+  Future<DailyQuiz?> dailyQuiz() async {
+    final data = await _todaysQuiz();
+    if (data == null) return null;
+    final date = _s(data, 'date');
+    final items = [
+      for (final q in (data['questions'] as List? ?? const []))
+        if (q is Map)
+          QuizItem(id: '${q['id']}', question: '${q['q']}', choices: [for (final c in (q['choices'] as List? ?? const [])) '$c']),
+    ];
+    final stats = (await _db.doc('quizStats/$date').get()).data();
+    final answers = <int, QuizAnswer>{};
+    final user = _auth.currentUser;
+    if (user != null) {
+      try {
+        final mine = await _db.collection('quizAnswers').where('uid', isEqualTo: user.uid).where('date', isEqualTo: date).get();
+        for (final d in mine.docs) {
+          answers[(d.data()['index'] as num?)?.toInt() ?? 0] = _answer(d.data(), stats);
+        }
+      } catch (_) {}
+    }
+    final played = (stats?['answered'] as Map?)?['0'] as num?;
+    return DailyQuiz(date: date, week: _s(data, 'week'), items: items, answers: answers, players: played?.toInt() ?? 0);
+  }
+
+  @override
+  Future<QuizAnswer> answerQuiz(DailyQuiz quiz, int index, int choice) async {
     final uid = await _uid();
-    final ref = _db.doc('quizAnswers/${q.date}_$uid');
-    await ref.set({'uid': uid, 'date': q.date, 'choice': choice});
+    final ref = _db.doc('quizAnswers/${quiz.date}_${uid}_$index');
+    await ref.set({'uid': uid, 'date': quiz.date, 'index': index, 'choice': choice});
     // Wait for the server to check it (usually a second or two).
     final checked = await ref
         .snapshots()
         .map((d) => d.data())
         .firstWhere((m) => m != null && m['correct'] != null)
-        .timeout(const Duration(seconds: 20), onTimeout: () => {'choice': choice});
-    final quiz = (await _db.doc('quiz/${q.date}').get()).data() ?? {'date': q.date, 'question': q.question, 'choices': q.choices, 'week': q.week};
-    return _question(quiz, checked);
+        .timeout(const Duration(seconds: 20), onTimeout: () => {'index': index, 'choice': choice});
+    Map<String, dynamic>? stats;
+    try {
+      stats = (await _db.doc('quizStats/${quiz.date}').get()).data();
+    } catch (_) {}
+    return _answer(checked!, stats);
   }
 
   @override
-  Future<Leaderboard> leaderboard({int limit = 10}) async {
-    var week = '';
-    final now = Timestamp.now();
-    final q = await _db.collection('quiz').where('opensAt', isLessThanOrEqualTo: now).orderBy('opensAt', descending: true).limit(1).get();
-    if (q.docs.isNotEmpty) week = _s(q.docs.first.data(), 'week');
+  Future<Leaderboard> leaderboard({int limit = 10, bool lastWeek = false}) async {
+    final quiz = await _todaysQuiz();
+    var week = quiz == null ? '' : _s(quiz, 'week');
     if (week.isEmpty) return const Leaderboard(week: '', top: []);
+    if (lastWeek) {
+      final d = DateTime.parse(week).subtract(const Duration(days: 7));
+      week = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    }
     final scores = _db.collection('leaderboards').doc(week).collection('scores');
     LeaderboardEntry entry(String id, Map<String, dynamic> m) => LeaderboardEntry(
           uid: id,

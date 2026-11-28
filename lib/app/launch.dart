@@ -26,4 +26,7 @@ class LaunchOptions {
 
   /// `live=1` shows the demo as if the Sunday service were streaming right now.
   static bool get forceLive => _params['live'] == '1';
+
+  /// `now=2026-12-06T15:10` moves the demo's clock (see clock.dart).
+  static String? get now => _params['now'];
 }

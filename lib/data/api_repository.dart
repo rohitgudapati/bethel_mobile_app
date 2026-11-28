@@ -393,13 +393,13 @@ class ApiRepository implements BethelRepository {
   // ---------------------------------------------------------------- prayer
 
   @override
-  Future<DailyQuestion?> dailyQuestion() => _fallback.dailyQuestion();
+  Future<DailyQuiz?> dailyQuiz() => _fallback.dailyQuiz();
 
   @override
-  Future<DailyQuestion> answerDailyQuestion(DailyQuestion q, int choice) => _fallback.answerDailyQuestion(q, choice);
+  Future<QuizAnswer> answerQuiz(DailyQuiz quiz, int index, int choice) => _fallback.answerQuiz(quiz, index, choice);
 
   @override
-  Future<Leaderboard> leaderboard({int limit = 10}) => _fallback.leaderboard(limit: limit);
+  Future<Leaderboard> leaderboard({int limit = 10, bool lastWeek = false}) => _fallback.leaderboard(limit: limit, lastWeek: lastWeek);
 
   @override
   Future<List<PrayerRequest>> prayerWall() async => List.of(_mySubmitted);

@@ -6,6 +6,8 @@
 
 export interface QuizQuestion {
   q: string;
+  /** 'hard' or 'medium'. The daily five lean hard. */
+  level?: 'hard' | 'medium';
   choices: [string, string, string, string];
   /** Index of the right choice. */
   answer: number;
@@ -58,6 +60,55 @@ export const QUESTIONS: QuizQuestion[] = [
   { q: 'What are the first words of the Bible?', choices: ['“In the beginning God…”', '“Hear, O Israel…”', '“The Lord is my shepherd…”', '“In the beginning was the Word…”'], answer: 0, ref: 'Genesis 1:1' },
 ];
 
+/** Harder questions: each answer is stated in the verse given. */
+export const HARD_QUESTIONS: QuizQuestion[] = [
+  { q: 'Which judge of Israel was left-handed?', choices: ['Gideon', 'Ehud', 'Jephthah', 'Othniel'], answer: 1, ref: 'Judges 3:15', level: 'hard' },
+  { q: 'How many years did Solomon spend building the temple?', choices: ['Seven', 'Thirteen', 'Twenty', 'Forty'], answer: 0, ref: '1 Kings 6:38', level: 'hard' },
+  { q: 'How many years did Solomon spend building his own house?', choices: ['Seven', 'Ten', 'Thirteen', 'Twenty'], answer: 2, ref: '1 Kings 7:1', level: 'hard' },
+  { q: 'How old was Methuselah when he died?', choices: ['930 years', '950 years', '969 years', '912 years'], answer: 2, ref: 'Genesis 5:27', level: 'hard' },
+  { q: 'Who was the father of Methuselah?', choices: ['Lamech', 'Enoch', 'Jared', 'Seth'], answer: 1, ref: 'Genesis 5:21', level: 'hard' },
+  { q: 'What was the name of Moses’ wife?', choices: ['Zipporah', 'Miriam', 'Jochebed', 'Keturah'], answer: 0, ref: 'Exodus 2:21', level: 'hard' },
+  { q: 'Which prophet was told to marry Gomer?', choices: ['Amos', 'Micah', 'Hosea', 'Joel'], answer: 2, ref: 'Hosea 1:2–3', level: 'hard' },
+  { q: 'How old was Josiah when he began to reign?', choices: ['Eight', 'Twelve', 'Sixteen', 'Twenty-five'], answer: 0, ref: '2 Kings 22:1', level: 'hard' },
+  { q: 'What name did the prince of the eunuchs give Daniel?', choices: ['Shadrach', 'Abednego', 'Belteshazzar', 'Meshach'], answer: 2, ref: 'Daniel 1:7', level: 'hard' },
+  { q: 'On which island was John when he received the Revelation?', choices: ['Crete', 'Cyprus', 'Malta', 'Patmos'], answer: 3, ref: 'Revelation 1:9', level: 'hard' },
+  { q: 'What was the name of the high priest’s servant whose ear Peter cut off?', choices: ['Malchus', 'Rhoda', 'Annas', 'Alexander'], answer: 0, ref: 'John 18:10', level: 'hard' },
+  { q: 'The people of which city “searched the scriptures daily” after hearing Paul?', choices: ['Thessalonica', 'Berea', 'Corinth', 'Philippi'], answer: 1, ref: 'Acts 17:10–11', level: 'hard' },
+  { q: 'Which young man fell from a third-floor window while Paul was preaching?', choices: ['Tychicus', 'Trophimus', 'Eutychus', 'Erastus'], answer: 2, ref: 'Acts 20:9', level: 'hard' },
+  { q: 'Which couple worked with Paul as tentmakers in Corinth?', choices: ['Ananias and Sapphira', 'Aquila and Priscilla', 'Andronicus and Junia', 'Philemon and Apphia'], answer: 1, ref: 'Acts 18:2–3', level: 'hard' },
+  { q: 'How many men did Gideon keep to fight the Midianites?', choices: ['10,000', '1,000', '300', '70'], answer: 2, ref: 'Judges 7:7', level: 'hard' },
+  { q: 'What did Samson find in the carcass of the lion he had killed?', choices: ['A swarm of bees and honey', 'A jawbone', 'A silver cup', 'Thirty garments'], answer: 0, ref: 'Judges 14:8', level: 'hard' },
+  { q: 'Who was Abraham’s father?', choices: ['Nahor', 'Haran', 'Terah', 'Serug'], answer: 2, ref: 'Genesis 11:26', level: 'hard' },
+  { q: 'Who was chosen to replace Judas among the twelve?', choices: ['Barnabas', 'Matthias', 'Silas', 'Joseph Barsabas'], answer: 1, ref: 'Acts 1:23–26', level: 'hard' },
+  { q: 'What was the name of Ruth and Boaz’s son?', choices: ['Jesse', 'Obed', 'Salmon', 'Perez'], answer: 1, ref: 'Ruth 4:13–17', level: 'hard' },
+  { q: 'Which prophet was told to lie on his left side for 390 days?', choices: ['Jeremiah', 'Isaiah', 'Ezekiel', 'Daniel'], answer: 2, ref: 'Ezekiel 4:4–5', level: 'hard' },
+  { q: 'Who was Jacob’s firstborn son?', choices: ['Judah', 'Reuben', 'Simeon', 'Levi'], answer: 1, ref: 'Genesis 35:23', level: 'hard' },
+  { q: 'Which king of Salem brought out bread and wine to Abram?', choices: ['Abimelech', 'Melchizedek', 'Chedorlaomer', 'Bera'], answer: 1, ref: 'Genesis 14:18', level: 'hard' },
+  { q: 'Which prophetess judged Israel under a palm tree?', choices: ['Huldah', 'Miriam', 'Deborah', 'Anna'], answer: 2, ref: 'Judges 4:4–5', level: 'hard' },
+  { q: 'Who killed Sisera with a tent nail?', choices: ['Deborah', 'Jael', 'Rahab', 'Abigail'], answer: 1, ref: 'Judges 4:21', level: 'hard' },
+  { q: 'Which king of Bashan had a bedstead of iron?', choices: ['Sihon', 'Og', 'Balak', 'Agag'], answer: 1, ref: 'Deuteronomy 3:11', level: 'hard' },
+  { q: 'Which disciple was also called Didymus?', choices: ['Thomas', 'Bartholomew', 'Thaddaeus', 'James'], answer: 0, ref: 'John 11:16', level: 'hard' },
+  { q: 'What name did Jesus give Simon, meaning “a stone”?', choices: ['Boanerges', 'Cephas', 'Barjona', 'Petra'], answer: 1, ref: 'John 1:42', level: 'hard' },
+  { q: 'Who was made to carry Jesus’ cross?', choices: ['Joseph of Arimathaea', 'Simon of Cyrene', 'Nicodemus', 'Lazarus'], answer: 1, ref: 'Mark 15:21', level: 'hard' },
+  { q: 'Who fell down dead after lying about the price of his land?', choices: ['Ananias', 'Simon the sorcerer', 'Elymas', 'Demas'], answer: 0, ref: 'Acts 5:1–5', level: 'hard' },
+  { q: 'Who baptized the Ethiopian eunuch?', choices: ['Peter', 'Paul', 'Philip', 'Barnabas'], answer: 2, ref: 'Acts 8:35–38', level: 'hard' },
+  { q: 'Who was the captain of David’s army?', choices: ['Abner', 'Joab', 'Benaiah', 'Uriah'], answer: 1, ref: '2 Samuel 8:16', level: 'hard' },
+  { q: 'How many times did Naaman dip himself in the Jordan?', choices: ['Three', 'Five', 'Seven', 'Twelve'], answer: 2, ref: '2 Kings 5:14', level: 'hard' },
+  { q: 'Who was the father of John the Baptist?', choices: ['Zacharias', 'Simeon', 'Joseph', 'Zebedee'], answer: 0, ref: 'Luke 1:13', level: 'hard' },
+  { q: 'Which prophet saw a valley full of dry bones?', choices: ['Isaiah', 'Ezekiel', 'Zechariah', 'Habakkuk'], answer: 1, ref: 'Ezekiel 37:1–2', level: 'hard' },
+  { q: 'At which pool did Jesus heal a man who had been ill for thirty-eight years?', choices: ['Siloam', 'Bethesda', 'Gihon', 'Hezekiah'], answer: 1, ref: 'John 5:2–5', level: 'hard' },
+  { q: 'What was the name of Timothy’s grandmother?', choices: ['Eunice', 'Lois', 'Lydia', 'Phebe'], answer: 1, ref: '2 Timothy 1:5', level: 'hard' },
+  { q: 'How many souls were saved in Noah’s ark?', choices: ['Six', 'Eight', 'Ten', 'Twelve'], answer: 1, ref: '1 Peter 3:20', level: 'hard' },
+  { q: 'Who healed Naaman’s leprosy by telling him to wash in the Jordan?', choices: ['Elijah', 'Elisha', 'Gehazi', 'Nathan'], answer: 1, ref: '2 Kings 5:10–14', level: 'hard' },
+  { q: 'Which king saw a hand writing on the wall during a feast?', choices: ['Nebuchadnezzar', 'Darius', 'Belshazzar', 'Cyrus'], answer: 2, ref: 'Daniel 5:1–5', level: 'hard' },
+  { q: 'What is the last book of the Old Testament?', choices: ['Zechariah', 'Malachi', 'Haggai', 'Nehemiah'], answer: 1, ref: 'Malachi 1:1', level: 'hard' },
+  { q: 'In which town did Jesus turn water into wine?', choices: ['Nain', 'Cana', 'Bethany', 'Capernaum'], answer: 1, ref: 'John 2:1–11', level: 'hard' },
+  { q: 'Which Pharisee came to Jesus by night?', choices: ['Gamaliel', 'Nicodemus', 'Simon', 'Jairus'], answer: 1, ref: 'John 3:1–2', level: 'hard' },
+  { q: 'Who was the mother of the prophet Samuel?', choices: ['Peninnah', 'Hannah', 'Naomi', 'Elisabeth'], answer: 1, ref: '1 Samuel 1:20', level: 'hard' },
+  { q: 'Which apostle was stoned and left for dead at Lystra?', choices: ['Barnabas', 'Paul', 'Silas', 'Peter'], answer: 1, ref: 'Acts 14:19', level: 'hard' },
+  { q: 'How many years did the Israelites eat manna?', choices: ['Twelve', 'Twenty', 'Forty', 'Seventy'], answer: 2, ref: 'Exodus 16:35', level: 'hard' },
+];
+
 /** The date (YYYY-MM-DD) in Central time. */
 export function centralDateKey(at: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(at);
@@ -103,6 +154,89 @@ export function centralDayBounds(dateKey: string): { opens: Date; closes: Date }
 export function points(correct: boolean, streak: number): number {
   if (!correct) return 0;
   return 10 + 2 * Math.min(Math.max(streak - 1, 0), 5);
+}
+
+// ---------------------------------------------------------------- the bank
+
+/** Five questions a day, the same for everyone. */
+export const QUESTIONS_PER_DAY = 5;
+/** Warn the admins when fewer unused questions than this remain (60 days of five). */
+export const LOW_STOCK = 60 * QUESTIONS_PER_DAY;
+
+/** Lower case, letters and digits only: two questions with the same text are the same question. */
+export function normalize(text: string): string {
+  return text.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/** A stable id from the question's text, so the same question can never be stored twice. */
+export function questionId(q: string): string {
+  let h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (const ch of normalize(q)) {
+    const c = ch.charCodeAt(0);
+    h1 = Math.imul(h1 ^ c, 16777619) >>> 0;
+    h2 = Math.imul(h2 + c, 2654435761) >>> 0;
+  }
+  return 'q' + h1.toString(36) + h2.toString(36);
+}
+
+/** Word-trigram similarity, 0–1. Above about 0.6 two questions ask the same thing in other words. */
+export function similarity(a: string, b: string): number {
+  const grams = (s: string) => {
+    const w = normalize(s).split(' ');
+    const out = new Set<string>();
+    for (let i = 0; i + 2 < w.length + 2; i++) out.add(w.slice(i, i + 3).join(' '));
+    return out;
+  };
+  const A = grams(a), B = grams(b);
+  let both = 0;
+  for (const g of A) if (B.has(g)) both++;
+  return both / (A.size + B.size - both || 1);
+}
+
+/** Pairs of questions that look like the same question, for an admin to look at. */
+export function nearDuplicates(bank: { id: string; q: string }[], threshold = 0.6): [string, string][] {
+  const out: [string, string][] = [];
+  for (let i = 0; i < bank.length; i++)
+    for (let j = i + 1; j < bank.length; j++) if (similarity(bank[i].q, bank[j].q) >= threshold) out.push([bank[i].id, bank[j].id]);
+  return out;
+}
+
+/** A small seeded random generator, so a day's pick can be repeated exactly. */
+function seeded(seed: string) {
+  let h = 2166136261;
+  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 3266489909) >>> 0;
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Picks the day's questions from the ones never used: mostly hard (3 of 5 when there are
+ * enough), in a shuffled order. Returns fewer than [n] only when the bank runs dry.
+ */
+export function pickDaily(unused: { id: string; level?: string }[], date: string, n = QUESTIONS_PER_DAY): string[] {
+  const rnd = seeded(date);
+  const shuffle = <T,>(xs: T[]) => {
+    const a = [...xs];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const hard = shuffle(unused.filter((q) => q.level === 'hard'));
+  const rest = shuffle(unused.filter((q) => q.level !== 'hard'));
+  const wantHard = Math.min(hard.length, Math.ceil((n * 3) / 5));
+  const picked = [...hard.slice(0, wantHard), ...rest.slice(0, n - wantHard)];
+  if (picked.length < n) picked.push(...hard.slice(wantHard, wantHard + n - picked.length));
+  return shuffle(picked.map((q) => q.id));
+}
+
+/** Every question the app ships with, with its id; the bank in Firestore is seeded from these. */
+export function seedQuestions(): (QuizQuestion & { id: string })[] {
+  return [...QUESTIONS.map((q) => ({ ...q, level: q.level ?? ('medium' as const) })), ...HARD_QUESTIONS].map((q) => ({ ...q, id: questionId(q.q) }));
 }
 
 /** Days in a row played, given the last day played and its streak. */

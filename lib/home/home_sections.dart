@@ -3,16 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../app/app_state.dart';
+import '../app/clock.dart';
 import '../app/config.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
 import '../notifications/notification_service.dart';
 import '../screens/church_screens.dart';
+import '../screens/events_screen.dart';
 import '../screens/shell.dart';
-import '../screens/songs_screen.dart' show openAlbum;
-import '../screens/watch_screen.dart' show SermonDetailScreen;
 import '../widgets/common.dart';
-import '../widgets/sign_in_prompt.dart';
 import 'schedule.dart';
 
 /// The next service with a known day, from the services' written schedules.
@@ -58,6 +57,18 @@ class _NextUpCardState extends State<NextUpCard> {
     final state = AppScope.read(context);
     final start = widget.when.start;
     final when = widget.when.hasTime ? start.subtract(const Duration(minutes: 30)) : DateTime(start.year, start.month, start.day, 9);
+    if (!when.isAfter(appNow())) {
+      // Starting within half an hour: remind at the start instead.
+      await state.notifications.requestPermission();
+      await state.notifications.replaceGroup('nextup', [
+        if (start.isAfter(appNow()))
+          PlannedNotification(id: 4100, when: start, title: '${widget.service.name} is starting', body: AppConfig.churchName, route: 'home'),
+      ]);
+      if (!mounted) return;
+      setState(() => _reminded = true);
+      showBethelToast(context, 'We’ll remind you when it starts', icon: Icons.notifications_active_outlined);
+      return;
+    }
     await state.notifications.requestPermission();
     await state.notifications.replaceGroup('nextup', [
       if (when.isAfter(DateTime.now()))
@@ -77,7 +88,7 @@ class _NextUpCardState extends State<NextUpCard> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = appNow();
     final w = widget.when;
     final day = dayLabel(w.start, now, hasTime: w.hasTime);
     final happening = w.hasTime && !w.start.isAfter(now);
@@ -94,7 +105,7 @@ class _NextUpCardState extends State<NextUpCard> {
         const SizedBox(width: 14),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(happening ? 'HAPPENING NOW' : 'NEXT UP · ${day.toUpperCase()}',
+            Text(happening ? 'HAPPENING NOW' : (w.hasTime && w.start.difference(now).inMinutes <= 60 ? 'STARTING SOON · ${countdown(w.start, now).toUpperCase()}' : 'NEXT UP · ${day.toUpperCase()}'),
                 style: const TextStyle(fontSize: 11, letterSpacing: 1.1, fontWeight: FontWeight.w600, color: BethelColors.brassSoft)),
             const SizedBox(height: 2),
             Text(widget.service.name,
@@ -129,63 +140,306 @@ class _NextUpCardState extends State<NextUpCard> {
   }
 }
 
-/// "This week": every service as a swipeable card; today's is marked.
-class ServicesRow extends StatelessWidget {
-  const ServicesRow({super.key, required this.services});
-  final List<ChurchService> services;
+
+/// "Today": a special event happening today (e.g. a Special Meetings night).
+class EventTodayCard extends StatelessWidget {
+  const EventTodayCard({super.key, required this.event});
+  final ChurchEvent event;
+
+  @override
+  Widget build(BuildContext context) {
+    const ink = Color(0xFF3B2E18);
+    return Pressable(
+      semanticLabel: 'Today: ${event.title}',
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailScreen(event: event))),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: BethelColors.brassSoft, borderRadius: BorderRadius.circular(16)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.event_rounded, size: 16, color: ink),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('TODAY · ${event.category.toUpperCase()}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: ink)),
+            ),
+          ]),
+          const SizedBox(height: 6),
+          Text(event.title, style: const TextStyle(fontFamily: BethelFonts.display, fontSize: 22, height: 1.25, color: ink)),
+          const SizedBox(height: 4),
+          Text([event.time, if (event.venue.isNotEmpty) event.venue, if (event.speakers.isNotEmpty) event.speakers.first].join(' · '),
+              style: const TextStyle(fontSize: 14, color: ink)),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: BethelColors.forest, foregroundColor: BethelColors.ivory, minimumSize: const Size(0, 42)),
+            onPressed: () => openLink(context, AppConfig.mapsUrl),
+            icon: const Icon(Icons.directions_rounded, size: 18),
+            label: const Text('Directions'),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// "Missed it? Watch today's service": for 24 hours after a stream ends.
+class ReplayCard extends StatelessWidget {
+  const ReplayCard({super.key, required this.video, required this.onTap});
+  final ChannelVideo video;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final tk = BethelTokens.of(context);
-    final now = DateTime.now();
+    return Pressable(
+      semanticLabel: 'Watch today’s service: ${video.title}',
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: tk.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: tk.hairline)),
+        child: Row(children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 120,
+              height: 68,
+              child: Stack(fit: StackFit.expand, children: [
+                BethelImage(video.thumbnail),
+                const Center(child: Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 30)),
+                if (video.duration.isNotEmpty)
+                  Positioned(
+                    right: 6,
+                    bottom: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(color: const Color(0xA6000000), borderRadius: BorderRadius.circular(4)),
+                      child: Text(video.duration, style: const TextStyle(fontSize: 11, color: Colors.white)),
+                    ),
+                  ),
+              ]),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('MISSED IT?', style: t.textTheme.labelSmall?.copyWith(color: tk.brassText, letterSpacing: 0.8, fontWeight: FontWeight.w700)),
+              Text('Watch today’s service', style: t.textTheme.titleSmall),
+              Text(video.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.bodySmall),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Reading plan: earlier days not finished.
+class PlanBehindCard extends StatelessWidget {
+  const PlanBehindCard({super.key, required this.days, required this.onOpen});
+  final int days;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final tk = BethelTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: tk.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: tk.brassText, width: 1.5)),
+      child: Row(children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: const BoxDecoration(color: BethelColors.brassSoft, shape: BoxShape.circle),
+          child: const Icon(Icons.menu_book_outlined, color: Color(0xFF5A4626)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(days == 1 ? '1 day behind' : '$days days behind', style: t.textTheme.titleLarge),
+            Text('Catch up on your reading plan', style: t.textTheme.bodySmall),
+          ]),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(0, 44), padding: const EdgeInsets.symmetric(horizontal: 14)),
+          onPressed: onOpen,
+          child: const Text('Catch up'),
+        ),
+      ]),
+    );
+  }
+}
+
+/// One thing on this week's calendar: a service's next time, or an event.
+class WeekItem {
+  const WeekItem({required this.start, required this.hasTime, required this.title, required this.icon, this.isEvent = false, this.onTap});
+  final DateTime start;
+  final bool hasTime;
+  final String title;
+  final IconData icon;
+  final bool isEvent;
+  final VoidCallback? onTap;
+}
+
+/// Services and events in the next 7 days, in time order (services from their written
+/// schedules; events not already covered by a service).
+List<WeekItem> weekItems(BuildContext context, List<ChurchService> services, List<ChurchEvent> events, DateTime now) {
+  final end = DateTime(now.year, now.month, now.day + 7);
+  final names = services.map((s) => s.name.toLowerCase()).toSet();
+  final items = <WeekItem>[
+    for (final s in services)
+      if (nextOccurrence(s.schedule, now) case final o? when o.start.isBefore(end))
+        WeekItem(
+          start: o.start,
+          hasTime: o.hasTime,
+          title: s.name,
+          icon: serviceIcon(s.icon),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceDetailScreen(service: s))),
+        ),
+    for (final e in events)
+      if (!names.contains(e.title.toLowerCase()) &&
+          !DateTime(e.date.year, e.date.month, e.date.day).isBefore(DateTime(now.year, now.month, now.day)) &&
+          e.date.isBefore(end))
+        WeekItem(
+          start: _eventStart(e),
+          hasTime: _eventStart(e) != DateTime(e.date.year, e.date.month, e.date.day),
+          title: e.title,
+          icon: Icons.event_outlined,
+          isEvent: true,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailScreen(event: e))),
+        ),
+  ]..sort((a, b) => a.start.compareTo(b.start));
+  return items;
+}
+
+DateTime _eventStart(ChurchEvent e) {
+  final m = RegExp(r'(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m', caseSensitive: false).firstMatch(e.time);
+  if (m == null) return DateTime(e.date.year, e.date.month, e.date.day);
+  final h = int.parse(m.group(1)!) % 12 + (m.group(3)!.toLowerCase() == 'p' ? 12 : 0);
+  return DateTime(e.date.year, e.date.month, e.date.day, h, int.tryParse(m.group(2) ?? '0') ?? 0);
+}
+
+/// Events happening today that aren't regular services.
+List<ChurchEvent> eventsToday(List<ChurchService> services, List<ChurchEvent> events, DateTime now) {
+  final names = services.map((s) => s.name.toLowerCase()).toSet();
+  return [
+    for (final e in events)
+      if (!names.contains(e.title.toLowerCase()) && e.date.year == now.year && e.date.month == now.month && e.date.day == now.day) e,
+  ];
+}
+
+class ThisWeekList extends StatelessWidget {
+  const ThisWeekList({super.key, required this.items});
+  final List<WeekItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final tk = BethelTokens.of(context);
+    final now = appNow();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      BethelSectionTitle('Services',
-          action: 'View all', onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ServicesScreen()))),
+      BethelSectionTitle('This week at Bethel',
+          action: 'All events', onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EventsScreen()))),
+      const SizedBox(height: 4),
+      if (items.isEmpty)
+        Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text('Nothing on the calendar this week.', style: t.textTheme.bodyMedium)),
+      for (final it in items.take(5))
+        () {
+          final today = it.start.year == now.year && it.start.month == now.month && it.start.day == now.day;
+          return InkWell(
+            onTap: it.onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tk.hairline))),
+              child: Row(children: [
+                SizedBox(
+                  width: 78,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(dayLabel(it.start, now, hasTime: it.hasTime),
+                        style: t.textTheme.labelLarge?.copyWith(color: today ? t.colorScheme.primary : null)),
+                    if (it.hasTime) Text(clockTime(it.start), style: t.textTheme.bodySmall),
+                  ]),
+                ),
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(color: today ? t.colorScheme.primary : tk.raised, borderRadius: BorderRadius.circular(10)),
+                  child: Icon(it.icon, size: 18, color: today ? t.colorScheme.onPrimary : t.colorScheme.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, children: [
+                    Text(it.title, style: t.textTheme.titleSmall),
+                    if (it.isEvent)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: BethelColors.brassSoft, borderRadius: BorderRadius.circular(20)),
+                        child: const Text('Event', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF5A4626))),
+                      ),
+                  ]),
+                ),
+                Icon(Icons.chevron_right_rounded, color: t.colorScheme.onSurfaceVariant),
+              ]),
+            ),
+          );
+        }(),
+    ]);
+  }
+}
+
+/// "From our YouTube": one tile per playlist on the channel.
+class PlaylistTiles extends StatelessWidget {
+  const PlaylistTiles({super.key, required this.playlists, required this.onOpen, required this.onSeeAll});
+  final List<VideoPlaylist> playlists;
+  final ValueChanged<VideoPlaylist> onOpen;
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      BethelSectionTitle('From our YouTube', action: 'See all', onAction: onSeeAll),
       const SizedBox(height: 10),
       SizedBox(
-        height: 148,
+        height: 172,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           clipBehavior: Clip.none,
-          itemCount: services.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemCount: playlists.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
           itemBuilder: (_, i) {
-            final s = services[i];
-            final o = nextOccurrence(s.schedule, now);
-            final today = o != null && dayLabel(o.start, now, hasTime: o.hasTime).startsWith(RegExp('To(day|night)'));
+            final p = playlists[i];
             return Pressable(
-              semanticLabel: '${s.name}, ${s.schedule}',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceDetailScreen(service: s))),
-              child: Container(
-                width: 168,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: tk.raised,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: today ? tk.brassText : t.dividerColor.withValues(alpha: 0.4), width: today ? 1.5 : 1),
-                ),
+              semanticLabel: '${p.title}, ${p.count} videos',
+              onTap: () => onOpen(p),
+              child: SizedBox(
+                width: 200,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: t.brightness == Brightness.dark ? t.colorScheme.surfaceContainer : BethelColors.brassSoft,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(serviceIcon(s.icon), size: 20, color: t.colorScheme.primary),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 113,
+                      child: Stack(fit: StackFit.expand, children: [
+                        BethelImage(p.thumbnail),
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 52,
+                            color: const Color(0xD1152824),
+                            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              const Icon(Icons.playlist_play_rounded, size: 18, color: BethelColors.ivory),
+                              Text('${p.count}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: BethelColors.ivory)),
+                            ]),
+                          ),
+                        ),
+                      ]),
                     ),
-                    const Spacer(),
-                    if (today)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: BethelColors.forest, borderRadius: BorderRadius.circular(20)),
-                        child: const Text('Today', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: BethelColors.ivory)),
-                      ),
-                  ]),
-                  const Spacer(),
-                  Text(s.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall?.copyWith(height: 1.25)),
-                  Text(s.schedule, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.bodySmall),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(p.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall?.copyWith(fontFamilyFallback: const [BethelFonts.telugu])),
                 ]),
               ),
             );
@@ -196,198 +450,34 @@ class ServicesRow extends StatelessWidget {
   }
 }
 
-/// "New and latest": a new album (special meetings) and the latest message.
-class NewAndLatest extends StatelessWidget {
-  const NewAndLatest({super.key, required this.album, required this.sermon});
-  final Album? album;
-  final Sermon? sermon;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    Widget card({required String label, required String title, required String sub, required String image, required IconData icon, required VoidCallback onTap}) =>
-        Expanded(
-          child: Pressable(
-            semanticLabel: '$label: $title',
-            onTap: onTap,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              AspectRatio(
-                aspectRatio: 4 / 3,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Stack(fit: StackFit.expand, children: [
-                    BethelImage(image),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x00000000), Color(0x99000000)])),
-                    ),
-                    Positioned(
-                      left: 10,
-                      top: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: BethelColors.ivory, borderRadius: BorderRadius.circular(6)),
-                        child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: BethelColors.ink)),
-                      ),
-                    ),
-                    Positioned(right: 10, bottom: 10, child: Icon(icon, color: Colors.white, size: 26)),
-                  ]),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.titleSmall?.copyWith(fontFamilyFallback: const [BethelFonts.telugu])),
-              Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.bodySmall),
-            ]),
-          ),
-        );
-    final a = album, s = sermon;
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const BethelSectionTitle('New and latest'),
-      const SizedBox(height: 10),
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (s != null)
-          card(
-            label: 'Latest message',
-            title: s.title,
-            sub: s.preacher,
-            image: s.image,
-            icon: Icons.play_circle_fill_rounded,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SermonDetailScreen(sermon: s))),
-          ),
-        if (s != null && a != null) const SizedBox(width: 12),
-        if (a != null)
-          card(
-            label: 'New album',
-            title: a.title,
-            sub: [if (a.dates.isNotEmpty) a.dates, if (a.songCount > 0) '${a.songCount} songs'].join(' · '),
-            image: a.image,
-            icon: Icons.library_music_rounded,
-            onTap: () => openAlbum(context, a),
-          ),
-      ]),
-    ]);
-  }
-}
-
-/// The two newest prayer requests, with "I prayed".
-class PrayerPeek extends StatelessWidget {
-  const PrayerPeek({super.key, required this.prayers});
-  final List<PrayerRequest> prayers;
+/// Everything for today finished: one small row near the bottom.
+class DoneTodayRow extends StatelessWidget {
+  const DoneTodayRow({super.key, required this.parts, required this.onReview});
+  final List<String> parts;
+  final VoidCallback onReview;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final tk = BethelTokens.of(context);
-    final state = AppScope.of(context);
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      BethelSectionTitle('Prayer wall', action: 'See all', onAction: () => AppShell.goToTab(context, AppShell.prayer)),
-      const SizedBox(height: 6),
-      for (final p in prayers.take(2))
-        Container(
-          margin: const EdgeInsets.only(top: 8),
-          padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
-          decoration: BoxDecoration(color: tk.raised, borderRadius: BorderRadius.circular(14)),
-          child: Row(children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(p.request, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.textTheme.bodyMedium?.copyWith(height: 1.35, fontFamilyFallback: const [BethelFonts.telugu])),
-                const SizedBox(height: 4),
-                Text(
-                  [p.name.trim().isEmpty ? 'Anonymous' : p.name, '${p.prayedCount + (state.prayedFor.contains(p.id) ? 1 : 0)} prayed'].join(' · '),
-                  style: t.textTheme.bodySmall,
-                ),
-              ]),
-            ),
-            state.prayedFor.contains(p.id)
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Icon(Icons.favorite_rounded, color: tk.brassText, semanticLabel: 'You prayed'),
-                  )
-                : TextButton(
-                    onPressed: () {
-                      if (state.guest) {
-                        showSignInPrompt(context, title: 'Sign in to pray with others', icon: Icons.favorite_border_rounded);
-                        return;
-                      }
-                      state.prayFor(p.id);
-                      showBethelToast(context, 'Thank you for praying', icon: Icons.favorite_rounded);
-                    },
-                    child: const Text('I prayed'),
-                  ),
-          ]),
-        ),
-    ]);
-  }
-}
-
-/// "Visit us": a Google map of the church (when a Maps key is set), address, Directions and Call.
-class VisitUsCard extends StatelessWidget {
-  const VisitUsCard({super.key, required this.info});
-  final ChurchInfo info;
-
-  String get _address => info.address.isEmpty ? AppConfig.churchAddress : info.address;
-
-  String _mapImage(bool dark) {
-    final where = Uri.encodeComponent('${AppConfig.churchName}, $_address');
-    final style = dark
-        ? '&style=element:geometry%7Ccolor:0x1d2c2a&style=element:labels.text.fill%7Ccolor:0xc9c2b4&style=element:labels.text.stroke%7Ccolor:0x1d2c2a'
-            '&style=feature:road%7Celement:geometry%7Ccolor:0x2f403d&style=feature:water%7Ccolor:0x0f1a19&style=feature:poi%7Cvisibility:off'
-        : '&style=feature:poi%7Cvisibility:off';
-    return 'https://maps.googleapis.com/maps/api/staticmap?center=$where&zoom=14&size=640x300&scale=2'
-        '&markers=color:0x1F4D3F%7C$where$style&key=${AppConfig.mapsApiKey}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    final tk = BethelTokens.of(context);
-    final dark = t.brightness == Brightness.dark;
-    final phone = info.phone.split(RegExp(r'[·,/]')).first.trim();
     return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(color: tk.raised, borderRadius: BorderRadius.circular(18)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Semantics(
-          button: true,
-          label: 'Open the church in Google Maps',
-          child: GestureDetector(
-            onTap: () => openLink(context, AppConfig.mapsUrl),
-            child: AspectRatio(
-              aspectRatio: 640 / 300,
-              child: AppConfig.mapsApiKey.isEmpty
-                  ? const BethelImage('assets/church.jpg')
-                  : Image.network(
-                      _mapImage(dark),
-                      fit: BoxFit.cover,
-                      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
-                      errorBuilder: (_, __, ___) => const BethelImage('assets/church.jpg'),
-                    ),
-            ),
-          ),
+      padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+      decoration: BoxDecoration(color: tk.raised, borderRadius: BorderRadius.circular(14)),
+      child: Row(children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(color: t.colorScheme.primary, shape: BoxShape.circle),
+          child: Icon(Icons.check_rounded, size: 18, color: t.colorScheme.onPrimary),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+        const SizedBox(width: 12),
+        Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Visit us', style: t.textTheme.titleMedium),
-            const SizedBox(height: 2),
-            Text(_address, style: t.textTheme.bodySmall),
+            Text('Done for today', style: t.textTheme.titleSmall),
+            Text(parts.join(' · '), style: t.textTheme.bodySmall),
           ]),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-          child: Row(children: [
-            TextButton.icon(
-              onPressed: () => openLink(context, AppConfig.mapsUrl),
-              icon: const Icon(Icons.directions_rounded, size: 18),
-              label: const Text('Directions'),
-            ),
-            if (phone.isNotEmpty)
-              TextButton.icon(
-                onPressed: () => openLink(context, 'tel:${phone.replaceAll(RegExp(r'[^0-9+]'), '')}'),
-                icon: const Icon(Icons.call_outlined, size: 18),
-                label: const Text('Call'),
-              ),
-          ]),
-        ),
+        TextButton(onPressed: onReview, child: const Text('Review')),
       ]),
     );
   }

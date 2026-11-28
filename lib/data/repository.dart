@@ -83,15 +83,15 @@ abstract class BethelRepository {
   /// implementation returns only what this device submitted.
   Future<List<PrayerRequest>> prayerWall();
 
-  /// Today's Bible question (null until the church's server has published one), with this
-  /// member's answer if they've played.
-  Future<DailyQuestion?> dailyQuestion();
+  /// Today's five trivia questions (null until the church's server has published them),
+  /// with this member's answers so far.
+  Future<DailyQuiz?> dailyQuiz();
 
-  /// Answers today's question; completes once the server has checked it.
-  Future<DailyQuestion> answerDailyQuestion(DailyQuestion q, int choice);
+  /// Answers question [index] of [quiz]; completes once the server has checked it.
+  Future<QuizAnswer> answerQuiz(DailyQuiz quiz, int index, int choice);
 
-  /// This week's leaderboard.
-  Future<Leaderboard> leaderboard({int limit = 10});
+  /// This week's leaderboard, or last week's final standings.
+  Future<Leaderboard> leaderboard({int limit = 10, bool lastWeek = false});
   Future<PrayerRequest> submitPrayer({
     required String name,
     required String email,

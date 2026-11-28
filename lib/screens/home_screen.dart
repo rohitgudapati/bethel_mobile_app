@@ -8,7 +8,9 @@ import '../data/models.dart';
 import '../bible/bible_text.dart';
 import '../bible/books.dart';
 import '../widgets/common.dart';
-import '../home/daily_question.dart';
+import '../app/clock.dart';
+import '../home/home_order.dart';
+import '../home/trivia.dart';
 import '../home/home_sections.dart';
 import 'reading_plan_screen.dart';
 import 'church_screens.dart';
@@ -16,6 +18,7 @@ import 'events_screen.dart';
 import 'notifications_screen.dart';
 import 'shell.dart';
 import 'video_screen.dart';
+import 'watch_screen.dart' show PlaylistScreen;
 
 /// Everything Home shows, loaded together so the screen appears in one go.
 class _HomeData {
@@ -23,26 +26,30 @@ class _HomeData {
     required this.verse,
     required this.events,
     required this.streams,
-    required this.sermons,
-    required this.plan,
     required this.notifications,
     required this.services,
-    required this.albums,
-    required this.prayers,
-    required this.info,
+    required this.playlists,
+    required this.lastService,
+    required this.quiz,
+    required this.board,
+    required this.lastWeek,
     required this.offline,
   });
 
   final DailyVerse? verse;
   final List<ChurchEvent> events;
   final List<LiveStream> streams;
-  final List<Sermon> sermons;
-  final List<BiblePassage> plan;
   final List<NotificationItem> notifications;
   final List<ChurchService> services;
-  final List<Album> albums;
-  final List<PrayerRequest> prayers;
-  final ChurchInfo? info;
+  final List<VideoPlaylist> playlists;
+
+  /// The most recent recorded live stream (for "Missed it?").
+  final ChannelVideo? lastService;
+  final DailyQuiz? quiz;
+  final Leaderboard? board;
+
+  /// Last week's final standings (loaded on Mondays).
+  final Leaderboard? lastWeek;
 
   /// Nothing could be loaded: show the offline notice.
   final bool offline;
@@ -72,30 +79,31 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
+    final monday = appNow().weekday == DateTime.monday;
     final results = await Future.wait<Object?>([
       safe<DailyVerse?>(() => repo.todayVerse(), null),
       safe<List<ChurchEvent>>(() => repo.events(), const []),
       safe<List<LiveStream>>(() => repo.liveStreams(), const []),
-      safe<List<Sermon>>(() => repo.sermons(), const []),
-      safe<List<BiblePassage>>(() => repo.readingPlan(), const []),
       safe<List<NotificationItem>>(() => repo.notifications(), const []),
       safe<List<ChurchService>>(() => repo.services(), const []),
-      safe<List<Album>>(() => repo.albums(), const []),
-      safe<List<PrayerRequest>>(() => repo.prayerWall(), const []),
-      safe<ChurchInfo?>(() => repo.churchInfo(), null),
+      safe<List<VideoPlaylist>>(() => repo.playlists(), const []),
+      safe<List<ChannelVideo>>(() => repo.liveRecordings(limit: 1), const []),
+      safe<DailyQuiz?>(() => repo.dailyQuiz(), null),
+      safe<Leaderboard?>(() => repo.leaderboard(limit: 10), null),
+      if (monday) safe<Leaderboard?>(() => repo.leaderboard(limit: 3, lastWeek: true), null),
     ]);
     return _HomeData(
       verse: results[0] as DailyVerse?,
       events: results[1] as List<ChurchEvent>,
       streams: results[2] as List<LiveStream>,
-      sermons: results[3] as List<Sermon>,
-      plan: results[4] as List<BiblePassage>,
-      notifications: results[5] as List<NotificationItem>,
-      services: results[6] as List<ChurchService>,
-      albums: results[7] as List<Album>,
-      prayers: results[8] as List<PrayerRequest>,
-      info: results[9] as ChurchInfo?,
-      offline: failures >= 8,
+      notifications: results[3] as List<NotificationItem>,
+      services: results[4] as List<ChurchService>,
+      playlists: results[5] as List<VideoPlaylist>,
+      lastService: (results[6] as List<ChannelVideo>).firstOrNull,
+      quiz: results[7] as DailyQuiz?,
+      board: results[8] as Leaderboard?,
+      lastWeek: monday ? results[9] as Leaderboard? : null,
+      offline: failures >= 7,
     );
   }
 
@@ -160,63 +168,111 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Home, top to bottom: what's next, the verse, your day, this week's services, the daily
-  /// question, what's new, the prayer wall, coming events, and how to find the church.
+  /// The sections, in the order home_order.dart decides from what is happening now.
   List<Widget> _sections(AppState state, _HomeData data) {
-    const gap = SizedBox(height: 24);
+    final now = appNow();
     final live = data.streams.where((s) => s.isLive).firstOrNull;
-    final next = nextService(data.services, DateTime.now());
-    final newAlbum = data.albums.where((a) => a.isNew && !a.isSongBook).firstOrNull;
-    final sermon = data.sermons.firstOrNull;
-    return [
-      if (live != null) ...[const SizedBox(height: 20), _LiveCard(stream: live)]
-      else if (next != null) ...[const SizedBox(height: 20), NextUpCard(service: next.service, when: next.when)],
-      if (data.verse != null) ...[const SizedBox(height: 16), VerseCard(verse: data.verse!)],
-      const SizedBox(height: 16),
-      _StreakCard(onOpenPlan: () => _push(const ReadingPlanScreen())),
-      if (data.services.isNotEmpty) ...[gap, ServicesRow(services: data.services)],
-      gap,
-      const DailyQuestionCard(fallback: _FactCard()),
-      if (sermon != null || newAlbum != null) ...[gap, NewAndLatest(album: newAlbum, sermon: sermon)],
-      if (data.prayers.isNotEmpty) ...[gap, PrayerPeek(prayers: data.prayers)],
-      ..._comingUp(data.events),
-      gap,
-      VisitUsCard(info: data.info ?? const ChurchInfo(name: AppConfig.churchName, address: AppConfig.churchAddress, country: 'United States')),
-    ];
-  }
+    final next = nextService(data.services, now);
+    final scheduled = data.streams.where((s) => !s.isLive && s.scheduledStart != null).map((s) => s.scheduledStart!.toLocal()).firstOrNull;
+    final nextStart = [next?.when.hasTime == true ? next!.when.start : null, scheduled].whereType<DateTime>().fold<DateTime?>(
+        null, (a, b) => a == null || b.isBefore(a) ? b : a);
+    final today = eventsToday(data.services, data.events, now);
+    final last = data.lastService;
+    final quiz = data.quiz;
+    final plan = state.plan;
+    var planStatus = PlanStatus.none;
+    var behindDays = 0;
+    if (plan != null) {
+      final day = plan.dayFor(now);
+      behindDays = state.planProgress.behind(plan, now).length;
+      if (day < 1 || day > plan.days) {
+        planStatus = PlanStatus.waiting;
+      } else if (behindDays > 0) {
+        planStatus = PlanStatus.behind;
+      } else if (!state.planProgress.dayComplete(plan, day)) {
+        planStatus = PlanStatus.today;
+      } else {
+        planStatus = PlanStatus.done;
+      }
+    }
+    final order = orderHome(HomeSignals(
+      now: now,
+      live: live != null,
+      nextStart: nextStart,
+      eventToday: today.isNotEmpty,
+      lastStreamEnded: last == null ? null : last.published.add(_parseDuration(last.duration)),
+      triviaTotal: quiz?.total ?? 0,
+      triviaDone: quiz?.done ?? 0,
+      plan: planStatus,
+      guest: state.guest,
+    ));
 
-  List<Widget> _comingUp(List<ChurchEvent> events) {
-    final today = _dateOnly(DateTime.now());
-    final next = events.where((e) => !_dateOnly(e.date).isBefore(today)).toList()..sort((a, b) => a.date.compareTo(b.date));
-    if (next.isEmpty) return const [];
-    return [
-      const SizedBox(height: 24),
-      BethelSectionTitle('Coming up', action: 'All events', onAction: () => _push(const EventsScreen())),
-      for (final e in next.take(3))
-        HairlineRow(
-          leading: DatePlaque(e.date),
-          title: e.title,
-          subtitle: '${e.time} · ${_relativeDay(e.date)}',
-          onTap: () => _push(EventDetailScreen(event: e)),
-        ),
-    ];
-  }
+    void openTrivia() async {
+      if (quiz == null) return;
+      final result = await Navigator.push<DailyQuiz>(context, MaterialPageRoute(builder: (_) => TriviaScreen(quiz: quiz)));
+      if (result != null && mounted) _refresh();
+    }
 
+    Widget? section(HomeSection s) => switch (s) {
+          HomeSection.live => _LiveCard(stream: live!),
+          HomeSection.startingSoon => next != null ? NextUpCard(service: next.service, when: next.when) : null,
+          HomeSection.verse => data.verse == null ? null : VerseCard(verse: data.verse!),
+          HomeSection.eventToday => EventTodayCard(event: today.first),
+          HomeSection.replay => ReplayCard(
+              video: last!,
+              onTap: () => playVideo(context,
+                  youtubeId: last.embeddable ? last.id : null,
+                  url: 'https://www.youtube.com/watch?v=${last.id}',
+                  title: last.title,
+                  subtitle: last.preacher),
+            ),
+          HomeSection.lastWeekWinners => data.lastWeek == null || data.lastWeek!.top.isEmpty ? null : LeaderboardCard(board: data.lastWeek!, lastWeek: true),
+          HomeSection.finalDay => data.board == null
+              ? null
+              : FinalDayCard(board: data.board!, onPlay: openTrivia, canPlay: quiz != null && !quiz.finished),
+          HomeSection.trivia => TriviaCard(quiz: quiz!, onChanged: (_) => _refresh()),
+          HomeSection.planBehind => PlanBehindCard(days: behindDays, onOpen: () => _push(const ReadingPlanScreen())),
+          HomeSection.planToday || HomeSection.planStart => _StreakCard(onOpenPlan: () => _push(const ReadingPlanScreen())),
+          HomeSection.thisWeek => ThisWeekList(items: weekItems(context, data.services, data.events, now)),
+          HomeSection.playlists => data.playlists.isEmpty
+              ? null
+              : PlaylistTiles(
+                  playlists: data.playlists,
+                  onOpen: (p) => _push(PlaylistScreen(playlist: p)),
+                  onSeeAll: () => AppShell.goToTab(context, AppShell.watch),
+                ),
+          HomeSection.leaderboard => data.board == null ? null : LeaderboardCard(board: data.board!),
+          HomeSection.doneToday => DoneTodayRow(
+              parts: [
+                if (planStatus == PlanStatus.done) 'Reading done',
+                if (quiz != null && quiz.finished) 'Trivia ${quiz.right}/${quiz.total}',
+                if (state.planProgress.streak(now) > 1) '${state.planProgress.streak(now)}-day streak',
+              ],
+              onReview: () => quiz != null && quiz.finished ? openTrivia() : _push(const ReadingPlanScreen()),
+            ),
+        };
+
+    final out = <Widget>[];
+    for (final s in order) {
+      final w = section(s);
+      if (w == null) continue;
+      out
+        ..add(SizedBox(height: out.isEmpty ? 20 : (s == HomeSection.thisWeek || s == HomeSection.playlists ? 28 : 16)))
+        ..add(KeyedSubtree(key: ValueKey('home-${s.name}'), child: w));
+    }
+    return out;
+  }
 }
 
-DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-
-String _relativeDay(DateTime d) {
-  final days = _dateOnly(d).difference(_dateOnly(DateTime.now())).inDays;
-  if (days <= 0) return 'today';
-  if (days == 1) return 'tomorrow';
-  return 'in $days days';
+Duration _parseDuration(String d) {
+  final parts = d.split(':').map((p) => int.tryParse(p) ?? 0).toList();
+  var secs = 0;
+  for (final p in parts) {
+    secs = secs * 60 + p;
+  }
+  return Duration(seconds: secs);
 }
 
-const _weekdayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const _monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/// "Thursday, Nov 26" above "Good afternoon, Samuel", with the notifications bell.
 class _Greeting extends StatelessWidget {
   const _Greeting({required this.name, required this.unread, required this.onBell});
 
@@ -228,7 +284,7 @@ class _Greeting extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final tk = BethelTokens.of(context);
-    final now = DateTime.now();
+    final now = appNow();
     final part = now.hour < 12 ? 'morning' : (now.hour < 17 ? 'afternoon' : 'evening');
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Expanded(
@@ -569,7 +625,7 @@ class _StreakCard extends StatelessWidget {
     final t = Theme.of(context);
     final tk = BethelTokens.of(context);
     final plan = state.plan;
-    final now = DateTime.now();
+    final now = appNow();
     final icon = Container(
       width: 44,
       height: 44,
@@ -650,65 +706,6 @@ class _StreakCard extends StatelessWidget {
   }
 }
 
-/// "Did you know?": a one-tap Bible question, then the fact and the recent score.
-class _FactCard extends StatelessWidget {
-  const _FactCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final state = AppScope.of(context);
-    final t = Theme.of(context);
-    final tk = BethelTokens.of(context);
-    final f = state.fact;
-    final choice = state.factChoice;
-    final recent = state.factHistory.length > 5 ? state.factHistory.sublist(state.factHistory.length - 5) : state.factHistory;
-    final right = recent.where((r) => r).length;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: tk.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: tk.hairline)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(Icons.auto_awesome_outlined, size: 16, color: tk.brassText),
-          const SizedBox(width: 8),
-          Text('Did you know?', style: t.textTheme.bodySmall?.copyWith(color: tk.brassText)),
-        ]),
-        const SizedBox(height: 8),
-        AnimatedSwitcher(
-          duration: reduceMotion(context) ? Duration.zero : const Duration(milliseconds: 220),
-          child: choice == null
-              ? Column(key: ValueKey('q${state.factIndex}'), crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(f.question, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400, height: 1.45)),
-                  const SizedBox(height: 12),
-                  Wrap(spacing: 8, runSpacing: 8, children: [
-                    for (var i = 0; i < f.choices.length; i++)
-                      OutlinedButton(
-                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40), padding: const EdgeInsets.symmetric(horizontal: 14)),
-                        onPressed: () => state.answerFact(i),
-                        child: Text(f.choices[i]),
-                      ),
-                  ]),
-                ])
-              : Column(key: ValueKey('a${state.factIndex}'), crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(choice == f.answer ? 'Right.' : 'Not quite. It’s ${f.choices[f.answer]}.',
-                      style: t.textTheme.labelLarge?.copyWith(color: choice == f.answer ? t.colorScheme.primary : tk.brassText)),
-                  const SizedBox(height: 4),
-                  Text(f.fact, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400, height: 1.45)),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    Expanded(
-                      child: Text(recent.length < 2 ? 'A new one tomorrow' : 'You got $right of the last ${recent.length}',
-                          style: t.textTheme.bodySmall),
-                    ),
-                    TextButton(onPressed: state.nextFact, child: const Text('Next fact')),
-                  ]),
-                ]),
-        ),
-      ]),
-    );
-  }
-}
-
-/// Opens the system share sheet with the verse text and reference.
 Future<void> shareVerse(BuildContext context, DailyVerse verse, {String? text, String? reference}) async {
   AppScope.read(context).repo.shareVerse(verse.id).ignore();
   final ref = reference ?? verse.reference ?? '';

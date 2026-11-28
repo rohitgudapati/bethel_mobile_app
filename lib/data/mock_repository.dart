@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../app/clock.dart';
 import '../app/config.dart';
 import '../app/launch.dart';
 import 'church_content.dart';
@@ -49,7 +50,7 @@ class MockRepository implements BethelRepository {
     ];
   }
 
-  static final DateTime _now = DateTime.now();
+  static DateTime get _now => appNow();
   static DateTime _day(int offset) => DateTime(_now.year, _now.month, _now.day).add(Duration(days: offset));
   static DateTime get _lastSunday => _day(-(_now.weekday % 7));
   static DateTime get _nextSunday => _day(7 - (_now.weekday % 7));
@@ -120,7 +121,7 @@ class MockRepository implements BethelRepository {
   @override
   Future<DailyVerse> todayVerse() {
     // A different verse every day (see daily_verses.dart), with sample counts.
-    final v = builtInVerse(DateTime.now());
+    final v = builtInVerse(appNow());
     return _delay(DailyVerse(
       id: v.id,
       date: v.date,
@@ -295,7 +296,25 @@ class MockRepository implements BethelRepository {
 
   @override
   Future<List<ChannelVideo>> liveRecordings({int limit = 60}) {
-    final all = {for (final l in _playlistVideos.values) for (final v in l) if (v.liveRecording) v.id: v}.values.toList()
+    // The most recent Sunday service that has finished (3:02 PM, 2 h 10 min), by the demo clock.
+    final now = appNow();
+    var sunday = DateTime(now.year, now.month, now.day - (now.weekday % 7), 15, 2);
+    if (sunday.add(const Duration(hours: 2, minutes: 10)).isAfter(now)) sunday = sunday.subtract(const Duration(days: 7));
+    final latest = ChannelVideo(
+      liveRecording: true,
+      id: 'svc-latest',
+      title: 'Sunday Worship Service',
+      thumbnail: 'assets/church/worship.jpg',
+      published: sunday,
+      duration: '2:10:00',
+      preacher: 'Bro. Moses Polugari',
+    );
+    final all = {
+      latest.id: latest,
+      for (final l in _playlistVideos.values)
+        for (final v in l)
+          if (v.liveRecording && v.published.isBefore(sunday)) v.id: v,
+    }.values.toList()
       ..sort((a, b) => b.published.compareTo(a.published));
     return _delay(all.take(limit).toList());
   }
@@ -420,6 +439,18 @@ class MockRepository implements BethelRepository {
         image: 'assets/church/building.jpg',
         category: 'Prayer',
       ),
+      for (var n = 1; n <= 3; n++)
+        ChurchEvent(
+          id: 20 + n,
+          title: 'Special Meetings · Night $n',
+          date: DateTime(2026, 12, 3 + n),
+          time: '7:00 PM',
+          venue: AppConfig.churchName,
+          description: 'Three nights of worship and the Word. Everyone is welcome.',
+          image: 'assets/church/building.jpg',
+          speakers: const ['Bro. Samuel Raju'],
+          category: 'Special',
+        ),
     ]..sort((a, b) => a.date.compareTo(b.date)));
   }
 
@@ -428,7 +459,7 @@ class MockRepository implements BethelRepository {
   /// Demo: live only during the Sunday service (3:00–5:30 PM), like the real
   /// YouTube check. Otherwise nothing is streaming and the app shows the next service.
   Future<List<LiveStream>> liveStreams() {
-    final now = DateTime.now();
+    final now = appNow();
     final start = DateTime(now.year, now.month, now.day, AppConfig.sundayServiceHour);
     final duringService = now.weekday == DateTime.sunday &&
         !now.isBefore(start) &&
@@ -915,58 +946,71 @@ class MockRepository implements BethelRepository {
         GalleryPicture(id: 6, image: 'assets/pray.png', caption: 'Prayer meeting'),
       ]);
 
-  // Demo daily question: the real ones come from the church's server.
+  // Demo trivia: the real questions come from the church's server.
   static const _demoQuiz = [
-    ('Who climbed a sycamore tree to see Jesus?', ['Nicodemus', 'Zacchaeus', 'Bartimaeus', 'Lazarus'], 1, 'Luke 19:1–10'),
-    ('How many loaves fed the five thousand?', ['Two', 'Five', 'Seven', 'Twelve'], 1, 'Matthew 14:17–21'),
-    ('Who was the first king of Israel?', ['David', 'Solomon', 'Saul', 'Samuel'], 2, '1 Samuel 10'),
+    ('Which judge of Israel was left-handed?', ['Gideon', 'Ehud', 'Jephthah', 'Othniel'], 1, 'Judges 3:15'),
+    ('How old was Methuselah when he died?', ['930 years', '950 years', '969 years', '912 years'], 2, 'Genesis 5:27'),
+    ('What was the name of the servant whose ear Peter cut off?', ['Malchus', 'Rhoda', 'Annas', 'Alexander'], 0, 'John 18:10'),
+    ('How many years did Solomon spend building the temple?', ['Seven', 'Thirteen', 'Twenty', 'Forty'], 0, '1 Kings 6:38'),
+    ('Which young man fell from a window while Paul preached?', ['Tychicus', 'Trophimus', 'Eutychus', 'Erastus'], 2, 'Acts 20:9'),
+    ('Who killed Sisera with a tent nail?', ['Deborah', 'Jael', 'Rahab', 'Abigail'], 1, 'Judges 4:21'),
+    ('Which disciple was also called Didymus?', ['Thomas', 'Bartholomew', 'Thaddaeus', 'James'], 0, 'John 11:16'),
+    ('How many times did Naaman dip himself in the Jordan?', ['Three', 'Five', 'Seven', 'Twelve'], 2, '2 Kings 5:14'),
   ];
-  final Map<String, int> _quizAnswers = {};
+  final Map<String, Map<int, QuizAnswer>> _quizAnswers = {};
   int _myPoints = 0;
 
-  String get _today {
-    final d = DateTime.now();
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  String _dateKey(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  List<int> _todaysPicks(DateTime now) {
+    final start = now.difference(DateTime(2024)).inDays * 5;
+    return [for (var i = 0; i < 5; i++) (start + i) % _demoQuiz.length];
   }
 
-  DailyQuestion _demoQuestion() {
-    final q = _demoQuiz[DateTime.now().day % _demoQuiz.length];
-    final mine = _quizAnswers[_today];
-    return DailyQuestion(
-      date: _today,
-      question: q.$1,
-      choices: q.$2,
+  @override
+  Future<DailyQuiz?> dailyQuiz() {
+    final now = appNow();
+    final picks = _todaysPicks(now);
+    return _delay(DailyQuiz(
+      date: _dateKey(now),
       week: 'demo',
-      myChoice: mine,
-      correct: mine == null ? null : mine == q.$3,
-      answer: mine == null ? null : q.$3,
-      points: mine == null ? null : (mine == q.$3 ? 14 : 0),
-      ref: mine == null ? '' : q.$4,
-      streak: mine == null ? 0 : 3,
-    );
+      items: [for (final i in picks) QuizItem(id: 'demo$i', question: _demoQuiz[i].$1, choices: _demoQuiz[i].$2)],
+      answers: Map.of(_quizAnswers[_dateKey(now)] ?? const {}),
+      players: 38,
+    ));
   }
 
   @override
-  Future<DailyQuestion?> dailyQuestion() => _delay(_demoQuestion());
-
-  @override
-  Future<DailyQuestion> answerDailyQuestion(DailyQuestion q, int choice) async {
-    _quizAnswers[_today] = choice;
-    final checked = _demoQuestion();
-    _myPoints += checked.points ?? 0;
-    return _delay(checked);
+  Future<QuizAnswer> answerQuiz(DailyQuiz quiz, int index, int choice) {
+    final q = _demoQuiz[_todaysPicks(appNow())[index]];
+    final correct = choice == q.$3;
+    final done = (_quizAnswers[quiz.date]?.length ?? 0) + 1;
+    final pts = (correct ? 10 : 0) + (done >= quiz.total ? 4 : 0);
+    final a = QuizAnswer(choice: choice, correct: correct, answer: q.$3, ref: q.$4, points: pts, rightPercent: 30 + (index * 13) % 50);
+    (_quizAnswers[quiz.date] ??= {})[index] = a;
+    _myPoints += pts;
+    return _delay(a);
   }
 
   @override
-  Future<Leaderboard> leaderboard({int limit = 10}) {
-    final others = [
-      const LeaderboardEntry(uid: 'a', name: 'Grace Polugari', points: 72, correct: 6, streak: 6),
-      const LeaderboardEntry(uid: 'b', name: 'Samuel Somepalli', points: 58, correct: 5, streak: 4),
-      const LeaderboardEntry(uid: 'c', name: 'Ruth Kumar', points: 44, correct: 4, streak: 2),
-      const LeaderboardEntry(uid: 'd', name: 'Daniel Raju', points: 30, correct: 3, streak: 1),
-      const LeaderboardEntry(uid: 'e', name: 'Esther Paul', points: 20, correct: 2, streak: 1),
-    ];
-    final me = _current == null || _myPoints == 0 ? null : LeaderboardEntry(uid: 'me', name: _current!.name, points: 26 + _myPoints, correct: 3, streak: 3);
+  Future<Leaderboard> leaderboard({int limit = 10, bool lastWeek = false}) {
+    final others = lastWeek
+        ? [
+            const LeaderboardEntry(uid: 'a', name: 'Grace Polugari', points: 212, correct: 19, streak: 7),
+            const LeaderboardEntry(uid: 'b', name: 'Samuel Somepalli', points: 180, correct: 16, streak: 6),
+            const LeaderboardEntry(uid: 'c', name: 'Ruth Kumar', points: 154, correct: 14, streak: 5),
+            const LeaderboardEntry(uid: 'd', name: 'Daniel Raju', points: 120, correct: 11, streak: 3),
+          ]
+        : [
+            const LeaderboardEntry(uid: 'a', name: 'Grace Polugari', points: 72, correct: 6, streak: 6),
+            const LeaderboardEntry(uid: 'b', name: 'Samuel Somepalli', points: 58, correct: 5, streak: 4),
+            const LeaderboardEntry(uid: 'c', name: 'Ruth Kumar', points: 44, correct: 4, streak: 2),
+            const LeaderboardEntry(uid: 'd', name: 'Daniel Raju', points: 30, correct: 3, streak: 1),
+            const LeaderboardEntry(uid: 'e', name: 'Esther Paul', points: 20, correct: 2, streak: 1),
+          ];
+    final me = _current == null
+        ? null
+        : LeaderboardEntry(uid: 'me', name: _current!.name, points: (lastWeek ? 96 : 38) + (lastWeek ? 0 : _myPoints), correct: 3, streak: 3);
     final all = [...others, if (me != null) me]..sort((a, b) => b.points.compareTo(a.points));
     return _delay(Leaderboard(week: 'demo', top: all.take(limit).toList(), me: me, myRank: me == null ? null : all.indexOf(me) + 1));
   }

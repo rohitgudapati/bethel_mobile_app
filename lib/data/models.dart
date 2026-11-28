@@ -403,34 +403,52 @@ class ChannelVideo {
   final bool liveRecording;
 }
 
-/// Today's Bible question. [myChoice] is set once answered; [correct], [answer] and
-/// [points] arrive when the church's server has checked it.
-class DailyQuestion {
-  const DailyQuestion({
-    required this.date,
-    required this.question,
-    required this.choices,
-    required this.week,
-    this.myChoice,
-    this.correct,
-    this.answer,
-    this.points,
-    this.ref = '',
-    this.streak = 0,
-  });
-  final String date;
+/// One of today's trivia questions (no answer: that stays on the server).
+class QuizItem {
+  const QuizItem({required this.id, required this.question, required this.choices});
+  final String id;
   final String question;
   final List<String> choices;
-  final String week;
-  final int? myChoice;
+}
+
+/// A member's answer to one question, once the server has checked it.
+class QuizAnswer {
+  const QuizAnswer({required this.choice, this.correct, this.answer, this.ref = '', this.points = 0, this.rightPercent});
+  final int choice;
   final bool? correct;
   final int? answer;
-  final int? points;
   final String ref;
-  final int streak;
+  final int points;
 
-  bool get answered => myChoice != null;
-  bool get checked => correct != null;
+  /// How much of the church got this one right (0–100), when known.
+  final int? rightPercent;
+}
+
+/// Today's five trivia questions and this member's answers so far.
+class DailyQuiz {
+  const DailyQuiz({required this.date, required this.week, required this.items, this.answers = const {}, this.players = 0});
+  final String date;
+  final String week;
+  final List<QuizItem> items;
+  final Map<int, QuizAnswer> answers;
+
+  /// People who have played today.
+  final int players;
+
+  int get total => items.length;
+  int get done => answers.length;
+  int get right => answers.values.where((a) => a.correct == true).length;
+  int get points => answers.values.fold(0, (s, a) => s + a.points);
+  bool get finished => total > 0 && done >= total;
+  int? get nextIndex {
+    for (var i = 0; i < items.length; i++) {
+      if (!answers.containsKey(i)) return i;
+    }
+    return null;
+  }
+
+  DailyQuiz withAnswer(int index, QuizAnswer a) =>
+      DailyQuiz(date: date, week: week, items: items, answers: {...answers, index: a}, players: players);
 }
 
 class LeaderboardEntry {

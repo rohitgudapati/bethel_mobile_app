@@ -100,7 +100,7 @@ test('classifyVideo sorts uploads into songs and testimonies by title, but never
   assert.equal(playlistDoc({ id: 'PLsongs', title: 'Worship Songs', thumbnail: '', itemCount: 3 }, 0).kind, 'song');
 });
 
-import { QUESTIONS, addDays, centralDateKey, centralDayBounds, nextStreak, points, questionFor, weekKey } from '../src/quiz';
+import { LOW_STOCK, QUESTIONS, addDays, centralDateKey, centralDayBounds, nearDuplicates, nextStreak, pickDaily, points, questionId, seedQuestions, similarity, weekKey } from '../src/quiz';
 
 test('quiz bank: four choices, a valid answer, no repeats', () => {
   assert.ok(QUESTIONS.length >= 30);
@@ -125,9 +125,46 @@ test('quiz days and weeks follow Central time', () => {
   assert.equal(centralDayBounds('2026-07-04').opens.toISOString(), '2026-07-04T05:00:00.000Z', 'daylight saving');
 });
 
-test('quiz: same question for everyone on a day, a different one the next day', () => {
-  assert.equal(questionFor('2026-11-28'), questionFor('2026-11-28'));
-  assert.notEqual(questionFor('2026-11-28'), questionFor('2026-11-29'));
+test('quiz bank: every question once, no near-duplicates, valid answers', () => {
+  const bank = seedQuestions();
+  assert.ok(bank.length >= 80, `bank has ${bank.length}`);
+  assert.equal(new Set(bank.map((q) => q.id)).size, bank.length, 'ids are unique');
+  assert.deepEqual(nearDuplicates(bank), [], 'no two questions ask the same thing');
+  for (const q of bank) {
+    assert.equal(new Set(q.choices).size, 4, q.q);
+    assert.ok(q.answer >= 0 && q.answer < 4, q.q);
+    assert.ok(q.ref.length > 2, q.q);
+  }
+  assert.ok(bank.filter((q) => q.level === 'hard').length >= 40);
+});
+
+test('question ids ignore case and punctuation; similar wording is caught', () => {
+  assert.equal(questionId('Who built the ark?'), questionId('who built the ARK'));
+  assert.notEqual(questionId('Who built the ark?'), questionId('Who built the temple?'));
+  assert.ok(similarity('Who carried the cross of Jesus?', 'Who carried Jesus’ cross?') < 1);
+  assert.ok(similarity('How old was Methuselah when he died?', 'How old was Methuselah when he died') === 1);
+});
+
+test('daily pick: five, mostly hard, the same for the same day, never a used one', () => {
+  const pool = seedQuestions().map((q) => ({ id: q.id, level: q.level }));
+  const a = pickDaily(pool, '2026-12-06');
+  assert.equal(a.length, 5);
+  assert.deepEqual(a, pickDaily(pool, '2026-12-06'), 'same day, same pick');
+  const hard = new Set(pool.filter((q) => q.level === 'hard').map((q) => q.id));
+  assert.ok(a.filter((id) => hard.has(id)).length >= 3);
+  // Simulate many days: nothing repeats until the bank runs out.
+  let unused = pool;
+  const seen = new Set<string>();
+  for (let d = 0; d < Math.floor(pool.length / 5); d++) {
+    const ids = pickDaily(unused, addDays('2026-12-01', d));
+    for (const id of ids) {
+      assert.ok(!seen.has(id), 'a question was repeated');
+      seen.add(id);
+    }
+    unused = unused.filter((q) => !ids.includes(q.id));
+  }
+  assert.ok(pickDaily([], '2026-12-06').length === 0);
+  assert.equal(LOW_STOCK, 300);
 });
 
 test('quiz scoring and streaks', () => {
