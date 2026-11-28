@@ -1,0 +1,183 @@
+
+lib/screens/home_screen.dart:292:19: Error: The getter '_weekdayNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_weekdayNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                  ^^^^^^^^^^^^^
+lib/screens/home_screen.dart:292:54: Error: The getter '_monthNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_monthNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                                                     ^^^^^^^^^^^
+lib/home/trivia.dart:428:124: Error: Operator '-' cannot be called on 'int?' because it is potentially null.
+                ? 'You’re #$rank — ${above.points - b.me!.points} points behind ${above.name.split(' ').first} for #${rank - 1}'
+                                                                                          ^
+::group::❌ loading /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_smart_test.dart (failed)
+Failed to load "/home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_smart_test.dart":
+Compilation failed for testPath=/home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_smart_test.dart: lib/screens/home_screen.dart:292:19: Error: The getter '_weekdayNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_weekdayNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                  ^^^^^^^^^^^^^
+lib/screens/home_screen.dart:292:54: Error: The getter '_monthNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_monthNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                                                     ^^^^^^^^^^^
+lib/home/trivia.dart:428:124: Error: Operator '-' cannot be called on 'int?' because it is potentially null.
+                ? 'You’re #$rank — ${above.points - b.me!.points} points behind ${above.name.split(' ').first} for #${rank - 1}'
+                                                                                                                           ^
+.
+
+::endgroup::
+::group::❌ loading /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_smart_test.dart (failed after test completion)
+Error: The Dart compiler exited unexpectedly.
+package:flutter_tools/src/base/common.dart 36:3  throwToolExit
+package:flutter_tools/src/compile.dart 1029:11   DefaultResidentCompiler._compile.<fn>
+dart:async/future_impl.dart 961:45               Future._propagateToListeners.handleValueCallback
+dart:async/future_impl.dart 990:13               Future._propagateToListeners
+dart:async/future_impl.dart 874:9                Future._propagateToListeners
+dart:async/future_impl.dart 732:5                Future._completeWithValue
+dart:async/future_impl.dart 816:7                Future._asyncCompleteWithValue.<fn>
+dart:async/zone.dart 474:14                      Zone.runGuarded
+dart:async/zone.dart 604:18                      Zone.bindCallbackGuarded.<fn>
+dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+::endgroup::
+lib/screens/home_screen.dart:292:19: Error: The getter '_weekdayNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_weekdayNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                  ^^^^^^^^^^^^^
+lib/screens/home_screen.dart:292:54: Error: The getter '_monthNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_monthNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                                                     ^^^^^^^^^^^
+lib/home/trivia.dart:428:124: Error: Operator '-' cannot be called on 'int?' because it is potentially null.
+                ? 'You’re #$rank — ${above.points - b.me!.points} points behind ${above.name.split(' ').first} for #${rank - 1}'
+                                                                                          ^
+::group::❌ loading /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart (failed)
+Failed to load "/home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart":
+Compilation failed for testPath=/home/runner/work/bethel_mobile_app/bethel_mobile_app/test/widget_test.dart: lib/screens/home_screen.dart:292:19: Error: The getter '_weekdayNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_weekdayNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                  ^^^^^^^^^^^^^
+lib/screens/home_screen.dart:292:54: Error: The getter '_monthNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_monthNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                                                     ^^^^^^^^^^^
+lib/home/trivia.dart:428:124: Error: Operator '-' cannot be called on 'int?' because it is potentially null.
+                ? 'You’re #$rank — ${above.points - b.me!.points} points behind ${above.name.split(' ').first} for #${rank - 1}'
+                                                                                                                           ^
+.
+
+::endgroup::
+::group::❌ loading /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_smart_test.dart (failed after test completion)
+Error: The Dart compiler exited unexpectedly.
+package:flutter_tools/src/base/common.dart 36:3  throwToolExit
+package:flutter_tools/src/compile.dart 1029:11   DefaultResidentCompiler._compile.<fn>
+dart:async/future_impl.dart 961:45               Future._propagateToListeners.handleValueCallback
+dart:async/future_impl.dart 990:13               Future._propagateToListeners
+dart:async/future_impl.dart 874:9                Future._propagateToListeners
+dart:async/future_impl.dart 732:5                Future._completeWithValue
+dart:async/future_impl.dart 816:7                Future._asyncCompleteWithValue.<fn>
+dart:async/zone.dart 474:14                      Zone.runGuarded
+dart:async/zone.dart 604:18                      Zone.bindCallbackGuarded.<fn>
+dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+::endgroup::
+::group::✅ Passing tests
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/schedule_test.dart: weekly services with a time
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/schedule_test.dart: a service that started less than two hours ago is still next
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/schedule_test.dart: nth weekday of the month, without a time
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/schedule_test.dart: schedules that cannot be placed
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/schedule_test.dart: labels
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule bible in 1 month: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule bible in 3 months: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule bible in 6 months: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule bible in 1 year: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule newTestament in 1 month: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule newTestament in 3 months: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule newTestament in 6 months: every chapter once, in order, no empty days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: schedule 3 months from Dec 1 ends Feb 28
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: progress and streak finishing a day counts once; unticking undoes it; streak counts back from today or yesterday
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: progress and streak celebrations change and never repeat the last one
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: reminders partway nudge only when part of today is left
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: reminders nothing for a finished day; morning reminders for the coming days
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: reminders streak reminder in the evening only if nothing is read and there is a streak
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/plan_test.dart: set up a 3-month plan starting today, then finish the day
+lib/screens/home_screen.dart:292:19: Error: The getter '_weekdayNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_weekdayNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                  ^^^^^^^^^^^^^
+lib/screens/home_screen.dart:292:54: Error: The getter '_monthNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_monthNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                                                     ^^^^^^^^^^^
+lib/home/trivia.dart:428:124: Error: Operator '-' cannot be called on 'int?' because it is potentially null.
+                ? 'You’re #$rank — ${above.points - b.me!.points} points behind ${above.name.split(' ').first} for #${rank - 1}'
+                                                                                          ^
+::endgroup::
+::group::❌ loading /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/bible_test.dart (failed)
+Failed to load "/home/runner/work/bethel_mobile_app/bethel_mobile_app/test/bible_test.dart":
+Compilation failed for testPath=/home/runner/work/bethel_mobile_app/bethel_mobile_app/test/bible_test.dart: lib/screens/home_screen.dart:292:19: Error: The getter '_weekdayNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_weekdayNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                  ^^^^^^^^^^^^^
+lib/screens/home_screen.dart:292:54: Error: The getter '_monthNames' isn't defined for the type '_Greeting'.
+ - '_Greeting' is from 'package:bethelprayerhouse/screens/home_screen.dart' ('lib/screens/home_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_monthNames'.
+          Text('${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}', style: t.textTheme.bodySmall),
+                                                     ^^^^^^^^^^^
+lib/home/trivia.dart:428:124: Error: Operator '-' cannot be called on 'int?' because it is potentially null.
+                ? 'You’re #$rank — ${above.points - b.me!.points} points behind ${above.name.split(' ').first} for #${rank - 1}'
+                                                                                                                           ^
+.
+
+::endgroup::
+::group::❌ loading /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_smart_test.dart (failed after test completion)
+Error: The Dart compiler exited unexpectedly.
+package:flutter_tools/src/base/common.dart 36:3  throwToolExit
+package:flutter_tools/src/compile.dart 1029:11   DefaultResidentCompiler._compile.<fn>
+dart:async/future_impl.dart 961:45               Future._propagateToListeners.handleValueCallback
+dart:async/future_impl.dart 990:13               Future._propagateToListeners
+dart:async/future_impl.dart 874:9                Future._propagateToListeners
+dart:async/future_impl.dart 732:5                Future._completeWithValue
+dart:async/future_impl.dart 816:7                Future._asyncCompleteWithValue.<fn>
+dart:async/zone.dart 474:14                      Zone.runGuarded
+dart:async/zone.dart 604:18                      Zone.bindCallbackGuarded.<fn>
+dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+::endgroup::
+::group::✅ Passing tests
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: Sunday 2:40 PM: starting soon goes above the verse, then the final day
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: more than an hour before, no starting-soon card
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: Sunday 3:10 PM: live takes first place
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: Sunday 7 PM: the replay sits right under the verse
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: the replay disappears 24 hours after the stream ended
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: Monday: last week’s winners under the verse, no weekly leaderboard further down
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: ordinary weekday morning
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: weekday evening, everything done: done row at the bottom
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: event today and behind on reading
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: guest: trivia stays (sign in to play), no final day or done row, start a plan last
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: a plan that starts later sits with the browse sections
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/home_order_test.dart: no trivia published: no trivia card
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/notes_test.dart: filter by speaker, date range, book and words
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/notes_test.dart: sermon notes become notes with the speaker and date; clearing removes them
+✅ /home/runner/work/bethel_mobile_app/bethel_mobile_app/test/notes_test.dart: write a note with a speaker and passage, then filter by speaker
+::endgroup::
+
+::error::34 tests passed, 3 failed.
+exit code: 1
