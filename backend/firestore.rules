@@ -118,6 +118,37 @@ service cloud.firestore {
       allow create, delete: if signedIn() && uid == request.auth.uid;
     }
 
+    // ---------------------------------------------------------- daily question
+    // The question of the day (no answer in it), written by publishQuiz.
+    match /quiz/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+    // One answer per member per day, only while that day's question is open. onQuizAnswer
+    // checks it and fills in correct, answer and points.
+    match /quizAnswers/{id} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'date', 'choice'])
+        && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.date + '_' + request.auth.uid
+        && request.resource.data.choice is int
+        && request.resource.data.choice >= 0 && request.resource.data.choice <= 3
+        && exists(/databases/$(database)/documents/quiz/$(request.resource.data.date))
+        && request.time >= get(/databases/$(database)/documents/quiz/$(request.resource.data.date)).data.opensAt
+        && request.time < get(/databases/$(database)/documents/quiz/$(request.resource.data.date)).data.closesAt;
+      allow update, delete: if false;
+    }
+    match /quizStreaks/{uid} {
+      allow read: if signedIn() && uid == request.auth.uid;
+      allow write: if false;
+    }
+    // Weekly leaderboard (full names, as the church chose). Written only by onQuizAnswer.
+    match /leaderboards/{week}/scores/{uid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // ---------------------------------------------------------- people
     // Each person's profile, saved songs and downloads.
     match /users/{uid} {

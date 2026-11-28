@@ -915,6 +915,62 @@ class MockRepository implements BethelRepository {
         GalleryPicture(id: 6, image: 'assets/pray.png', caption: 'Prayer meeting'),
       ]);
 
+  // Demo daily question: the real ones come from the church's server.
+  static const _demoQuiz = [
+    ('Who climbed a sycamore tree to see Jesus?', ['Nicodemus', 'Zacchaeus', 'Bartimaeus', 'Lazarus'], 1, 'Luke 19:1–10'),
+    ('How many loaves fed the five thousand?', ['Two', 'Five', 'Seven', 'Twelve'], 1, 'Matthew 14:17–21'),
+    ('Who was the first king of Israel?', ['David', 'Solomon', 'Saul', 'Samuel'], 2, '1 Samuel 10'),
+  ];
+  final Map<String, int> _quizAnswers = {};
+  int _myPoints = 0;
+
+  String get _today {
+    final d = DateTime.now();
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  DailyQuestion _demoQuestion() {
+    final q = _demoQuiz[DateTime.now().day % _demoQuiz.length];
+    final mine = _quizAnswers[_today];
+    return DailyQuestion(
+      date: _today,
+      question: q.$1,
+      choices: q.$2,
+      week: 'demo',
+      myChoice: mine,
+      correct: mine == null ? null : mine == q.$3,
+      answer: mine == null ? null : q.$3,
+      points: mine == null ? null : (mine == q.$3 ? 14 : 0),
+      ref: mine == null ? '' : q.$4,
+      streak: mine == null ? 0 : 3,
+    );
+  }
+
+  @override
+  Future<DailyQuestion?> dailyQuestion() => _delay(_demoQuestion());
+
+  @override
+  Future<DailyQuestion> answerDailyQuestion(DailyQuestion q, int choice) async {
+    _quizAnswers[_today] = choice;
+    final checked = _demoQuestion();
+    _myPoints += checked.points ?? 0;
+    return _delay(checked);
+  }
+
+  @override
+  Future<Leaderboard> leaderboard({int limit = 10}) {
+    final others = [
+      const LeaderboardEntry(uid: 'a', name: 'Grace Polugari', points: 72, correct: 6, streak: 6),
+      const LeaderboardEntry(uid: 'b', name: 'Samuel Somepalli', points: 58, correct: 5, streak: 4),
+      const LeaderboardEntry(uid: 'c', name: 'Ruth Kumar', points: 44, correct: 4, streak: 2),
+      const LeaderboardEntry(uid: 'd', name: 'Daniel Raju', points: 30, correct: 3, streak: 1),
+      const LeaderboardEntry(uid: 'e', name: 'Esther Paul', points: 20, correct: 2, streak: 1),
+    ];
+    final me = _current == null || _myPoints == 0 ? null : LeaderboardEntry(uid: 'me', name: _current!.name, points: 26 + _myPoints, correct: 3, streak: 3);
+    final all = [...others, if (me != null) me]..sort((a, b) => b.points.compareTo(a.points));
+    return _delay(Leaderboard(week: 'demo', top: all.take(limit).toList(), me: me, myRank: me == null ? null : all.indexOf(me) + 1));
+  }
+
   @override
   Future<List<PrayerRequest>> prayerWall() => _delay(List.of(_wall));
 
