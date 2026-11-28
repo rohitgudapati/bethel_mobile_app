@@ -402,3 +402,51 @@ class ChannelVideo {
   /// A recording of a live stream (a service), not an upload.
   final bool liveRecording;
 }
+
+/// Today's Bible question. [myChoice] is set once answered; [correct], [answer] and
+/// [points] arrive when the church's server has checked it.
+class DailyQuestion {
+  const DailyQuestion({
+    required this.date,
+    required this.question,
+    required this.choices,
+    required this.week,
+    this.myChoice,
+    this.correct,
+    this.answer,
+    this.points,
+    this.ref = '',
+    this.streak = 0,
+  });
+  final String date;
+  final String question;
+  final List<String> choices;
+  final String week;
+  final int? myChoice;
+  final bool? correct;
+  final int? answer;
+  final int? points;
+  final String ref;
+  final int streak;
+
+  bool get answered => myChoice != null;
+  bool get checked => correct != null;
+}
+
+class LeaderboardEntry {
+  const LeaderboardEntry({required this.uid, required this.name, required this.points, this.correct = 0, this.streak = 0});
+  final String uid;
+  final String name;
+  final int points;
+  final int correct;
+  final int streak;
+}
+
+/// This week's leaderboard: the top players and where the signed-in member stands.
+class Leaderboard {
+  const Leaderboard({required this.week, required this.top, this.me, this.myRank});
+  final String week;
+  final List<LeaderboardEntry> top;
+  final LeaderboardEntry? me;
+  final int? myRank;
+}

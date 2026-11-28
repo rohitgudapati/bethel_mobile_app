@@ -99,3 +99,43 @@ test('classifyVideo sorts uploads into songs and testimonies by title, but never
   assert.equal(classifyVideo(up('plain0000001', 'Nee Prema'), inSongs)!.type, 'song', 'a video in a Songs playlist is a song');
   assert.equal(playlistDoc({ id: 'PLsongs', title: 'Worship Songs', thumbnail: '', itemCount: 3 }, 0).kind, 'song');
 });
+
+import { QUESTIONS, addDays, centralDateKey, centralDayBounds, nextStreak, points, questionFor, weekKey } from '../src/quiz';
+
+test('quiz bank: four choices, a valid answer, no repeats', () => {
+  assert.ok(QUESTIONS.length >= 30);
+  assert.equal(new Set(QUESTIONS.map((q) => q.q)).size, QUESTIONS.length);
+  for (const q of QUESTIONS) {
+    assert.equal(q.choices.length, 4, q.q);
+    assert.ok(q.answer >= 0 && q.answer < 4, q.q);
+    assert.equal(new Set(q.choices).size, 4, q.q);
+  }
+});
+
+test('quiz days and weeks follow Central time', () => {
+  assert.equal(centralDateKey(new Date('2026-11-28T05:30:00Z')), '2026-11-27', '11:30 PM Friday in Chicago');
+  assert.equal(centralDateKey(new Date('2026-11-28T06:30:00Z')), '2026-11-28');
+  assert.equal(weekKey('2026-11-28'), '2026-11-23', 'Saturday belongs to the week starting Monday');
+  assert.equal(weekKey('2026-11-30'), '2026-11-30');
+  assert.equal(weekKey('2026-11-29'), '2026-11-23', 'Sunday ends the week');
+  assert.equal(addDays('2026-12-31', 1), '2027-01-01');
+  const { opens, closes } = centralDayBounds('2026-11-28');
+  assert.equal(opens.toISOString(), '2026-11-28T06:00:00.000Z');
+  assert.equal(closes.toISOString(), '2026-11-29T06:00:00.000Z');
+  assert.equal(centralDayBounds('2026-07-04').opens.toISOString(), '2026-07-04T05:00:00.000Z', 'daylight saving');
+});
+
+test('quiz: same question for everyone on a day, a different one the next day', () => {
+  assert.equal(questionFor('2026-11-28'), questionFor('2026-11-28'));
+  assert.notEqual(questionFor('2026-11-28'), questionFor('2026-11-29'));
+});
+
+test('quiz scoring and streaks', () => {
+  assert.equal(points(false, 9), 0);
+  assert.equal(points(true, 1), 10);
+  assert.equal(points(true, 3), 14);
+  assert.equal(points(true, 30), 20, 'bonus caps at 10');
+  assert.equal(nextStreak(undefined, 0, '2026-11-28'), 1);
+  assert.equal(nextStreak('2026-11-27', 4, '2026-11-28'), 5);
+  assert.equal(nextStreak('2026-11-25', 4, '2026-11-28'), 1);
+});

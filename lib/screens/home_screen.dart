@@ -8,6 +8,7 @@ import '../data/models.dart';
 import '../bible/bible_text.dart';
 import '../bible/books.dart';
 import '../widgets/common.dart';
+import '../home/daily_question.dart';
 import '../home/home_sections.dart';
 import 'reading_plan_screen.dart';
 import 'church_screens.dart';
@@ -175,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _StreakCard(onOpenPlan: () => _push(const ReadingPlanScreen())),
       if (data.services.isNotEmpty) ...[gap, ServicesRow(services: data.services)],
       gap,
-      const _FactCard(),
+      const DailyQuestionCard(fallback: _FactCard()),
       if (sermon != null || newAlbum != null) ...[gap, NewAndLatest(album: newAlbum, sermon: sermon)],
       if (data.prayers.isNotEmpty) ...[gap, PrayerPeek(prayers: data.prayers)],
       ..._comingUp(data.events),

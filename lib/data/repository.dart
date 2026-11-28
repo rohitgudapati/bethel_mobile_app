@@ -82,6 +82,16 @@ abstract class BethelRepository {
   /// Public prayer wall. The API has no list endpoint yet, so the API
   /// implementation returns only what this device submitted.
   Future<List<PrayerRequest>> prayerWall();
+
+  /// Today's Bible question (null until the church's server has published one), with this
+  /// member's answer if they've played.
+  Future<DailyQuestion?> dailyQuestion();
+
+  /// Answers today's question; completes once the server has checked it.
+  Future<DailyQuestion> answerDailyQuestion(DailyQuestion q, int choice);
+
+  /// This week's leaderboard.
+  Future<Leaderboard> leaderboard({int limit = 10});
   Future<PrayerRequest> submitPrayer({
     required String name,
     required String email,
